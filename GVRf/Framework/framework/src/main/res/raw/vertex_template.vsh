@@ -3,7 +3,17 @@ uniform mat4 u_view;
 uniform mat4 u_mvp;
 uniform mat4 u_mv;
 uniform mat4 u_mv_it;
+/*
+layout (std140) uniform Transforms_UBO
+{
+	 mat4 u_model;
+	 mat4 u_view;
+	 mat4 u_mvp;
+	 mat4 u_mv;
+	 mat4 u_mv_it;
+};
 
+*/
 in vec3 a_position;
 in vec2 a_texcoord;
 in vec3 a_normal;

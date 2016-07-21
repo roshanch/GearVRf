@@ -29,9 +29,16 @@
 
 #include <sys/time.h>
 
+unsigned char* mat_data =nullptr;
+unsigned char* transforms_data =nullptr;
 namespace gvr {
 CustomShader::CustomShader(const std::string& vertex_shader, const std::string& fragment_shader)
     : vertexShader_(vertex_shader), fragmentShader_(fragment_shader) {
+
+    size_t size = sizeof(glm::vec4)*4 + 2*sizeof(float);
+    mat_data= new unsigned char(size);
+    size = sizeof(glm::mat4) * 5;
+    transforms_data =new unsigned char(size);
 }
 
 
@@ -90,6 +97,7 @@ void CustomShader::initializeOnDemand() {
 	
 
 CustomShader::~CustomShader() {
+    delete mat_data;
     delete program_;
 }
 GLuint CustomShader::getProgramId(){
@@ -260,6 +268,52 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
 
     Mesh* mesh = render_data->mesh();
     glUseProgram(program_->id());
+
+
+ /*   glm::vec4 color = glm::vec4(material->getVec3("color"),1.0);
+    float opacity = material->getFloat("opacity");
+    glm::vec4 material_ambient_color = material->getVec4("ambient_color");
+    glm::vec4 material_diffuse_color = material->getVec4("diffuse_color");
+    glm::vec4 material_specular_color = material->getVec4("specular_color");
+    float material_specular_exponent = material->getFloat("specular_exponent");
+    memcpy(mat_data, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
+    int offset = sizeof(material_ambient_color);
+    memcpy(mat_data + offset, glm::value_ptr(material_diffuse_color), sizeof(material_diffuse_color));
+
+    offset += sizeof(material_diffuse_color);
+    memcpy(mat_data + offset, glm::value_ptr(material_specular_color), sizeof(material_specular_color));
+
+    offset += sizeof(material_specular_color);
+    memcpy(mat_data + offset, glm::value_ptr(color), sizeof(color));
+    offset += sizeof(color);
+    memcpy(mat_data + offset, &opacity, sizeof(opacity));
+    offset += sizeof(opacity);
+    memcpy(mat_data + offset, &material_specular_exponent, sizeof(material_specular_exponent));
+    size_t size = sizeof(glm::vec4)*4 + 2*sizeof(float);
+   // program_->updateMateialUBO(size,mat_data);
+
+
+    offset = 0;
+    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_model), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_mvp), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_view), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_mv), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_mv_it), sizeof(glm::mat4) );
+
+    size = sizeof(glm::mat4) * 5;
+    program_->updateTransformsUBO(size, transforms_data);
+
+*/
+
+    // program_->
     /*
      * Update the bone matrices
      */
