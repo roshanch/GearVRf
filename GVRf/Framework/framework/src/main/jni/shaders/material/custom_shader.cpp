@@ -29,16 +29,16 @@
 
 #include <sys/time.h>
 
-unsigned char* mat_data =nullptr;
-unsigned char* transforms_data =nullptr;
+GLubyte* mat_data =nullptr;
+GLubyte* transforms_data =nullptr;
 namespace gvr {
 CustomShader::CustomShader(const std::string& vertex_shader, const std::string& fragment_shader)
     : vertexShader_(vertex_shader), fragmentShader_(fragment_shader) {
 
-    size_t size = sizeof(glm::vec4)*4 + 2*sizeof(float);
-    mat_data= new unsigned char(size);
+    size_t size = sizeof(glm::vec4)*4 + sizeof(float);
+    mat_data= (GLubyte*)malloc(size);
     size = sizeof(glm::mat4) * 5;
-    transforms_data =new unsigned char(size);
+    transforms_data =(GLubyte*)malloc(sizeof(glm::mat4)*5);
 }
 
 
@@ -48,12 +48,12 @@ void CustomShader::initializeOnDemand() {
         program_ = new GLProgram(vertexShader_.c_str(), fragmentShader_.c_str());
         vertexShader_.clear();
         fragmentShader_.clear();
-        u_mvp_ = glGetUniformLocation(program_->id(), "u_mvp");
-        u_view_ = glGetUniformLocation(program_->id(), "u_view");
-        u_mv_ = glGetUniformLocation(program_->id(), "u_mv");
-        u_mv_it_ = glGetUniformLocation(program_->id(), "u_mv_it");
+        u_mvp_ = glGetUniformLocation(program_->id(), "u_mvp1");
+        u_view_ = glGetUniformLocation(program_->id(), "u_view1");
+        u_mv_ = glGetUniformLocation(program_->id(), "u_mv1");
+        u_mv_it_ = glGetUniformLocation(program_->id(), "u_mv_it1");
         u_right_ = glGetUniformLocation(program_->id(), "u_right");
-        u_model_ = glGetUniformLocation(program_->id(), "u_model");
+        u_model_ = glGetUniformLocation(program_->id(), "u_model1");
         LOGE("Custom shader added program %d", program_->id());
     }
    if (textureVariablesDirty_) {
@@ -97,8 +97,11 @@ void CustomShader::initializeOnDemand() {
 	
 
 CustomShader::~CustomShader() {
-    delete mat_data;
+    free(mat_data);
+    mat_data = nullptr;
     delete program_;
+    free(transforms_data);
+    transforms_data = nullptr;
 }
 GLuint CustomShader::getProgramId(){
 	return program_->id();
@@ -247,7 +250,7 @@ void CustomShader::addUniformMat4Key(const std::string& variable_name,
 
 
 void CustomShader::render(RenderState* rstate, RenderData* render_data, Material* material) {
-	//LOGE(" start of render %s", render_data->owner_object()->name().c_str());
+
 	initializeOnDemand();
     {
         std::lock_guard<std::mutex> lock(textureVariablesLock_);
@@ -270,12 +273,12 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
     glUseProgram(program_->id());
 
 
- /*   glm::vec4 color = glm::vec4(material->getVec3("color"),1.0);
-    float opacity = material->getFloat("opacity");
-    glm::vec4 material_ambient_color = material->getVec4("ambient_color");
-    glm::vec4 material_diffuse_color = material->getVec4("diffuse_color");
+    glm::vec4 material_ambient_color  = material->getVec4("ambient_color");
+    glm::vec4 material_diffuse_color  = material->getVec4("diffuse_color");
     glm::vec4 material_specular_color = material->getVec4("specular_color");
-    float material_specular_exponent = material->getFloat("specular_exponent");
+    glm::vec4 emissive_color          = material->getVec4("emissive_color");
+    float material_specular_exponent  = material->getFloat("specular_exponent");
+
     memcpy(mat_data, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
     int offset = sizeof(material_ambient_color);
     memcpy(mat_data + offset, glm::value_ptr(material_diffuse_color), sizeof(material_diffuse_color));
@@ -284,15 +287,16 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
     memcpy(mat_data + offset, glm::value_ptr(material_specular_color), sizeof(material_specular_color));
 
     offset += sizeof(material_specular_color);
-    memcpy(mat_data + offset, glm::value_ptr(color), sizeof(color));
-    offset += sizeof(color);
-    memcpy(mat_data + offset, &opacity, sizeof(opacity));
-    offset += sizeof(opacity);
+    memcpy(mat_data + offset, glm::value_ptr(emissive_color), sizeof(emissive_color));
+    offset += sizeof(emissive_color);
+
     memcpy(mat_data + offset, &material_specular_exponent, sizeof(material_specular_exponent));
-    size_t size = sizeof(glm::vec4)*4 + 2*sizeof(float);
-   // program_->updateMateialUBO(size,mat_data);
+    size_t size = sizeof(glm::vec4)*4 + 1*sizeof(float);
+    program_->updateMateialUBO(size,mat_data);
 
 
+
+    // Fill the data for transformations
     offset = 0;
     memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_model), sizeof(glm::mat4) );
 
@@ -310,10 +314,9 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
 
     size = sizeof(glm::mat4) * 5;
     program_->updateTransformsUBO(size, transforms_data);
+  //  LOGE("passed this point");
 
-*/
 
-    // program_->
     /*
      * Update the bone matrices
      */
@@ -338,19 +341,19 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
     /*
      * Update values of uniform variables
      */
-    {
+/*    {
         std::lock_guard<std::mutex> lock(uniformVariablesLock_);
         for (auto it = uniformVariables_.begin(); it != uniformVariables_.end(); ++it) {
             auto d = *it;
             try {
-                d.variableType.f_bind(*material, d.location);
+                    d.variableType.f_bind(*material, d.location);
             } catch(const std::string& exc) {
+
                 //the keys defined for this shader might not have been used by the material yet
             }
         }
     }
-
-    if (u_model_ != -1){
+*/ /*   if (u_model_ != -1){
     	glUniformMatrix4fv(u_model_, 1, GL_FALSE, glm::value_ptr(rstate->uniforms.u_model));
     }
     if (u_mvp_ != -1) {
@@ -368,7 +371,7 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
     if (u_right_ != 0) {
         glUniform1i(u_right_, rstate->uniforms.u_right ? 1 : 0);
     }
-    /*
+  */  /*
      * Bind textures
      */
     int texture_index = 0;
@@ -398,6 +401,7 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
     if (castShadow){
     	Light::bindShadowMap(program_->id(), texture_index);
     }
+
     checkGlError("CustomShader::render");
 }
 

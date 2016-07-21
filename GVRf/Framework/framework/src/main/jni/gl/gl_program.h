@@ -49,11 +49,13 @@ public:
         bind_index_ = bind_index;
         glUniformBlockBinding(program_id, block_index_, bind_index_);
         glBindBufferBase(GL_UNIFORM_BUFFER, bind_index_, buffer_id_);
+        checkGLError("after create buffer");
     }
     void updateBuffer(size_t size, unsigned char* data){
 
         glBindBuffer(GL_UNIFORM_BUFFER, buffer_id_);
         glBufferData(GL_UNIFORM_BUFFER, size, data, GL_DYNAMIC_DRAW);
+        checkGLError("after data supplied");
     }
     GLuint getId(){
         return buffer_id_;

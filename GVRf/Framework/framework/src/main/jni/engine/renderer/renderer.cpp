@@ -754,6 +754,7 @@ void Renderer::renderMaterialShader(RenderState& rstate, RenderData* render_data
                  glLineWidth(1.0f);
              }
          }
+
          shader->render(&rstate, render_data, curr_material);
     } catch (const std::string &error) {
         LOGE(

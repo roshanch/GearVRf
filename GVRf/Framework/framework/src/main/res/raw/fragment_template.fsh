@@ -1,8 +1,18 @@
 precision highp float;
 precision highp sampler2DArray;
+/*
+uniform mat4 u_view1;
+uniform mat4 u_model1;
+*/
 
-uniform mat4 u_view;
-uniform mat4 u_model;
+layout (std140) uniform Transforms_UBO
+{
+	 mat4 u_model;
+	 mat4 u_mvp;
+	 mat4 u_view;
+	 mat4 u_mv;
+	 mat4 u_mv_it;
+};
 in vec3 viewspace_position;
 in vec3 viewspace_normal;
 in vec4 local_position;
