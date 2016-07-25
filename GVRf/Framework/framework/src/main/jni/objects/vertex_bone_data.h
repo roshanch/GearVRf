@@ -46,6 +46,9 @@ public:
         return bones.size();
     }
 
+    const std::vector<glm::mat4>& getBoneMatrices(){
+        return boneMatrices;
+    }
     glm::mat4 getFinalBoneTransform(int boneId) {
         return boneMatrices[boneId];
     }

@@ -2,9 +2,9 @@
    mat3 tbnmtx = mat3(a_tangent, a_bitangent, vertex.local_normal.xyz);
 
 #ifdef HAS_MULTIVIEW
-   mat3 wtts = tbnmtx * mat3(u_mv_it_[gl_ViewID_OVR]);
+   mat3 wtts = tbnmtx * mat3(u_mv_it[gl_ViewID_OVR]);
 #else
-   mat3 wtts = tbnmtx * mat3(u_mv_it);
+   mat3 wtts = tbnmtx * mat3(u_mv_it[0]);
 #endif
    vec3 d = wtts * -vertex.viewspace_position;
    vertex.view_direction = normalize(d);

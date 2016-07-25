@@ -28,12 +28,81 @@
 
 #include "util/gvr_log.h"
 #include "util/gvr_gl.h"
+#define MATERIAL_UBO_INDEX 0
+#define LIGHT_UBO_INDEX 1
+#define TRANSFORM_UBO_INDEX 2
+#define BONE_UBO_INDEX  3
 
 namespace gvr {
-class GLProgram {
+class UBO{
+private:
+    GLuint bind_index_;
+    GLuint buffer_id_;
+    GLuint block_index_ ;
 public:
+    void createBuffer(size_t size, GLuint program_id, const char* block_name, int bind_index){
+        glGenBuffers(1,&buffer_id_);
+        glBindBuffer(GL_UNIFORM_BUFFER, buffer_id_);
+        glBufferData(GL_UNIFORM_BUFFER, size, NULL, GL_DYNAMIC_DRAW);
+        block_index_ = glGetUniformBlockIndex(program_id,
+                block_name);
+
+        bind_index_ = bind_index;
+        glUniformBlockBinding(program_id, block_index_, bind_index_);
+        glBindBufferBase(GL_UNIFORM_BUFFER, bind_index_, buffer_id_);
+        checkGLError("after create buffer");
+    }
+    void updateBuffer(size_t size, unsigned char* data){
+
+        glBindBuffer(GL_UNIFORM_BUFFER, buffer_id_);
+        glBufferData(GL_UNIFORM_BUFFER, size, data, GL_DYNAMIC_DRAW);
+        checkGLError("after data supplied");
+    }
+    GLuint getId(){
+        return buffer_id_;
+    }
+    GLuint getBlockIndex(){
+        return block_index_;
+    }
+};
+class GLProgram {
+    UBO* material_ubo_;
+    UBO* light_ubo_;
+    UBO* transform_ubo_;
+    UBO* bones_ubo_;
+public:
+    void updateMaterialTransformUBO(size_t size, unsigned char* data){
+        if(material_ubo_ == nullptr){
+            material_ubo_ = new UBO();
+            material_ubo_->createBuffer(size, id_, "Material_UBO", MATERIAL_UBO_INDEX);
+        }
+        material_ubo_->updateBuffer(size, data);
+    }
+    void updateTransformsUBO(size_t size, unsigned char* data){
+        if(transform_ubo_ == nullptr){
+            transform_ubo_ = new UBO();
+            transform_ubo_->createBuffer(size, id_, "Transforms_UBO", TRANSFORM_UBO_INDEX);
+        }
+        transform_ubo_->updateBuffer(size, data);
+    }
+    void updateBonesUBO(size_t size,unsigned char* data ){
+        if(bones_ubo_ == nullptr){
+            bones_ubo_ = new UBO();
+            bones_ubo_->createBuffer(size, id_, "Bones_UBO", BONE_UBO_INDEX);
+        }
+        bones_ubo_->updateBuffer(size, data);
+    }
+/*    void updateLightUBO(size_t size, unsigned char* data){
+        if(light_ubo_ == nullptr){
+            light_ubo_ = new UBO();
+            light_ubo_->createBuffer(size, id_, "light_UBO", TRANSFORM_UBO_INDEX);
+        }
+        light_ubo_->updateBuffer(size, data);
+    }
+*/
     GLProgram(const char* pVertexSourceStrings,
-            const char* pFragmentSourceStrings) {
+            const char* pFragmentSourceStrings): material_ubo_(nullptr), light_ubo_(nullptr),
+                    transform_ubo_(nullptr), bones_ubo_(nullptr) {
         deleter_ = getDeleterForThisThread();
 
         GLint vertex_shader_string_lengths[1] = { (GLint) strlen(
@@ -49,7 +118,8 @@ public:
     GLProgram(const char** pVertexSourceStrings,
             const GLint* pVertexSourceStringLengths,
             const char** pFragmentSourceStrings,
-            const GLint* pFragmentSourceStringLengths, int count) :
+            const GLint* pFragmentSourceStringLengths, int count)
+            : material_ubo_(nullptr), light_ubo_(nullptr), transform_ubo_(nullptr),
             id_(
                     createProgram(count, pVertexSourceStrings,
                             pVertexSourceStringLengths, pFragmentSourceStrings,

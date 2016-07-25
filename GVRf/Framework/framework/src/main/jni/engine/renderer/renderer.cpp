@@ -1054,6 +1054,7 @@ void Renderer::renderMaterialShader(RenderState& rstate, RenderData* render_data
                  glLineWidth(1.0f);
              }
          }
+
          shader->render(&rstate, render_data, curr_material);
     } catch (const std::string &error) {
         LOGE(
@@ -1063,7 +1064,7 @@ void Renderer::renderMaterialShader(RenderState& rstate, RenderData* render_data
         shader_manager->getErrorShader()->render(&rstate, render_data, curr_material);
     }
     programId = shader->getProgramId();
-
+    mesh->setCurrentUVIndex(int(curr_material->getFloat("uvIndex")));
     glBindVertexArray(mesh->getVAOId(programId));
     if (mesh->indices().size() > 0) {
         if(use_multiview)

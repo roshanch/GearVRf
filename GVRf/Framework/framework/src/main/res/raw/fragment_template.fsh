@@ -1,15 +1,19 @@
 precision highp float;
 precision highp sampler2DArray;
 
-#ifdef HAS_MULTIVIEW
-	flat in int view_id;
-	uniform mat4 u_view_[2];
-#else
-    uniform mat4 u_view; 
-#endif
+layout (std140) uniform Material_UBO {
+	 mat4 u_model;
+	 mat4 u_mvp[2];
+	 mat4 u_view[2];
+	 mat4 u_mv[2];
+	 mat4 u_mv_it[2];
+	 vec4 ambient_color;
+	 vec4 diffuse_color;
+	 vec4 specular_color;
+	 vec4 emissive_color;
+	 float specular_exponent;
 
-
-uniform mat4 u_model;
+};
 in vec3 viewspace_position;
 in vec3 viewspace_normal;
 in vec4 local_position;

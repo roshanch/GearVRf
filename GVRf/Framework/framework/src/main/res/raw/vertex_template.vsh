@@ -1,20 +1,23 @@
+layout (std140) uniform Material_UBO {
+	 mat4 u_model;
+	 mat4 u_mvp[2];
+	 mat4 u_view[2];
+	 mat4 u_mv[2];
+	 mat4 u_mv_it[2];
+	 vec4 ambient_color;
+	 vec4 diffuse_color;
+	 vec4 specular_color;
+	 vec4 emissive_color;
+	 float specular_exponent;
 
-#ifdef HAS_MULTIVIEW
-#extension GL_OVR_multiview2 : enable
-layout(num_views = 2) in;
-uniform mat4 u_view_[2];
-uniform mat4 u_mvp_[2];
-uniform mat4 u_mv_[2];
-uniform mat4 u_mv_it_[2];
-flat out int view_id;
-#else
-uniform mat4 u_view;
-uniform mat4 u_mvp;
-uniform mat4 u_mv;
-uniform mat4 u_mv_it;
-#endif	
+};
 
-uniform mat4 u_model;
+layout (std140) uniform Bones_UBO 
+{
+	mat4 u_bone_matrix[60];
+
+};
+
 in vec3 a_position;
 in vec2 a_texcoord;
 in vec3 a_normal;
@@ -25,10 +28,7 @@ in vec3 a_normal;
 // shadow mapping uses more uniforms
 // so we dont get as many bones
 //
-uniform mat4 u_bone_matrix[50];
-#else
-uniform mat4 u_bone_matrix[60];
-#endif
+
 in vec4 a_bone_weights;
 in ivec4 a_bone_indices;
 #endif
@@ -78,8 +78,8 @@ void main() {
 	view_direction = vertex.view_direction;
 #ifdef HAS_MULTIVIEW
 	view_id = int(gl_ViewID_OVR);
-	gl_Position = u_mvp_[gl_ViewID_OVR] * vertex.local_position;
+	gl_Position = u_mvp[gl_ViewID_OVR] * vertex.local_position;
 #else
-	gl_Position = u_mvp * vertex.local_position;	
+	gl_Position = u_mvp[0] * vertex.local_position;	
 #endif	
 }
