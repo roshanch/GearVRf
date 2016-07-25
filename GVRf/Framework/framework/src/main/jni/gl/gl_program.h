@@ -31,6 +31,7 @@
 #define MATERIAL_UBO_INDEX 0
 #define LIGHT_UBO_INDEX 1
 #define TRANSFORM_UBO_INDEX 2
+#define BONE_UBO_INDEX  3
 
 namespace gvr {
 class UBO{
@@ -68,9 +69,9 @@ class GLProgram {
     UBO* material_ubo_;
     UBO* light_ubo_;
     UBO* transform_ubo_;
-
+    UBO* bones_ubo_;
 public:
-    void updateMateialUBO(size_t size, unsigned char* data){
+    void updateMaterialTransformUBO(size_t size, unsigned char* data){
         if(material_ubo_ == nullptr){
             material_ubo_ = new UBO();
             material_ubo_->createBuffer(size, id_, "Material_UBO", MATERIAL_UBO_INDEX);
@@ -84,6 +85,13 @@ public:
         }
         transform_ubo_->updateBuffer(size, data);
     }
+    void updateBonesUBO(size_t size,unsigned char* data ){
+        if(bones_ubo_ == nullptr){
+            bones_ubo_ = new UBO();
+            bones_ubo_->createBuffer(size, id_, "Bones_UBO", BONE_UBO_INDEX);
+        }
+        bones_ubo_->updateBuffer(size, data);
+    }
 /*    void updateLightUBO(size_t size, unsigned char* data){
         if(light_ubo_ == nullptr){
             light_ubo_ = new UBO();
@@ -93,7 +101,8 @@ public:
     }
 */
     GLProgram(const char* pVertexSourceStrings,
-            const char* pFragmentSourceStrings): material_ubo_(nullptr), light_ubo_(nullptr), transform_ubo_(nullptr) {
+            const char* pFragmentSourceStrings): material_ubo_(nullptr), light_ubo_(nullptr),
+                    transform_ubo_(nullptr), bones_ubo_(nullptr) {
         deleter_ = getDeleterForThisThread();
 
         GLint vertex_shader_string_lengths[1] = { (GLint) strlen(

@@ -29,16 +29,14 @@
 
 #include <sys/time.h>
 
-GLubyte* mat_data =nullptr;
-GLubyte* transforms_data =nullptr;
+GLubyte* material_transform_data =nullptr;
+
 namespace gvr {
 CustomShader::CustomShader(const std::string& vertex_shader, const std::string& fragment_shader)
     : vertexShader_(vertex_shader), fragmentShader_(fragment_shader) {
 
-    size_t size = sizeof(glm::vec4)*4 + sizeof(float);
-    mat_data= (GLubyte*)malloc(size);
-    size = sizeof(glm::mat4) * 5;
-    transforms_data =(GLubyte*)malloc(sizeof(glm::mat4)*5);
+    size_t size = sizeof(glm::vec4)*4 + sizeof(float) + sizeof(glm::mat4) * 5;
+    material_transform_data= (GLubyte*)malloc(size);
 }
 
 
@@ -97,11 +95,9 @@ void CustomShader::initializeOnDemand() {
 	
 
 CustomShader::~CustomShader() {
-    free(mat_data);
-    mat_data = nullptr;
+    free(material_transform_data);
+    material_transform_data = nullptr;
     delete program_;
-    free(transforms_data);
-    transforms_data = nullptr;
 }
 GLuint CustomShader::getProgramId(){
 	return program_->id();
@@ -248,7 +244,47 @@ void CustomShader::addUniformMat4Key(const std::string& variable_name,
     addUniformKey(variable_name, key, f);
 }
 
+void CustomShader::updateUbos(Material* material, RenderState* rstate){
+    glm::vec4 material_ambient_color  = material->getVec4("ambient_color");
+    glm::vec4 material_diffuse_color  = material->getVec4("diffuse_color");
+    glm::vec4 material_specular_color = material->getVec4("specular_color");
+    glm::vec4 emissive_color          = material->getVec4("emissive_color");
+    float material_specular_exponent  = material->getFloat("specular_exponent");
 
+    int offset = 0;
+    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_model), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mvp), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_view), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mv), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mv_it), sizeof(glm::mat4) );
+
+    offset +=sizeof(glm::mat4);
+    memcpy(material_transform_data, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
+
+    offset += sizeof(material_ambient_color);
+    memcpy(material_transform_data + offset, glm::value_ptr(material_diffuse_color), sizeof(material_diffuse_color));
+
+    offset += sizeof(material_diffuse_color);
+    memcpy(material_transform_data + offset, glm::value_ptr(material_specular_color), sizeof(material_specular_color));
+
+    offset += sizeof(material_specular_color);
+    memcpy(material_transform_data + offset, glm::value_ptr(emissive_color), sizeof(emissive_color));
+
+    offset += sizeof(emissive_color);
+    memcpy(material_transform_data + offset, &material_specular_exponent, sizeof(material_specular_exponent));
+
+    size_t size = sizeof(glm::vec4)*4 + 1*sizeof(float) + sizeof(glm::mat4) * 5 ;
+    program_->updateMaterialTransformUBO(size,material_transform_data);
+
+}
 void CustomShader::render(RenderState* rstate, RenderData* render_data, Material* material) {
 
 	initializeOnDemand();
@@ -267,55 +303,11 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
             }
         }
     }
-   // LOGE("rendering %s with program %d", render_data->owner_object()->name().c_str(), program_->id());
 
     Mesh* mesh = render_data->mesh();
     glUseProgram(program_->id());
 
-
-    glm::vec4 material_ambient_color  = material->getVec4("ambient_color");
-    glm::vec4 material_diffuse_color  = material->getVec4("diffuse_color");
-    glm::vec4 material_specular_color = material->getVec4("specular_color");
-    glm::vec4 emissive_color          = material->getVec4("emissive_color");
-    float material_specular_exponent  = material->getFloat("specular_exponent");
-
-    memcpy(mat_data, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
-    int offset = sizeof(material_ambient_color);
-    memcpy(mat_data + offset, glm::value_ptr(material_diffuse_color), sizeof(material_diffuse_color));
-
-    offset += sizeof(material_diffuse_color);
-    memcpy(mat_data + offset, glm::value_ptr(material_specular_color), sizeof(material_specular_color));
-
-    offset += sizeof(material_specular_color);
-    memcpy(mat_data + offset, glm::value_ptr(emissive_color), sizeof(emissive_color));
-    offset += sizeof(emissive_color);
-
-    memcpy(mat_data + offset, &material_specular_exponent, sizeof(material_specular_exponent));
-    size_t size = sizeof(glm::vec4)*4 + 1*sizeof(float);
-    program_->updateMateialUBO(size,mat_data);
-
-
-
-    // Fill the data for transformations
-    offset = 0;
-    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_model), sizeof(glm::mat4) );
-
-    offset +=sizeof(glm::mat4);
-    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_mvp), sizeof(glm::mat4) );
-
-    offset +=sizeof(glm::mat4);
-    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_view), sizeof(glm::mat4) );
-
-    offset +=sizeof(glm::mat4);
-    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_mv), sizeof(glm::mat4) );
-
-    offset +=sizeof(glm::mat4);
-    memcpy(transforms_data+ offset,glm::value_ptr(rstate->uniforms.u_mv_it), sizeof(glm::mat4) );
-
-    size = sizeof(glm::mat4) * 5;
-    program_->updateTransformsUBO(size, transforms_data);
-  //  LOGE("passed this point");
-
+    updateUbos(material,rstate);
 
     /*
      * Update the bone matrices
@@ -332,46 +324,13 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
         int nBones = mesh->getVertexBoneData().getNumBones();
         if (nBones > MAX_BONES)
             nBones = MAX_BONES;
-        for (int i = 0; i < nBones; ++i) {
-            finalTransform = mesh->getVertexBoneData().getFinalBoneTransform(i);
-            glUniformMatrix4fv(u_bone_matrices + i, 1, GL_FALSE, glm::value_ptr(finalTransform));
-        }
+        const std::vector<glm::mat4>& bone_matrices = mesh->getVertexBoneData().getBoneMatrices();
+        GLubyte* boneData = (GLubyte*)&bone_matrices[0][0][0];
+       // LOGE(" size of bones is %d no of bones are %d", sizeof(bone_matrices), nBones);
+        program_->updateBonesUBO(sizeof(glm::mat4)* nBones, boneData);
         checkGlError("CustomShader after bones");
     }
-    /*
-     * Update values of uniform variables
-     */
-/*    {
-        std::lock_guard<std::mutex> lock(uniformVariablesLock_);
-        for (auto it = uniformVariables_.begin(); it != uniformVariables_.end(); ++it) {
-            auto d = *it;
-            try {
-                    d.variableType.f_bind(*material, d.location);
-            } catch(const std::string& exc) {
-
-                //the keys defined for this shader might not have been used by the material yet
-            }
-        }
-    }
-*/ /*   if (u_model_ != -1){
-    	glUniformMatrix4fv(u_model_, 1, GL_FALSE, glm::value_ptr(rstate->uniforms.u_model));
-    }
-    if (u_mvp_ != -1) {
-        glUniformMatrix4fv(u_mvp_, 1, GL_FALSE, glm::value_ptr(rstate->uniforms.u_mvp));
-    }
-    if (u_view_ != -1) {
-        glUniformMatrix4fv(u_view_, 1, GL_FALSE, glm::value_ptr(rstate->uniforms.u_view));
-    }
-    if (u_mv_ != -1) {
-        glUniformMatrix4fv(u_mv_, 1, GL_FALSE, glm::value_ptr(rstate->uniforms.u_mv));
-    }
-    if (u_mv_it_ != -1) {
-        glUniformMatrix4fv(u_mv_it_, 1, GL_FALSE, glm::value_ptr(rstate->uniforms.u_mv_it));
-    }
-    if (u_right_ != 0) {
-        glUniform1i(u_right_, rstate->uniforms.u_right ? 1 : 0);
-    }
-  */  /*
+  /*
      * Bind textures
      */
     int texture_index = 0;

@@ -4,6 +4,7 @@ uniform mat4 u_mvp1;
 uniform mat4 u_mv1;
 uniform mat4 u_mv_it1;
 */
+/*
 layout (std140) uniform Transforms_UBO
 {
 	 mat4 u_model;
@@ -12,7 +13,26 @@ layout (std140) uniform Transforms_UBO
 	 mat4 u_mv;
 	 mat4 u_mv_it;
 };
+*/
+layout (std140) uniform Material_UBO {
+	 mat4 u_model;
+	 mat4 u_mvp;
+	 mat4 u_view;
+	 mat4 u_mv;
+	 mat4 u_mv_it;
+	 vec4 ambient_color;
+	 vec4 diffuse_color;
+	 vec4 specular_color;
+	 vec4 emissive_color;
+	 float specular_exponent;
 
+};
+
+layout (std140) uniform Bones_UBO 
+{
+	mat4 u_bone_matrix[60];
+
+};
 
 in vec3 a_position;
 in vec2 a_texcoord;
@@ -24,9 +44,9 @@ in vec3 a_normal;
 // shadow mapping uses more uniforms
 // so we dont get as many bones
 //
-uniform mat4 u_bone_matrix[50];
+uniform mat4 u_bone_matrix1[50];
 #else
-uniform mat4 u_bone_matrix[60];
+uniform mat4 u_bone_matrix1[60];
 #endif
 in vec4 a_bone_weights;
 in ivec4 a_bone_indices;

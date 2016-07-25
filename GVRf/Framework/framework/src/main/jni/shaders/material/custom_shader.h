@@ -49,7 +49,7 @@ public:
     explicit CustomShader(const std::string& vertex_shader,
             const std::string& fragment_shader);
     virtual ~CustomShader();
-
+    void updateUbos(Material* mat, RenderState* rstate);
     void addTextureKey(const std::string& variable_name, const std::string& key);
 
     void addAttributeFloatKey(const std::string& variable_name, const std::string& key);

@@ -7,17 +7,6 @@ uniform sampler2D lightmapTexture;
 uniform sampler2D emissiveTexture;
 uniform sampler2D normalTexture;
 
-layout (std140) uniform Material_UBO {
-
-	 vec4 ambient_color;
-	 vec4 diffuse_color;
-	 vec4 specular_color;
-	 vec4 emissive_color;
-	 float specular_exponent;
-
-};
-
-
 uniform vec4 ambient_color1;
 uniform vec4 diffuse_color1;
 uniform vec4 specular_color1;
