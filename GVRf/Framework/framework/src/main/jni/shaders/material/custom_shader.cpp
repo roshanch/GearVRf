@@ -259,16 +259,16 @@ void CustomShader::updateUbos(Material* material, RenderState* rstate){
     offset +=sizeof(glm::mat4);
     memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mvp_[0]), sizeof(glm::mat4) *2 );
 
-    offset +=sizeof(glm::mat4);
+    offset +=2*sizeof(glm::mat4);
     memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_view_[0]), sizeof(glm::mat4)*2 );
 
-    offset +=sizeof(glm::mat4);
+    offset +=2*sizeof(glm::mat4);
     memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mv_[0]), sizeof(glm::mat4)*2 );
 
-    offset +=sizeof(glm::mat4);
+    offset +=2*sizeof(glm::mat4);
     memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mv_it_[0]), sizeof(glm::mat4)*2 );
 
-    offset +=sizeof(glm::mat4);
+    offset +=2*sizeof(glm::mat4);
     memcpy(material_transform_data, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
 
     offset += sizeof(material_ambient_color);
@@ -307,9 +307,9 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
     }
     if(!rstate->use_multiview){
         rstate->uniforms.u_view_[0] = rstate->uniforms.u_view;
-        rstate->uniforms.u_mv_[0] = rstate->uniforms.u_view * rstate->uniforms.u_model;
-        rstate->uniforms.u_mv_it_[0] = glm::inverseTranspose(rstate->uniforms.u_mv);
-        rstate->uniforms.u_mvp_[0] = rstate->uniforms.u_proj * rstate->uniforms.u_mv;
+        rstate->uniforms.u_mv_[0] = rstate->uniforms.u_mv;
+        rstate->uniforms.u_mv_it_[0] = rstate->uniforms.u_mv_it;
+        rstate->uniforms.u_mvp_[0] = rstate->uniforms.u_mvp;
     }
     Mesh* mesh = render_data->mesh();
     glUseProgram(program_->id());

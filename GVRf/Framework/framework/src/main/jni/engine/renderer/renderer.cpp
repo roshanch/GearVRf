@@ -444,7 +444,7 @@ void Renderer::renderbatches(RenderState& rstate) {
         RenderData* renderdata = batch->get_renderdata();
         const std::vector<glm::mat4>& matrices = batch->get_matrices();
         numberDrawCalls++;
-        batch->setupMesh();
+        batch->setupMesh(rstate.material_override);
         setRenderStates(renderdata, rstate);
 
         if(use_multiview){
@@ -1065,6 +1065,7 @@ void Renderer::renderMaterialShader(RenderState& rstate, RenderData* render_data
     }
     programId = shader->getProgramId();
     mesh->setCurrentUVIndex(int(curr_material->getFloat("uvIndex")));
+  //  LOGE("uvindex = %f ", curr_material->getFloat("uvIndex"));
     glBindVertexArray(mesh->getVAOId(programId));
     if (mesh->indices().size() > 0) {
         if(use_multiview)

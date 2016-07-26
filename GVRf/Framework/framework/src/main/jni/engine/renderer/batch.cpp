@@ -27,9 +27,9 @@ Batch::Batch(int no_vertices, int no_indices) :
         index_offset_(0), not_batched_(false) {
 
     vertices_.reserve(no_vertices);
+    tex_coords_.reserve(no_vertices);
     indices_.reserve(no_indices);
     normals_.reserve(no_vertices);
-    tex_coords_.reserve(no_vertices);
     matrix_indices_.reserve(no_vertices);
 }
 
@@ -96,7 +96,7 @@ bool Batch::add(RenderData *render_data) {
 
     const std::vector<glm::vec3>& vertices = render_mesh->vertices();
     const std::vector<glm::vec3>& normals = render_mesh->normals();
-    const std::vector<glm::vec2>& tex_coords = render_mesh->tex_coords();
+    const std::vector<glm::vec2>& tex_cords = render_mesh->tex_coords(int(material_->getFloat("uvIndex")));
     int size = 0;
 
     size = vertices.size();
@@ -104,8 +104,8 @@ bool Batch::add(RenderData *render_data) {
     for(int i=0;i<size;i++){
         vertices_.push_back(vertices[i]);
         normals_.push_back(normals[i]);
-        tex_coords_.push_back(tex_coords[i]);
         matrix_indices_.push_back(draw_count_);
+        tex_coords_.push_back(tex_cords[i]);
     }
 
     size = indices.size();
@@ -125,15 +125,18 @@ bool Batch::add(RenderData *render_data) {
     return true;
 }
 
-void Batch::setupMesh(){
+void Batch::setupMesh(Material* mat){
     if(!mesh_init_){
         mesh_init_ = true;
         mesh_.set_vertices(vertices_);
         mesh_.set_normals(normals_);
-        mesh_.set_tex_coords(tex_coords_);
+        int uvIndex = int(mat->getFloat("uvIndex"));
+        mesh_.set_tex_coords(tex_coords_,uvIndex);
         mesh_.set_indices(indices_);
         mesh_.setFloatVector("a_matrix_index", matrix_indices_);
+        mesh_.setCurrentUVIndex(uvIndex);
         renderdata_->set_mesh(&mesh_);
+
     }
 }
 /*

@@ -203,6 +203,9 @@ void TextureShader::initUniforms(int feature_set, GLuint program_id,uniforms& lo
 void TextureShader::programInit(RenderState* rstate, RenderData* render_data, Material* material,
         const std::vector<glm::mat4>& model_matrix,int drawcount, bool batching){
 
+    if(!material->isMainTextureReady())
+        return;
+
     Texture* texture = material->getTexture("main_texture");
     glm::vec3 color = material->getVec3("color");
     float opacity = material->getFloat("opacity");

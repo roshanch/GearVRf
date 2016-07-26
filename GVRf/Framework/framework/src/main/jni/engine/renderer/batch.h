@@ -24,6 +24,7 @@
 #include <string>
 #include <set>
 #include<unordered_set>
+#define MAX_TEXCORDS 8
 namespace gvr{
 
 class RenderData;
@@ -40,7 +41,7 @@ public:
 			matrices_[matrix_index_map_[renderdata]] = model_matrix;
 		}
 	}
-	void setupMesh();
+	void setupMesh(Material*);
 	void removeRenderData(RenderData* renderdata){
 		render_data_set_.erase(renderdata);
 	}
