@@ -1,12 +1,20 @@
+
+#define HAS_BATCHING
+#ifdef HAS_MULTIVIEW
+flat in int view_id;
+#endif
+
 precision highp float;
 precision highp sampler2DArray;
 
 layout (std140) uniform Material_UBO {
-	 mat4 u_model;
-	 mat4 u_mvp[2];
+#ifdef HAS_BATCHING
+	mat4 u_model[60]; 
+#else
+	mat4 u_model; 
+#endif	
+	 mat4 u_proj;
 	 mat4 u_view[2];
-	 mat4 u_mv[2];
-	 mat4 u_mv_it[2];
 	 vec4 ambient_color;
 	 vec4 diffuse_color;
 	 vec4 specular_color;
@@ -14,6 +22,7 @@ layout (std140) uniform Material_UBO {
 	 float specular_exponent;
 
 };
+
 in vec3 viewspace_position;
 in vec3 viewspace_normal;
 in vec4 local_position;

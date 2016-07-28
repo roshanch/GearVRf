@@ -1,9 +1,19 @@
+
+#define HAS_BATCHING
+#ifdef HAS_MULTIVIEW
+#extension GL_OVR_multiview2 : enable
+layout(num_views = 2) in;
+flat out int view_id;
+#endif
+
 layout (std140) uniform Material_UBO {
-	 mat4 u_model;
-	 mat4 u_mvp[2];
+#ifdef HAS_BATCHING
+	mat4 u_model[60]; 
+#else
+	mat4 u_model; 
+#endif	
+	 mat4 u_proj;
 	 mat4 u_view[2];
-	 mat4 u_mv[2];
-	 mat4 u_mv_it[2];
 	 vec4 ambient_color;
 	 vec4 diffuse_color;
 	 vec4 specular_color;
@@ -21,6 +31,10 @@ layout (std140) uniform Bones_UBO
 in vec3 a_position;
 in vec2 a_texcoord;
 in vec3 a_normal;
+
+#ifdef HAS_BATCHING
+in float a_matrix_index;
+#endif
 
 #ifdef HAS_VertexSkinShader
 in vec4 a_bone_weights;
@@ -56,6 +70,24 @@ void main() {
 
 	vertex.local_position = vec4(a_position.xyz, 1.0);
 	vertex.local_normal = vec4(0.0, 0.0, 1.0, 0.0);
+	mat4 model_matrix;
+
+mat4 view_matrix;
+#ifdef HAS_MULTIVIEW
+	view_id = int(gl_ViewID_OVR);
+    view_matrix = u_view[gl_ViewID_OVR];
+#else
+    view_matrix = u_view[0];    
+#endif
+
+#ifdef HAS_BATCHING
+	int index =int(a_matrix_index);
+    model_matrix = u_model[index];
+#else
+	 model_matrix = u_model;
+#endif
+mat4 mv = view_matrix * model_matrix;
+
 	@VertexShader
 #ifdef HAS_VertexSkinShader
 	@VertexSkinShader
@@ -70,10 +102,7 @@ void main() {
 	viewspace_position = vertex.viewspace_position;
 	viewspace_normal = vertex.viewspace_normal;
 	view_direction = vertex.view_direction;
-#ifdef HAS_MULTIVIEW
-	view_id = int(gl_ViewID_OVR);
-	gl_Position = u_mvp[gl_ViewID_OVR] * vertex.local_position;
-#else
-	gl_Position = u_mvp[0] * vertex.local_position;	
-#endif	
+
+	gl_Position = u_proj * mv * vertex.local_position;
+
 }

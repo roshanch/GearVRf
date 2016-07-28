@@ -30,17 +30,18 @@
 #include <sys/time.h>
 
 GLubyte* material_transform_data =nullptr;
-
+#define BATCH_SIZE 60
 namespace gvr {
 CustomShader::CustomShader(const std::string& vertex_shader, const std::string& fragment_shader)
     : vertexShader_(vertex_shader), fragmentShader_(fragment_shader) {
 
-    size_t size = sizeof(glm::vec4)*4 + sizeof(float) + sizeof(glm::mat4) * 5 + sizeof(glm::mat4) * 4;
-    material_transform_data= (GLubyte*)malloc(size);
 }
 void CustomShader::initializeOnDemand(RenderState* rstate) {
     if (nullptr == program_)
     {
+        size_t size = sizeof(glm::vec4)*4 + sizeof(float) + sizeof(glm::mat4) * 3 + sizeof(glm::mat4) * (do_batching ? BATCH_SIZE : 1);
+        material_transform_data= (GLubyte*)malloc(size);
+
         program_ = new GLProgram(vertexShader_.c_str(), fragmentShader_.c_str());
         if(rstate->use_multiview && !(strstr(vertexShader_.c_str(),"gl_ViewID_OVR")
                 && strstr(vertexShader_.c_str(),"GL_OVR_multiview2")
@@ -246,7 +247,7 @@ void CustomShader::addUniformMat4Key(const std::string& variable_name,
     addUniformKey(variable_name, key, f);
 }
 
-void CustomShader::updateUbos(Material* material, RenderState* rstate){
+void CustomShader::updateUbos(Material* material, RenderState* rstate, const std::vector<glm::mat4>& model_matrices, int draw_count){
     glm::vec4 material_ambient_color  = material->getVec4("ambient_color");
     glm::vec4 material_diffuse_color  = material->getVec4("diffuse_color");
     glm::vec4 material_specular_color = material->getVec4("specular_color");
@@ -254,22 +255,17 @@ void CustomShader::updateUbos(Material* material, RenderState* rstate){
     float material_specular_exponent  = material->getFloat("specular_exponent");
 
     int offset = 0;
-    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_model), sizeof(glm::mat4) );
+
+    memcpy(material_transform_data+ offset,glm::value_ptr(model_matrices[0]), sizeof(glm::mat4)*draw_count );
+
+    offset += (do_batching ? BATCH_SIZE : 1) * sizeof(glm::mat4);
+    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_proj), sizeof(glm::mat4));
 
     offset +=sizeof(glm::mat4);
-    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mvp_[0]), sizeof(glm::mat4) *2 );
-
-    offset +=2*sizeof(glm::mat4);
     memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_view_[0]), sizeof(glm::mat4)*2 );
 
     offset +=2*sizeof(glm::mat4);
-    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mv_[0]), sizeof(glm::mat4)*2 );
-
-    offset +=2*sizeof(glm::mat4);
-    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_mv_it_[0]), sizeof(glm::mat4)*2 );
-
-    offset +=2*sizeof(glm::mat4);
-    memcpy(material_transform_data, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
+    memcpy(material_transform_data + offset, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
 
     offset += sizeof(material_ambient_color);
     memcpy(material_transform_data + offset, glm::value_ptr(material_diffuse_color), sizeof(material_diffuse_color));
@@ -283,10 +279,104 @@ void CustomShader::updateUbos(Material* material, RenderState* rstate){
     offset += sizeof(emissive_color);
     memcpy(material_transform_data + offset, &material_specular_exponent, sizeof(material_specular_exponent));
 
-    size_t size = sizeof(glm::vec4)*4 + 1*sizeof(float) + sizeof(glm::mat4) * 5 + sizeof(glm::mat4) * 4 ;
+    size_t size = sizeof(glm::vec4)*4 + sizeof(float) + sizeof(glm::mat4) * 3 + sizeof(glm::mat4) * (do_batching ? BATCH_SIZE : 1);
     program_->updateMaterialTransformUBO(size,material_transform_data);
 
 }
+
+void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
+        RenderData* render_data,  RenderState& rstate, unsigned int indexCount, int drawcount){
+    Material* material = rstate.material_override;
+    initializeOnDemand(&rstate);
+    {
+        std::lock_guard<std::mutex> lock(textureVariablesLock_);
+        for (auto it = textureVariables_.begin(); it != textureVariables_.end(); ++it) {
+            Texture* texture = material->getTextureNoError(it->key);
+            if (texture == NULL) {
+                LOGE(" texture is null for %s", render_data->owner_object()->name().c_str());
+                return;
+            }
+            // If any texture is not ready, do not render the material at all
+            if (!texture->isReady()) {
+                LOGE(" texture is not ready for %s", render_data->owner_object()->name().c_str());
+                return;
+            }
+        }
+    }
+
+    if(!rstate.use_multiview){
+        rstate.uniforms.u_view_[0] = rstate.uniforms.u_view;
+        rstate.uniforms.u_mv_[0] = rstate.uniforms.u_mv;
+        rstate.uniforms.u_mv_it_[0] = rstate.uniforms.u_mv_it;
+        rstate.uniforms.u_mvp_[0] = rstate.uniforms.u_mvp;
+    }
+    Mesh* mesh = render_data->mesh();
+    GLuint programId = program_->id();
+    glUseProgram(programId);
+
+    updateUbos(material,&rstate,model_matrix, drawcount);
+    /*
+     * Update the bone matrices
+     */
+    int a_bone_indices = glGetAttribLocation(program_->id(), "a_bone_indices");
+    int a_bone_weights = glGetAttribLocation(program_->id(), "a_bone_weights");
+
+    if ((a_bone_indices >= 0) ||
+        (a_bone_weights >= 0)){
+        glm::mat4 finalTransform;
+        mesh->setBoneLoc(a_bone_indices, a_bone_weights);
+        mesh->generateBoneArrayBuffers(program_->id());
+        int nBones = mesh->getVertexBoneData().getNumBones();
+        if (nBones > MAX_BONES)
+            nBones = MAX_BONES;
+        const std::vector<glm::mat4>& bone_matrices = mesh->getVertexBoneData().getBoneMatrices();
+        GLubyte* boneData = (GLubyte*)&bone_matrices[0][0][0];
+       // LOGE(" size of bones is %d no of bones are %d", sizeof(bone_matrices), nBones);
+        program_->updateBonesUBO(sizeof(glm::mat4)* nBones, boneData);
+        checkGlError("CustomShader after bones");
+    }
+    /*
+     * Bind textures
+     */
+    int texture_index = 0;
+    {
+        std::lock_guard<std::mutex> lock(textureVariablesLock_);
+        for (auto it = textureVariables_.begin(); it != textureVariables_.end(); ++it) {
+            auto d = *it;
+            d.variableType.f_bind(texture_index, *material, d.location);
+            texture_index++;
+        }
+    }
+    /*
+     * Update the uniforms for the lights
+     */
+    const std::vector<Light*>& lightlist = rstate.scene->getLightList();
+    bool castShadow = false;
+    for (auto it = lightlist.begin();
+         it != lightlist.end();
+         ++it) {
+        Light* light = (*it);
+         if (light != NULL) {
+            light->render(program_->id(), texture_index);
+            if (light->castShadow())
+                castShadow = true;
+         }
+    }
+    if (castShadow){
+        Light::bindShadowMap(program_->id(), texture_index);
+    }
+    glBindVertexArray(render_data->mesh()->getVAOId(programId));
+
+    if(rstate.use_multiview)
+        glDrawElementsInstanced(render_data->draw_mode(),indexCount, GL_UNSIGNED_SHORT, NULL, 2 );
+    else
+        glDrawElements(render_data->draw_mode(), indexCount, GL_UNSIGNED_SHORT, 0);
+
+    GL(glBindVertexArray(0));
+    checkGlError(" TextureShader::render_batch");
+
+}
+
 void CustomShader::render(RenderState* rstate, RenderData* render_data, Material* material) {
 
 	initializeOnDemand(rstate);
@@ -314,17 +404,18 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
     Mesh* mesh = render_data->mesh();
     glUseProgram(program_->id());
 
-    updateUbos(material,rstate);
+    std::vector<glm::mat4> model_matrix;
+    model_matrix.push_back(rstate->uniforms.u_model);
+    updateUbos(material,rstate,model_matrix, 1);
 
     /*
      * Update the bone matrices
      */
     int a_bone_indices = glGetAttribLocation(program_->id(), "a_bone_indices");
     int a_bone_weights = glGetAttribLocation(program_->id(), "a_bone_weights");
-    int u_bone_matrices = glGetUniformLocation(program_->id(), "u_bone_matrix[0]");
+
     if ((a_bone_indices >= 0) ||
-        (a_bone_weights >= 0) ||
-        (u_bone_matrices >= 0)) {
+        (a_bone_weights >= 0)){
         glm::mat4 finalTransform;
         mesh->setBoneLoc(a_bone_indices, a_bone_weights);
         mesh->generateBoneArrayBuffers(program_->id());
@@ -337,7 +428,7 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
         program_->updateBonesUBO(sizeof(glm::mat4)* nBones, boneData);
         checkGlError("CustomShader after bones");
     }
-  /*
+    /*
      * Bind textures
      */
     int texture_index = 0;

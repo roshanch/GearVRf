@@ -40,7 +40,10 @@
 #include "gl/gl_program.h"
 #include <unordered_map>
 typedef unsigned long Long;
+
 namespace gvr {
+extern bool isCustomShader(Material* material);
+extern bool do_batching;
 class Camera;
 class Scene;
 class SceneObject;

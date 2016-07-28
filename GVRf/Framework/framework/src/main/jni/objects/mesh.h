@@ -394,6 +394,20 @@ public:
 
     }
 
+      std::map<std::string, std::vector<float>>& getFloatVectors(){
+         return float_vectors_;
+      }
+     std::map<std::string, std::vector<glm::vec2>>& getVec2Vectors(){
+         return vec2_vectors_;
+     }
+
+     std::map<std::string, std::vector<glm::vec3>>& getVec3Vectors(){
+         return vec3_vectors_;
+     }
+     std::map<std::string, std::vector<glm::vec4>>& getVec4Vectors(){
+         return vec4_vectors_;
+     }
+
      void forceShouldReset() { // one time, then false
          vao_dirty_ = true;
          bone_data_dirty_ = true;

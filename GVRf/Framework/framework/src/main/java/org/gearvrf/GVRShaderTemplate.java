@@ -1,17 +1,3 @@
-/* Copyright 2015 Samsung Electronics Co., LTD
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.gearvrf;
 
 import static android.opengl.GLES20.GL_EXTENSIONS;
@@ -231,7 +217,17 @@ public class GVRShaderTemplate
                 definedNames.put(name, 1);
         }
     }
+    /**
+     * Checks  whether device supports OGL_MULTIVIEW extension
+     * 
+     */    
+    private boolean isMultiviewPresent(){
+        String extensionString = glGetString(GL_EXTENSIONS);
+        if(extensionString.contains("GL_OVR_multiview2"))
+            return true;
 
+        return false;
+    }
     /**
      * Construct the source code for a GL shader based on the input defines. The
      * shader segments attached to slots that start with <type> are combined to
@@ -244,7 +240,7 @@ public class GVRShaderTemplate
      *            set of names to define for this shader.
      * @return GL shader code with parameters substituted.
      */
-    public String generateShaderVariant(String type, HashMap<String, Integer> definedNames, GVRLightBase[] lightlist, Map<String, LightClass> lightClasses)
+    public String generateShaderVariant(boolean isMultiviewSet, String type, HashMap<String, Integer> definedNames, GVRLightBase[] lightlist, Map<String, LightClass> lightClasses)
     {
         String template = getSegment(type + "Template");
         String defines = "";
@@ -293,6 +289,9 @@ public class GVRShaderTemplate
             if (entry.getValue() != 0)
                 defines += "#define HAS_" + entry.getKey() + " 1\n";
         }
+        
+        if(isMultiviewSet && isMultiviewPresent())
+            defines = "#define HAS_MULTIVIEW 1\n" + defines;
         
         return "#version 300 es\n" + defines + combinedSource;
     }
@@ -346,11 +345,12 @@ public class GVRShaderTemplate
         {
             Map<String, LightClass> lightClasses = scanLights(lightlist);
             variant = new ShaderVariant();
-            variant.VertexShaderSource = generateShaderVariant("Vertex", variantDefines, lightlist, lightClasses);
-            variant.FragmentShaderSource = generateShaderVariant("Fragment", variantDefines, lightlist, lightClasses);
+            boolean isMultiviewSet = context.getActivity().getAppSettings().isMultiviewSet();
+            variant.VertexShaderSource = generateShaderVariant(isMultiviewSet,"Vertex", variantDefines, lightlist, lightClasses);
+            variant.FragmentShaderSource = generateShaderVariant(isMultiviewSet,"Fragment", variantDefines, lightlist, lightClasses);
             mShaderVariants.put(signature, variant);            
         }
-        
+      
         generateGLShader(context, material, signature);
     }
 
@@ -393,8 +393,9 @@ public class GVRShaderTemplate
         else
         {
             variant = new ShaderVariant();
-            variant.VertexShaderSource = generateShaderVariant("Vertex", variantDefines, null, null);
-            variant.FragmentShaderSource = generateShaderVariant("Fragment", variantDefines, null, null);
+            boolean isMultiviewSet = context.getActivity().getAppSettings().isMultiviewSet();
+            variant.VertexShaderSource = generateShaderVariant(isMultiviewSet, "Vertex", variantDefines, null, null);
+            variant.FragmentShaderSource = generateShaderVariant(isMultiviewSet, "Fragment", variantDefines, null, null);
             mShaderVariants.put(signature, variant);            
         }
         generateGLShader(context, material, signature);

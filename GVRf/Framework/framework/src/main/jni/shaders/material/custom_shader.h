@@ -49,9 +49,10 @@ public:
     explicit CustomShader(const std::string& vertex_shader,
             const std::string& fragment_shader);
     virtual ~CustomShader();
-    void updateUbos(Material* mat, RenderState* rstate);
+    void updateUbos(Material* material, RenderState* rstate, const std::vector<glm::mat4>& model_matrices, int draw_count);
     void addTextureKey(const std::string& variable_name, const std::string& key);
-
+    void render_batch(const std::vector<glm::mat4>& model_matrix,
+            RenderData* render_data,  RenderState& rstate, unsigned int indexCount, int drawcount);
     void addAttributeFloatKey(const std::string& variable_name, const std::string& key);
     void addAttributeVec2Key(const std::string& variable_name, const std::string& key);
     void addAttributeVec3Key(const std::string& variable_name, const std::string& key);

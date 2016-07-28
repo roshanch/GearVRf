@@ -40,7 +40,7 @@
 #define BATCH_SIZE 60
 
 namespace gvr {
-
+bool do_batching = true;
 static int numberDrawCalls;
 static int numberTriangles;
 
@@ -418,7 +418,36 @@ void Renderer::restoreRenderStates(RenderData* render_data) {
         GL(glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE));
     }
 }
+bool isCustomShader(Material* material){
+    switch (material->shader_type()) {
+       case Material::ShaderType::UNLIT_HORIZONTAL_STEREO_SHADER:
+           return false;
+       case Material::ShaderType::UNLIT_VERTICAL_STEREO_SHADER:
+           return false;
+       case Material::ShaderType::OES_SHADER:
+           return false;
+       case Material::ShaderType::OES_HORIZONTAL_STEREO_SHADER:
+          return false;
+       case Material::ShaderType::OES_VERTICAL_STEREO_SHADER:
+           return false;
+       case Material::ShaderType::CUBEMAP_SHADER:
+           return false;
+       case Material::ShaderType::CUBEMAP_REFLECTION_SHADER:
+           return false;
+       case Material::ShaderType::TEXTURE_SHADER:
+           return false;
+       case Material::ShaderType::EXTERNAL_RENDERER_SHADER:
+           return false;
+       case Material::ShaderType::ASSIMP_SHADER:
+           return false;
+       case Material::ShaderType::LIGHTMAP_SHADER:
+           return false;
+       case Material::ShaderType::UNLIT_FBO_SHADER:
+           return false;
+    }
 
+    return true;
+}
 void Renderer::renderbatches(RenderState& rstate) {
     glm::mat4 vp_matrix = glm::mat4(
             rstate.uniforms.u_proj * rstate.uniforms.u_view);
@@ -431,7 +460,7 @@ void Renderer::renderbatches(RenderState& rstate) {
 
         // if shader type is other than texture shader, render it with non-batching mode
         // if the mesh is large, we are not batching it
-        if (currentShaderType != Material::ShaderType::TEXTURE_SHADER
+        if ((currentShaderType != Material::ShaderType::TEXTURE_SHADER && !isCustomShader(rstate.material_override))
                 || batch->notBatched()) {
             const std::unordered_set<RenderData*>& render_data_set = batch->getRenderDataSet();
             for (auto it3 = render_data_set.begin();
@@ -452,15 +481,18 @@ void Renderer::renderbatches(RenderState& rstate) {
             rstate.uniforms.u_view_[0] = rstate.scene->main_camera_rig()->left_camera()->getViewMatrix();
             rstate.uniforms.u_view_[1] = rstate.scene->main_camera_rig()->right_camera()->getViewMatrix();
         }
-
-        rstate.shader_manager->getTextureShader()->render_batch(matrices,
-                renderdata, rstate, batch->getIndexCount(),
-                batch->getNumberOfMeshes());
+        if(currentShaderType == Material::ShaderType::TEXTURE_SHADER)
+            rstate.shader_manager->getTextureShader()->render_batch(matrices,
+                    renderdata, rstate, batch->getIndexCount(),
+                    batch->getNumberOfMeshes());
+        else
+            rstate.shader_manager->getCustomShader(currentShaderType)->render_batch(matrices,
+                    renderdata, rstate, batch->getIndexCount(),
+                    batch->getNumberOfMeshes());
         restoreRenderStates(renderdata);
     }
 
 }
-bool do_batching = true;
 
 void Renderer::renderRenderDataVector(RenderState &rstate) {
 

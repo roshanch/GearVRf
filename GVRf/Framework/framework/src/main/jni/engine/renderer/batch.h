@@ -82,6 +82,12 @@ private:
 	std::vector<unsigned short> indices_;
 	std::vector<glm::mat4> matrices_;
 	std::vector<float> matrix_indices_;
+
+    std::map<std::string, std::vector<float>> float_vectors_;
+    std::map<std::string, std::vector<glm::vec2>> vec2_vectors_;
+    std::map<std::string, std::vector<glm::vec3>> vec3_vectors_;
+    std::map<std::string, std::vector<glm::vec4>> vec4_vectors_;
+
 //	std::vector<glm::vec2> matrix_indices_;
 	int vertex_limit_;
 	int indices_limit_;
