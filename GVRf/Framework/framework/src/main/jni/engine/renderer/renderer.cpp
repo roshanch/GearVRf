@@ -144,7 +144,7 @@ struct comparator {
  */
 std::vector<Batch*> batch_set;
 std::unordered_map<Batch*, int> batch_map;
-#define MAX_INDICES 400
+#define MAX_INDICES 4000
 
 void getNewBatch(RenderData* rdata, Batch** existing_batch){
     Batch* new_batch = new Batch(MAX_INDICES, MAX_INDICES);
@@ -335,7 +335,8 @@ void Renderer::cull(Scene *scene, Camera *camera,
     // Note: this needs to be scaled to sort on N states
     state_sort();
 
-    BatchSetup();
+    if(do_batching)
+        BatchSetup();
 }
 
 /*
@@ -987,7 +988,7 @@ void Renderer::renderMaterialShader(RenderState& rstate, RenderData* render_data
     if (Material::ShaderType::BEING_GENERATED == curr_material->shader_type()) {
         return;
     }
-
+LOGE("you should not be herer");
     //Skip the material whose texture is not ready with some exceptions
     if (!checkTextureReady(curr_material))
         return;

@@ -70,7 +70,7 @@ private:
     CustomShader(CustomShader&& custom_shader);
     CustomShader& operator=(const CustomShader& custom_shader);
     CustomShader& operator=(CustomShader&& custom_shader);
-
+    GLubyte* material_transform_data;
     void addAttributeKey(const std::string& variable_name, const std::string& key, AttributeVariableBind f);
     void addUniformKey(const std::string& variable_name, const std::string& key, UniformVariableBind f);
 

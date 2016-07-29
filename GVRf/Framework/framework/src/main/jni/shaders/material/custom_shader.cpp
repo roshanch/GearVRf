@@ -29,19 +29,17 @@
 
 #include <sys/time.h>
 
-GLubyte* material_transform_data =nullptr;
+
 #define BATCH_SIZE 60
 namespace gvr {
 CustomShader::CustomShader(const std::string& vertex_shader, const std::string& fragment_shader)
-    : vertexShader_(vertex_shader), fragmentShader_(fragment_shader) {
-
+    : vertexShader_(vertex_shader), fragmentShader_(fragment_shader),material_transform_data(nullptr) {
+    size_t size = sizeof(glm::vec4)*4 + sizeof(float) + sizeof(glm::mat4) * 3 + sizeof(glm::mat4) * (do_batching ? BATCH_SIZE : 1);
+    material_transform_data= (GLubyte*)malloc(size);
 }
 void CustomShader::initializeOnDemand(RenderState* rstate) {
     if (nullptr == program_)
     {
-        size_t size = sizeof(glm::vec4)*4 + sizeof(float) + sizeof(glm::mat4) * 3 + sizeof(glm::mat4) * (do_batching ? BATCH_SIZE : 1);
-        material_transform_data= (GLubyte*)malloc(size);
-
         program_ = new GLProgram(vertexShader_.c_str(), fragmentShader_.c_str());
         if(rstate->use_multiview && !(strstr(vertexShader_.c_str(),"gl_ViewID_OVR")
                 && strstr(vertexShader_.c_str(),"GL_OVR_multiview2")
@@ -57,6 +55,7 @@ void CustomShader::initializeOnDemand(RenderState* rstate) {
         fragmentShader_.clear();
         LOGE("Custom shader added program %d", program_->id());
     }
+    LOGE("texture variables");
    if (textureVariablesDirty_) {
         std::lock_guard<std::mutex> lock(textureVariablesLock_);
         for (auto it = textureVariables_.begin(); it != textureVariables_.end(); ++it) {
@@ -68,7 +67,7 @@ void CustomShader::initializeOnDemand(RenderState* rstate) {
         }
         textureVariablesDirty_ = false;
     }
-
+ /*  LOGE("uniform variables");
     if (uniformVariablesDirty_) {
         std::lock_guard<std::mutex> lock(uniformVariablesLock_);
         for (auto it = uniformVariables_.begin(); it != uniformVariables_.end(); ++it) {
@@ -80,7 +79,7 @@ void CustomShader::initializeOnDemand(RenderState* rstate) {
         }
         uniformVariablesDirty_ = false;
     }
-
+   */ LOGE("attribute variables");
     if (attributeVariablesDirty_) {
         std::lock_guard <std::mutex> lock(attributeVariablesLock_);
         for (auto it = attributeVariables_.begin(); it != attributeVariables_.end(); ++it) {
@@ -92,6 +91,7 @@ void CustomShader::initializeOnDemand(RenderState* rstate) {
         }
         attributeVariablesDirty_ = false;
     }
+    LOGE("terminating");
 }
 
 
@@ -287,23 +287,34 @@ void CustomShader::updateUbos(Material* material, RenderState* rstate, const std
 void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
         RenderData* render_data,  RenderState& rstate, unsigned int indexCount, int drawcount){
     Material* material = rstate.material_override;
+    if(material==nullptr)
+        LOGE("material is nyll");
+    LOGE("calling init");
     initializeOnDemand(&rstate);
+
+    if (!Renderer::checkTextureReady(material))
+        return;
+
+    LOGE("texture init");
     {
         std::lock_guard<std::mutex> lock(textureVariablesLock_);
+        LOGE("size of texture variables %d", textureVariables_.size());
         for (auto it = textureVariables_.begin(); it != textureVariables_.end(); ++it) {
+            LOGE("texture key %s", it->key.c_str());
             Texture* texture = material->getTextureNoError(it->key);
             if (texture == NULL) {
-                LOGE(" texture is null for %s", render_data->owner_object()->name().c_str());
+                LOGE(" texture is null" );
+
                 return;
             }
             // If any texture is not ready, do not render the material at all
             if (!texture->isReady()) {
-                LOGE(" texture is not ready for %s", render_data->owner_object()->name().c_str());
+                LOGE(" texture is not ready" );
                 return;
             }
         }
     }
-
+    LOGE("init done");
     if(!rstate.use_multiview){
         rstate.uniforms.u_view_[0] = rstate.uniforms.u_view;
         rstate.uniforms.u_mv_[0] = rstate.uniforms.u_mv;
@@ -313,7 +324,7 @@ void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
     Mesh* mesh = render_data->mesh();
     GLuint programId = program_->id();
     glUseProgram(programId);
-
+    LOGE("calling updateUbos");
     updateUbos(material,&rstate,model_matrix, drawcount);
     /*
      * Update the bone matrices
@@ -334,6 +345,7 @@ void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
        // LOGE(" size of bones is %d no of bones are %d", sizeof(bone_matrices), nBones);
         program_->updateBonesUBO(sizeof(glm::mat4)* nBones, boneData);
         checkGlError("CustomShader after bones");
+        LOGE("it should not have bones");
     }
     /*
      * Bind textures
@@ -365,8 +377,9 @@ void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
     if (castShadow){
         Light::bindShadowMap(program_->id(), texture_index);
     }
+    LOGE("calling bindarray");
     glBindVertexArray(render_data->mesh()->getVAOId(programId));
-
+    LOGE("calling render");
     if(rstate.use_multiview)
         glDrawElementsInstanced(render_data->draw_mode(),indexCount, GL_UNSIGNED_SHORT, NULL, 2 );
     else

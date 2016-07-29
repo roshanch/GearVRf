@@ -66,6 +66,7 @@ bool Batch::add(RenderData *render_data) {
     // if it is not texture shader, dont add into batch, render in normal way
     if (material_->shader_type() != Material::ShaderType::TEXTURE_SHADER && !isCustomShader(material_)) {
         render_data_set_.insert(render_data);
+        LOGE("not a valid shader");
         render_mesh->setMeshModified(false); // mark mesh clean
         return true;
     }
@@ -75,6 +76,7 @@ bool Batch::add(RenderData *render_data) {
         if (draw_count_ > 0) {
             return false;
         } else {
+            LOGE("mesh is large");
             render_data_set_.insert(render_data);
             not_batched_ = true;
             render_mesh->setMeshModified(false); // mark mesh clean
@@ -198,7 +200,7 @@ bool Batch::add(RenderData *render_data) {
         index += index_offset_;
         indices_.push_back(index);
     }
-
+LOGE("added to batch");
     // update all VBO data
     vertex_count_ += vertices.size();
     index_offset_ += vertices.size();
@@ -213,6 +215,27 @@ void Batch::setupMesh(Material* mat){
         mesh_init_ = true;
         mesh_.set_vertices(vertices_);
         mesh_.set_normals(normals_);
+ /*       mesh_.setFloatVecMap(float_vectors_);
+        mesh_.setVec2Map(vec2_vectors_);
+        mesh_.setVec3Map(vec3_vectors_);
+        mesh_.setVec4Map(vec4_vectors_);
+*/
+        for(auto& it:float_vectors_){
+            std::vector<float>& float_vec = it.second;
+            mesh_.setFloatVector(it.first, float_vec);
+        }
+        for(auto& it:vec2_vectors_){
+            std::vector<glm::vec2>& vec2_vec = it.second;
+            mesh_.setVec2Vector(it.first, vec2_vec);
+        }
+        for(auto& it:vec3_vectors_){
+            std::vector<glm::vec3>& vec3_vec = it.second;
+            mesh_.setVec3Vector(it.first, vec3_vec);
+        }
+        for(auto& it:vec4_vectors_){
+            std::vector<glm::vec4>& vec4_vec = it.second;
+            mesh_.setVec4Vector(it.first, vec4_vec);
+        }
         int uvIndex = int(mat->getFloat("uvIndex"));
         mesh_.set_tex_coords(tex_coords_,uvIndex);
         mesh_.set_indices(indices_);

@@ -92,6 +92,7 @@ public:
     //A new api to return a texture even it is NULL without throwing a error,
     //otherwise it will be captured abruptly by the error handler
     Texture* getTextureNoError(const std::string& key) const {
+
         auto it = textures_.find(key);
         if (it != textures_.end()) {
             return it->second;

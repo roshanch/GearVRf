@@ -407,6 +407,22 @@ public:
      std::map<std::string, std::vector<glm::vec4>>& getVec4Vectors(){
          return vec4_vectors_;
      }
+     void setFloatVecMap(std::map<std::string, std::vector<float>>& float_vectors){
+         float_vectors_ = float_vectors;
+         vao_dirty_ = true;
+     }
+     void setVec2Map(std::map<std::string, std::vector<glm::vec2>>& vec2_vectors){
+         vec2_vectors_ = vec2_vectors;
+         vao_dirty_ = true;
+     }
+     void setVec3Map(std::map<std::string, std::vector<glm::vec3>>& vec3_vectors){
+         vec3_vectors_ = vec3_vectors;
+         vao_dirty_ = true;
+     }
+     void setVec4Map(std::map<std::string, std::vector<glm::vec4>>& vec4_vectors){
+         vec4_vectors_ = vec4_vectors;
+         vao_dirty_ = true;
+     }
 
      void forceShouldReset() { // one time, then false
          vao_dirty_ = true;
