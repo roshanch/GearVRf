@@ -39,6 +39,7 @@
 #include "objects/bounding_volume.h"
 #include "gl/gl_program.h"
 #include <unordered_map>
+
 typedef unsigned long Long;
 
 namespace gvr {
@@ -84,7 +85,6 @@ struct RenderState {
     Material*               material_override;
     ShaderUniformsPerObject uniforms;
     ShaderManager*          shader_manager;
-    bool                    use_multiview;
 };
 
 class Renderer {

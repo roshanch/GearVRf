@@ -41,7 +41,7 @@ void CustomShader::initializeOnDemand(RenderState* rstate) {
     if (nullptr == program_)
     {
         program_ = new GLProgram(vertexShader_.c_str(), fragmentShader_.c_str());
-        if(rstate->use_multiview && !(strstr(vertexShader_.c_str(),"gl_ViewID_OVR")
+        if(use_multiview && !(strstr(vertexShader_.c_str(),"gl_ViewID_OVR")
                 && strstr(vertexShader_.c_str(),"GL_OVR_multiview2")
                 && strstr(vertexShader_.c_str(),"GL_OVR_multiview2"))){
             std::string error = "Your shaders are not multiview";
