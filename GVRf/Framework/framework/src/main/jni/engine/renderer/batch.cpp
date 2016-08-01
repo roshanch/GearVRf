@@ -43,7 +43,119 @@ Batch::~Batch() {
     delete renderdata_;
 
 }
+bool Batch::updateMesh(Mesh* render_mesh){
+    const std::vector<unsigned short>& indices = render_mesh->indices();
+        const std::vector<glm::vec3>& vertices = render_mesh->vertices();
+        const std::vector<glm::vec3>& normals = render_mesh->normals();
+        const std::vector<glm::vec2>& tex_cords = render_mesh->tex_coords(int(material_->getFloat("uvIndex")));
+        std::map<std::string, std::vector<float>>& float_vectors     = render_mesh->getFloatVectors();
+        std::map<std::string, std::vector<glm::vec2>>& vec2_vectors = render_mesh->getVec2Vectors();
+        std::map<std::string, std::vector<glm::vec3>>& vec3_vectors = render_mesh->getVec3Vectors();
+        std::map<std::string, std::vector<glm::vec4>>& vec4_vectors = render_mesh->getVec4Vectors();
 
+        int size = 0;
+
+        size = vertices.size();
+
+        for(int i=0;i<size;i++){
+            vertices_.push_back(vertices[i]);
+            normals_.push_back(normals[i]);
+            matrix_indices_.push_back(draw_count_);
+            tex_coords_.push_back(tex_cords[i]);
+        }
+
+        for(auto& it: float_vectors){
+            auto it1 = float_vectors_.find(it.first);
+            if(it1 !=float_vectors_.end()){
+                std::vector<float>& float_vector = float_vectors_[it.first];
+                int vec_size = it.second.size();
+                for(int i =0 ;i<vec_size; i++){
+                    float_vector.push_back((it.second)[i]);
+                }
+            }
+            else {
+                auto& float_vector = it.second;
+                std::vector<float> new_float_vector;
+                int vec_size = it.second.size();
+                for(int i =0 ;i<vec_size; i++){
+                    new_float_vector.push_back(float_vector[i]);
+                }
+               float_vectors_[it.first] = new_float_vector;
+            }
+        }
+
+        for(auto& it: vec2_vectors){
+            auto it2 = vec2_vectors_.find(it.first);
+            if(it2 !=vec2_vectors_.end()){
+                std::vector<glm::vec2>& vec2_vector = vec2_vectors_[it.first];
+                int vec_size = it.second.size();
+                for(int i =0 ;i<vec_size; i++){
+                    vec2_vector.push_back((it.second)[i]);
+                }
+            }
+            else {
+                auto& vec2_vector = it.second;
+                std::vector<glm::vec2> new_vec2_vector;
+                int vec_size = it.second.size();
+                for(int i =0 ;i<vec_size; i++){
+                    new_vec2_vector.push_back(vec2_vector[i]);
+                }
+               vec2_vectors_[it.first] = new_vec2_vector;
+            }
+        }
+
+        for(auto& it: vec3_vectors){
+            auto it2 = vec3_vectors_.find(it.first);
+            if(it2 !=vec3_vectors_.end()){
+                std::vector<glm::vec3>& vec3_vector = vec3_vectors_[it.first];
+                int vec_size = it.second.size();
+                for(int i =0 ;i<vec_size; i++){
+                    vec3_vector.push_back((it.second)[i]);
+                }
+            }
+            else {
+                auto& vec3_vector = it.second;
+                std::vector<glm::vec3> new_vec3_vector;
+                int vec_size = it.second.size();
+                for(int i =0 ;i<vec_size; i++){
+                    new_vec3_vector.push_back(vec3_vector[i]);
+                }
+               vec3_vectors_[it.first] = new_vec3_vector;
+            }
+        }
+
+        for(auto& it: vec4_vectors){
+            auto it2 = vec4_vectors_.find(it.first);
+            if(it2 !=vec4_vectors_.end()){
+                std::vector<glm::vec4>& vec4_vector = vec4_vectors_[it.first];
+                int vec_size = it.second.size();
+                for(int i =0 ;i<vec_size; i++){
+                    vec4_vector.push_back((it.second)[i]);
+                }
+            }
+            else {
+                auto& vec4_vector = it.second;
+                std::vector<glm::vec4> new_vec4_vector;
+                int vec_size = it.second.size();
+                for(int i =0 ;i<vec_size; i++){
+                    new_vec4_vector.push_back(vec4_vector[i]);
+                }
+               vec4_vectors_[it.first] = new_vec4_vector;
+            }
+        }
+        size = indices.size();
+        index_count_+=size;
+        for (int i = 0; i < size; i++) {
+            unsigned short index = indices[i];
+            index += index_offset_;
+            indices_.push_back(index);
+        }
+    LOGE("added to batch");
+        // update all VBO data
+        vertex_count_ += vertices.size();
+        index_offset_ += vertices.size();
+
+}
 /*
  * Add renderdata of scene object into mesh, add vertices, texcoords, normals, model matrices
  */
@@ -95,115 +207,7 @@ bool Batch::add(RenderData *render_data) {
     render_data_set_.insert(render_data); // store all the renderdata which are in batch
     render_mesh->setMeshModified(false); // mark mesh clean
 
-    const std::vector<glm::vec3>& vertices = render_mesh->vertices();
-    const std::vector<glm::vec3>& normals = render_mesh->normals();
-    const std::vector<glm::vec2>& tex_cords = render_mesh->tex_coords(int(material_->getFloat("uvIndex")));
-    std::map<std::string, std::vector<float>>& float_vectors     = render_mesh->getFloatVectors();
-    std::map<std::string, std::vector<glm::vec2>>& vec2_vectors = render_mesh->getVec2Vectors();
-    std::map<std::string, std::vector<glm::vec3>>& vec3_vectors = render_mesh->getVec3Vectors();
-    std::map<std::string, std::vector<glm::vec4>>& vec4_vectors = render_mesh->getVec4Vectors();
-
-    int size = 0;
-
-    size = vertices.size();
-
-    for(int i=0;i<size;i++){
-        vertices_.push_back(vertices[i]);
-        normals_.push_back(normals[i]);
-        matrix_indices_.push_back(draw_count_);
-        tex_coords_.push_back(tex_cords[i]);
-    }
-
-    for(auto& it: float_vectors){
-        auto it1 = float_vectors_.find(it.first);
-        if(it1 !=float_vectors_.end()){
-            std::vector<float>& float_vector = float_vectors_[it.first];
-            int vec_size = it.second.size();
-            for(int i =0 ;i<vec_size; i++){
-                float_vector.push_back((it.second)[i]);
-            }
-        }
-        else {
-            auto& float_vector = it.second;
-            std::vector<float> new_float_vector;
-            int vec_size = it.second.size();
-            for(int i =0 ;i<vec_size; i++){
-                new_float_vector.push_back(float_vector[i]);
-            }
-           float_vectors_[it.first] = new_float_vector;
-        }
-    }
-
-    for(auto& it: vec2_vectors){
-        auto it2 = vec2_vectors_.find(it.first);
-        if(it2 !=vec2_vectors_.end()){
-            std::vector<glm::vec2>& vec2_vector = vec2_vectors_[it.first];
-            int vec_size = it.second.size();
-            for(int i =0 ;i<vec_size; i++){
-                vec2_vector.push_back((it.second)[i]);
-            }
-        }
-        else {
-            auto& vec2_vector = it.second;
-            std::vector<glm::vec2> new_vec2_vector;
-            int vec_size = it.second.size();
-            for(int i =0 ;i<vec_size; i++){
-                new_vec2_vector.push_back(vec2_vector[i]);
-            }
-           vec2_vectors_[it.first] = new_vec2_vector;
-        }
-    }
-
-    for(auto& it: vec3_vectors){
-        auto it2 = vec3_vectors_.find(it.first);
-        if(it2 !=vec3_vectors_.end()){
-            std::vector<glm::vec3>& vec3_vector = vec3_vectors_[it.first];
-            int vec_size = it.second.size();
-            for(int i =0 ;i<vec_size; i++){
-                vec3_vector.push_back((it.second)[i]);
-            }
-        }
-        else {
-            auto& vec3_vector = it.second;
-            std::vector<glm::vec3> new_vec3_vector;
-            int vec_size = it.second.size();
-            for(int i =0 ;i<vec_size; i++){
-                new_vec3_vector.push_back(vec3_vector[i]);
-            }
-           vec3_vectors_[it.first] = new_vec3_vector;
-        }
-    }
-
-    for(auto& it: vec4_vectors){
-        auto it2 = vec4_vectors_.find(it.first);
-        if(it2 !=vec4_vectors_.end()){
-            std::vector<glm::vec4>& vec4_vector = vec4_vectors_[it.first];
-            int vec_size = it.second.size();
-            for(int i =0 ;i<vec_size; i++){
-                vec4_vector.push_back((it.second)[i]);
-            }
-        }
-        else {
-            auto& vec4_vector = it.second;
-            std::vector<glm::vec4> new_vec4_vector;
-            int vec_size = it.second.size();
-            for(int i =0 ;i<vec_size; i++){
-                new_vec4_vector.push_back(vec4_vector[i]);
-            }
-           vec4_vectors_[it.first] = new_vec4_vector;
-        }
-    }
-    size = indices.size();
-    index_count_+=size;
-    for (int i = 0; i < size; i++) {
-        unsigned short index = indices[i];
-        index += index_offset_;
-        indices_.push_back(index);
-    }
-LOGE("added to batch");
-    // update all VBO data
-    vertex_count_ += vertices.size();
-    index_offset_ += vertices.size();
+    updateMesh(render_mesh);
     draw_count_++;
     mesh_init_ = false;
 
@@ -213,29 +217,14 @@ LOGE("added to batch");
 void Batch::setupMesh(Material* mat){
     if(!mesh_init_){
         mesh_init_ = true;
+
         mesh_.set_vertices(vertices_);
         mesh_.set_normals(normals_);
- /*       mesh_.setFloatVecMap(float_vectors_);
+        mesh_.setFloatVecMap(float_vectors_);
         mesh_.setVec2Map(vec2_vectors_);
         mesh_.setVec3Map(vec3_vectors_);
         mesh_.setVec4Map(vec4_vectors_);
-*/
-        for(auto& it:float_vectors_){
-            std::vector<float>& float_vec = it.second;
-            mesh_.setFloatVector(it.first, float_vec);
-        }
-        for(auto& it:vec2_vectors_){
-            std::vector<glm::vec2>& vec2_vec = it.second;
-            mesh_.setVec2Vector(it.first, vec2_vec);
-        }
-        for(auto& it:vec3_vectors_){
-            std::vector<glm::vec3>& vec3_vec = it.second;
-            mesh_.setVec3Vector(it.first, vec3_vec);
-        }
-        for(auto& it:vec4_vectors_){
-            std::vector<glm::vec4>& vec4_vec = it.second;
-            mesh_.setVec4Vector(it.first, vec4_vec);
-        }
+
         int uvIndex = int(mat->getFloat("uvIndex"));
         mesh_.set_tex_coords(tex_coords_,uvIndex);
         mesh_.set_indices(indices_);

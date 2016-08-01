@@ -67,7 +67,7 @@ void CustomShader::initializeOnDemand(RenderState* rstate) {
         }
         textureVariablesDirty_ = false;
     }
- /*  LOGE("uniform variables");
+   LOGE("uniform variables");
     if (uniformVariablesDirty_) {
         std::lock_guard<std::mutex> lock(uniformVariablesLock_);
         for (auto it = uniformVariables_.begin(); it != uniformVariables_.end(); ++it) {
@@ -79,7 +79,7 @@ void CustomShader::initializeOnDemand(RenderState* rstate) {
         }
         uniformVariablesDirty_ = false;
     }
-   */ LOGE("attribute variables");
+    LOGE("attribute variables");
     if (attributeVariablesDirty_) {
         std::lock_guard <std::mutex> lock(attributeVariablesLock_);
         for (auto it = attributeVariables_.begin(); it != attributeVariables_.end(); ++it) {
@@ -315,7 +315,7 @@ void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
         }
     }
     LOGE("init done");
-    if(!rstate.use_multiview){
+    if(!use_multiview){
         rstate.uniforms.u_view_[0] = rstate.uniforms.u_view;
         rstate.uniforms.u_mv_[0] = rstate.uniforms.u_mv;
         rstate.uniforms.u_mv_it_[0] = rstate.uniforms.u_mv_it;
@@ -326,6 +326,20 @@ void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
     glUseProgram(programId);
     LOGE("calling updateUbos");
     updateUbos(material,&rstate,model_matrix, drawcount);
+
+     {
+         std::lock_guard<std::mutex> lock(uniformVariablesLock_);
+         for (auto it = uniformVariables_.begin(); it != uniformVariables_.end(); ++it) {
+             auto d = *it;
+             try {
+                 d.variableType.f_bind(*material, d.location);
+             } catch(const std::string& exc) {
+                 //the keys defined for this shader might not have been used by the material yet
+             }
+         }
+     }
+
+
     /*
      * Update the bone matrices
      */
@@ -380,7 +394,7 @@ void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
     LOGE("calling bindarray");
     glBindVertexArray(render_data->mesh()->getVAOId(programId));
     LOGE("calling render");
-    if(rstate.use_multiview)
+    if(use_multiview)
         glDrawElementsInstanced(render_data->draw_mode(),indexCount, GL_UNSIGNED_SHORT, NULL, 2 );
     else
         glDrawElements(render_data->draw_mode(), indexCount, GL_UNSIGNED_SHORT, 0);
@@ -391,7 +405,7 @@ void CustomShader::render_batch(const std::vector<glm::mat4>& model_matrix,
 }
 
 void CustomShader::render(RenderState* rstate, RenderData* render_data, Material* material) {
-
+    LOGE("in render");
 	initializeOnDemand(rstate);
     {
         std::lock_guard<std::mutex> lock(textureVariablesLock_);
@@ -408,7 +422,7 @@ void CustomShader::render(RenderState* rstate, RenderData* render_data, Material
             }
         }
     }
-    if(!rstate->use_multiview){
+    if(!use_multiview){
         rstate->uniforms.u_view_[0] = rstate->uniforms.u_view;
         rstate->uniforms.u_mv_[0] = rstate->uniforms.u_mv;
         rstate->uniforms.u_mv_it_[0] = rstate->uniforms.u_mv_it;

@@ -71,7 +71,7 @@ public:
 private:
 	std::unordered_map<RenderData*,int>matrix_index_map_;
 	std::unordered_set<RenderData*>render_data_set_;  // use it later if we want to modify meshes
-
+    bool updateMesh(Mesh* render_mesh);
 	Mesh mesh_;
 	RenderData *renderdata_;
 	Material *material_;

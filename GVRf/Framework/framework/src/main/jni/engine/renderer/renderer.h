@@ -31,7 +31,7 @@
 #include <GLES2/gl2ext.h>
 #include "GLES3/gl3ext.h"
 #endif
-
+#include "batch_manager.h"
 #include "glm/glm.hpp"
 #include "batch.h"
 #include "objects/eye_type.h"
@@ -43,6 +43,7 @@
 typedef unsigned long Long;
 
 namespace gvr {
+extern bool use_multiview;
 extern bool isCustomShader(Material* material);
 extern bool do_batching;
 class Camera;
@@ -90,8 +91,10 @@ struct RenderState {
 class Renderer {
 private:
     Renderer();
-
+    static BatchManager* batch_manager;
 public:
+    static int incrementDrawCalls();
+    static void renderRenderData(RenderState& rstate, RenderData* render_data);
     static void restoreRenderStates(RenderData* render_data);
     static void setRenderStates(RenderData* render_data, RenderState& rstate);
     static void BatchSetup();
@@ -135,9 +138,6 @@ private:
     static void cullFromCamera(Scene *scene, Camera *camera,
             ShaderManager* shader_manager,
             std::vector<SceneObject*>& scene_objects);
-
-    static void renderRenderData(RenderState& rstate, RenderData* render_data);
-
     static void renderMesh(RenderState& rstate, RenderData* render_data);
 
     static void renderMaterialShader(RenderState& rstate, RenderData* render_data, Material *material);
