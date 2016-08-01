@@ -856,24 +856,26 @@ void Renderer::renderMaterialShader(RenderState& rstate, RenderData* render_data
                 error.c_str());
         shader_manager->getErrorShader()->render(&rstate, render_data, curr_material);
     }
-    programId = shader->getProgramId();
     mesh->setCurrentUVIndex(int(curr_material->getFloat("uvIndex")));
-  //  LOGE("uvindex = %f ", curr_material->getFloat("uvIndex"));
-    glBindVertexArray(mesh->getVAOId(programId));
+    programId = shader->getProgramId();
+    //there is no program associated with EXTERNAL_RENDERER_SHADER
+    if (-1 != programId) {
+        glBindVertexArray(mesh->getVAOId(programId));
      LOGE("calling draw");
-    if (mesh->indices().size() > 0) {
-        if(use_multiview)
-            glDrawElementsInstanced(render_data->draw_mode(), mesh->indices().size(), GL_UNSIGNED_SHORT, NULL, 2 );
-        else
-            glDrawElements(render_data->draw_mode(), mesh->indices().size(), GL_UNSIGNED_SHORT, 0);
+        if (mesh->indices().size() > 0) {
+            if(use_multiview) {
+                glDrawElementsInstanced(render_data->draw_mode(), mesh->indices().size(), GL_UNSIGNED_SHORT, NULL, 2 );
+            } else {
+                glDrawElements(render_data->draw_mode(), mesh->indices().size(), GL_UNSIGNED_SHORT, 0);
+            }
+        } else {
+            if(use_multiview) {
+                glDrawArraysInstanced(render_data->draw_mode(), 0, mesh->vertices().size(),2);
+            } else {
+                glDrawArrays(render_data->draw_mode(), 0, mesh->vertices().size());
+            }
+        }
     }
-    else {
-        if(use_multiview)
-            glDrawArraysInstanced(render_data->draw_mode(), 0, mesh->vertices().size(),2);
-        else
-            glDrawArrays(render_data->draw_mode(), 0, mesh->vertices().size());
-    }
-    glBindVertexArray(0);
     checkGlError("renderMesh::renderMaterialShader");
 
 }
