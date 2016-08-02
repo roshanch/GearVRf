@@ -37,7 +37,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #define BATCH_SIZE 60
-#define MAX_INDICES 1000
+#define MAX_INDICES 10000
 namespace gvr {
 BatchManager* Renderer::batch_manager = nullptr;
 bool do_batching = true;

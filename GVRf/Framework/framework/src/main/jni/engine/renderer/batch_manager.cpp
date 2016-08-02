@@ -67,13 +67,14 @@
    //  LOGE("render data vector size %d", render_data_vector.size());
      for (int i = 1; i < batch_indices_.size(); i++) {
          createBatch(batch_indices_[i - 1], batch_indices_[i] - 1, render_data_vector);
+         LOGE("out of create batch");
      }
-
+    LOGE("done with batch_setup");
  }
  void BatchManager::renderBatches(RenderState& rstate) {
      glm::mat4 vp_matrix = glm::mat4(
              rstate.uniforms.u_proj * rstate.uniforms.u_view);
-
+     LOGE("calling render batches, size %d",batch_set_.size());
      for (auto it = batch_set_.begin(); it != batch_set_.end(); ++it) {
 
          Batch* batch = *it;

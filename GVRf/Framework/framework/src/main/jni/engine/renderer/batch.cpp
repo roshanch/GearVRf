@@ -52,16 +52,25 @@ bool Batch::updateMesh(Mesh* render_mesh){
         std::map<std::string, std::vector<glm::vec2>>& vec2_vectors = render_mesh->getVec2Vectors();
         std::map<std::string, std::vector<glm::vec3>>& vec3_vectors = render_mesh->getVec3Vectors();
         std::map<std::string, std::vector<glm::vec4>>& vec4_vectors = render_mesh->getVec4Vectors();
-
+        LOGE("size of v: %d , T %d N %d",vertices.size(),tex_cords.size(),normals.size());
         int size = 0;
-
         size = vertices.size();
 
         for(int i=0;i<size;i++){
             vertices_.push_back(vertices[i]);
-            normals_.push_back(normals[i]);
             matrix_indices_.push_back(draw_count_);
-            tex_coords_.push_back(tex_cords[i]);
+        }
+
+
+        // Check if models has normals and texCords
+        if(normals.size() > 0){
+            for(int i=0;i<size;i++)
+                normals_.push_back(normals[i]);
+        }
+
+        if(tex_cords.size() > 0){
+            for(int i=0;i<size;i++)
+                tex_coords_.push_back(tex_cords[i]);
         }
 
         for(auto& it: float_vectors){
@@ -188,7 +197,7 @@ bool Batch::add(RenderData *render_data) {
         if (draw_count_ > 0) {
             return false;
         } else {
-            LOGE("mesh is large");
+            LOGE("mesh is large %d", indices.size());
             render_data_set_.insert(render_data);
             not_batched_ = true;
             render_mesh->setMeshModified(false); // mark mesh clean
@@ -219,14 +228,18 @@ void Batch::setupMesh(Material* mat){
         mesh_init_ = true;
 
         mesh_.set_vertices(vertices_);
-        mesh_.set_normals(normals_);
+        if(normals_.size() > 0)
+            mesh_.set_normals(normals_);
+
         mesh_.setFloatVecMap(float_vectors_);
         mesh_.setVec2Map(vec2_vectors_);
         mesh_.setVec3Map(vec3_vectors_);
         mesh_.setVec4Map(vec4_vectors_);
 
         int uvIndex = int(mat->getFloat("uvIndex"));
-        mesh_.set_tex_coords(tex_coords_,uvIndex);
+        if(tex_coords_.size() > 0)
+            mesh_.set_tex_coords(tex_coords_,uvIndex);
+
         mesh_.set_indices(indices_);
         mesh_.setFloatVector("a_matrix_index", matrix_indices_);
         mesh_.setCurrentUVIndex(uvIndex);
