@@ -23,7 +23,7 @@
 #include <map>
 #include <memory>
 #include <string>
-
+#include "objects/uniform_buffer.h"
 #include "glm/glm.hpp"
 
 #include "objects/hybrid_object.h"
@@ -224,7 +224,15 @@ public:
         }
     }
 
+    void updateMaterialUBO(size_t size, unsigned char* data, GLuint id_){
+        if(material_ubo_ == nullptr){
+            material_ubo_ = new UBO();
+            material_ubo_->createBuffer(size, id_, "Material_UBO", MATERIAL_UBO_INDEX);
+        }
+        material_ubo_->updateBuffer(size, data);
+    }
 private:
+    UBO* material_ubo_;
     Material(const Material& material);
     Material(Material&& material);
     Material& operator=(const Material& material);

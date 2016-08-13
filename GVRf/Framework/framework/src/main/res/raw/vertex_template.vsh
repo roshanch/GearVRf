@@ -6,14 +6,17 @@ layout(num_views = 2) in;
 flat out int view_id;
 #endif
 
-layout (std140) uniform Material_UBO {
+layout (std140) uniform Transform_UBO {
 #ifdef HAS_BATCHING
-	mat4 u_model[60]; 
+	mat4 u_model[60];
 #else
-	mat4 u_model; 
-#endif	
+	mat4 u_model;
+#endif
 	 mat4 u_proj;
 	 mat4 u_view[2];
+};
+
+layout (std140) uniform Material_UBO {
 	 vec4 ambient_color;
 	 vec4 diffuse_color;
 	 vec4 specular_color;

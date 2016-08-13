@@ -33,9 +33,11 @@
 #define BATCH_SIZE 60
 namespace gvr {
 CustomShader::CustomShader(const std::string& vertex_shader, const std::string& fragment_shader)
-    : vertexShader_(vertex_shader), fragmentShader_(fragment_shader),material_transform_data(nullptr) {
-    size_t size = sizeof(glm::vec4)*4 + sizeof(float) + sizeof(glm::mat4) * 3 + sizeof(glm::mat4) * (do_batching ? BATCH_SIZE : 1);
-    material_transform_data= (GLubyte*)malloc(size);
+    : vertexShader_(vertex_shader), fragmentShader_(fragment_shader),transform_data(nullptr),material_data(nullptr) {
+    size_t size = sizeof(glm::vec4)*4 + sizeof(float);
+    material_data= (GLubyte*)malloc(size);
+    size = sizeof(glm::mat4) * 3 + sizeof(glm::mat4) * (do_batching ? BATCH_SIZE : 1);
+    transform_data =(GLubyte*)malloc(size);
 }
 void CustomShader::initializeOnDemand(RenderState* rstate) {
     if (nullptr == program_)
@@ -98,8 +100,8 @@ void CustomShader::initializeOnDemand(RenderState* rstate) {
 	
 
 CustomShader::~CustomShader() {
-    free(material_transform_data);
-    material_transform_data = nullptr;
+    free(material_data);
+    material_data = nullptr;
     delete program_;
 }
 GLuint CustomShader::getProgramId(){
@@ -255,32 +257,34 @@ void CustomShader::updateUbos(Material* material, RenderState* rstate, const std
     float material_specular_exponent  = material->getFloat("specular_exponent");
 
     int offset = 0;
-
-    memcpy(material_transform_data+ offset,glm::value_ptr(model_matrices[0]), sizeof(glm::mat4)*draw_count );
-
-    offset += (do_batching ? BATCH_SIZE : 1) * sizeof(glm::mat4);
-    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_proj), sizeof(glm::mat4));
-
-    offset +=sizeof(glm::mat4);
-    memcpy(material_transform_data+ offset,glm::value_ptr(rstate->uniforms.u_view_[0]), sizeof(glm::mat4)*2 );
-
-    offset +=2*sizeof(glm::mat4);
-    memcpy(material_transform_data + offset, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
+    memcpy(material_data + offset, glm::value_ptr(material_ambient_color), sizeof(material_ambient_color));
 
     offset += sizeof(material_ambient_color);
-    memcpy(material_transform_data + offset, glm::value_ptr(material_diffuse_color), sizeof(material_diffuse_color));
+    memcpy(material_data + offset, glm::value_ptr(material_diffuse_color), sizeof(material_diffuse_color));
 
     offset += sizeof(material_diffuse_color);
-    memcpy(material_transform_data + offset, glm::value_ptr(material_specular_color), sizeof(material_specular_color));
+    memcpy(material_data + offset, glm::value_ptr(material_specular_color), sizeof(material_specular_color));
 
     offset += sizeof(material_specular_color);
-    memcpy(material_transform_data + offset, glm::value_ptr(emissive_color), sizeof(emissive_color));
+    memcpy(material_data + offset, glm::value_ptr(emissive_color), sizeof(emissive_color));
 
     offset += sizeof(emissive_color);
-    memcpy(material_transform_data + offset, &material_specular_exponent, sizeof(material_specular_exponent));
+    memcpy(material_data + offset, &material_specular_exponent, sizeof(material_specular_exponent));
 
-    size_t size = sizeof(glm::vec4)*4 + sizeof(float) + sizeof(glm::mat4) * 3 + sizeof(glm::mat4) * (do_batching ? BATCH_SIZE : 1);
-    program_->updateMaterialTransformUBO(size,material_transform_data);
+    size_t size = sizeof(glm::vec4)*4 + sizeof(float);
+    material->updateMaterialUBO(size,material_data, program_->id());
+
+    offset = 0;
+    memcpy(transform_data+ offset,glm::value_ptr(model_matrices[0]), sizeof(glm::mat4)*draw_count );
+
+    offset += (do_batching ? BATCH_SIZE : 1) * sizeof(glm::mat4);
+    memcpy(transform_data+ offset,glm::value_ptr(rstate->uniforms.u_proj), sizeof(glm::mat4));
+
+    offset +=sizeof(glm::mat4);
+    memcpy(transform_data+ offset,glm::value_ptr(rstate->uniforms.u_view_[0]), sizeof(glm::mat4)*2 );
+
+    size= sizeof(glm::mat4) * 3 + sizeof(glm::mat4) * (do_batching ? BATCH_SIZE : 1);
+    program_->updateTransformsUBO(size,transform_data);
 
 }
 
