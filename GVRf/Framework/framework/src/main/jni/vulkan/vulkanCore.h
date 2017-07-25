@@ -94,17 +94,41 @@ public:
     bool InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader*, VulkanRenderData* vkData);
 
 
-    void BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector, Camera*, ShaderManager*);
+    void BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector, Camera*, ShaderManager*,  const VkCommandBuffer &cmdBuffer);
+    void beginCommandBuffer(VkCommandBuffer *cmdBuffer);
+    void endCommandBuffer(VkCommandBuffer *cmdBuffer){
+        VkResult err;
+        err = vkEndCommandBuffer(*cmdBuffer);
+        GVR_VK_CHECK(!err);
+    }
+    void submitCmdBuffer(VkCommandBuffer *cmdBuffer, VkFence& fence){
+        VkResult err;
+        VkSubmitInfo submitInfo = {};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.pNext = nullptr;
+        submitInfo.waitSemaphoreCount = 0;
+        submitInfo.pWaitSemaphores = nullptr;
+        submitInfo.pWaitDstStageMask = nullptr;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = cmdBuffer;
+        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.pSignalSemaphores = nullptr;
 
+        err = vkQueueSubmit(m_queue, 1, &submitInfo, fence);
+        GVR_VK_CHECK(!err);
+    }
     void DrawFrameForRenderData();
     int getCurrentSwapChainIndx(){
         return imageIndex;
     }
-    VkFence getCurrentWaitFence(){
-        return waitSCBFences[imageIndex];
-    }
     VkCommandBuffer* getCurrentCmdBuffer(){
         return swapChainCmdBuffer[imageIndex];
+    }
+    VkFence getFenceObject(){
+        return waitSCBFences[0];
+    }
+    VkRenderTexture* getCurrentRenderTexture(){
+        return mRenderTexture[imageIndex];
     }
     int AcquireNextImage();
 

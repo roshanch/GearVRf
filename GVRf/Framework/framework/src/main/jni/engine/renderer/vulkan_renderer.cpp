@@ -21,7 +21,7 @@
 #include <vulkan/vulkan_vertex_buffer.h>
 #include <vulkan/vk_cubemap_image.h>
 #include "renderer.h"
-#include "glm/gtc/matrix_inverse.hpp"
+
 
 #include "objects/scene.h"
 #include "objects/textures/render_texture.h"
@@ -31,6 +31,7 @@
 #include "vulkan/vulkan_render_data.h"
 #include "vulkan/vk_texture.h"
 #include "vulkan/vk_bitmap_image.h"
+#include "vulkan/vk_render_to_texture.h"
 
 namespace gvr {
     ShaderData* VulkanRenderer::createMaterial(const char* uniform_desc, const char* texture_desc)
@@ -125,10 +126,125 @@ namespace gvr {
             vulkanCore_->InitDescriptorSetForRenderData(this, pass, shader, vkRdata);
             vkRdata->createPipeline(shader, this, pass);
         }
-        shader->useShader();
         return true;
     }
+    void VulkanRenderer::renderMesh(RenderState& rstate, RenderData* render_data){
+        for(int curr_pass =0; curr_pass< render_data->pass_count(); curr_pass++) {
 
+            ShaderData *curr_material = render_data->material(curr_pass);
+            Shader *shader = rstate.shader_manager->getShader(render_data->get_shader(curr_pass));
+            if (shader == NULL)
+            {
+                LOGE("SHADER: shader not found");
+                continue;
+            }
+            if (rstate.material_override != nullptr) {
+                curr_material = rstate.material_override;
+            }
+            if (!renderWithShader(rstate, shader, render_data, curr_material, curr_pass))
+                break;
+
+            if(curr_pass == render_data->pass_count()-1)
+                mRenderDataList.push_back(render_data);
+        }
+    }
+
+// TODO : put vulkan equivalent code here
+    void VulkanRenderer::cullAndRender(RenderTarget* renderTarget, Scene* scene,
+                                   ShaderManager* shader_manager,
+                                   PostEffectShaderManager* post_effect_shader_manager,
+                                   RenderTexture* post_effect_render_texture_a,
+                                   RenderTexture* post_effect_render_texture_b)
+    {
+        RenderState& rstate = renderTarget->getRenderState();
+        Camera* camera = renderTarget->getCamera();
+        const std::vector<ShaderData*>& post_effects = camera->post_effect_data();
+        RenderTexture* saveRenderTexture = renderTarget->getTexture();
+        mRenderDataList.clear();
+        cullFromCamera(scene, camera, shader_manager);
+        rstate.shader_manager = shader_manager;
+        rstate.scene = scene;
+        if (!rstate.shadow_map)
+        {
+            state_sort();
+            GL(glEnable (GL_BLEND));
+            GL(glBlendEquation (GL_FUNC_ADD));
+            GL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+        }
+
+        if ((post_effects.size() == 0) ||
+            (post_effect_render_texture_a == nullptr))
+        {
+            saveRenderTexture->useStencil(useStencilBuffer_);
+            for (auto it = render_data_vector.begin();
+                 it != render_data_vector.end();
+                 ++it)
+            {
+                RenderData* rdata = *it;
+                if (!rstate.shadow_map || rdata->cast_shadows())
+                {
+                    GL(renderRenderData(rstate, rdata));
+                }
+            }
+            VkCommandBuffer cmdBuffer;
+            vulkanCore_->createTransientCmdBuffer(cmdBuffer);
+            vulkanCore_->beginCommandBuffer(&cmdBuffer);
+
+            renderTarget->beginRendering(this);
+            vulkanCore_->BuildCmdBufferForRenderData(mRenderDataList, camera, shader_manager, cmdBuffer);
+            renderTarget->endRendering(this);
+
+            vulkanCore_->endCommandBuffer(&cmdBuffer);
+            VkFence fence = vulkanCore_->getFenceObject();
+            vkResetFences(getDevice(), 1, &fence);
+
+            vulkanCore_->submitCmdBuffer(&cmdBuffer, fence);
+            vkWaitForFences(getDevice(), 1, &fence, VK_TRUE, 4294967295U);
+        }
+        else
+        {
+            RenderTexture* renderTexture = post_effect_render_texture_a;
+
+            renderTexture->useStencil(useStencilBuffer_);
+            renderTarget->setTexture(renderTexture);
+            renderTarget->beginRendering(this);
+            for (auto it = render_data_vector.begin();
+                 it != render_data_vector.end();
+                 ++it)
+            {
+                RenderData* rdata = *it;
+                if (!rstate.shadow_map || rdata->cast_shadows())
+                {
+                    GL(renderRenderData(rstate, rdata));
+                }
+            }
+            GL(glDisable(GL_DEPTH_TEST));
+            GL(glDisable(GL_CULL_FACE));
+            renderTarget->endRendering(this);
+            for (int i = 0; i < post_effects.size() - 1; ++i)
+            {
+                if (i % 2 == 0)
+                {
+                    renderTexture = post_effect_render_texture_a;
+                }
+                else
+                {
+                    renderTexture = post_effect_render_texture_b;
+                }
+                renderTarget->setTexture(renderTexture);
+                renderTarget->beginRendering(this);
+                GL(renderPostEffectData(rstate, renderTexture, post_effects[i]));
+                renderTarget->endRendering(this);
+            }
+            renderTarget->setTexture(saveRenderTexture);
+            renderTarget->beginRendering(this);
+            GL(renderPostEffectData(rstate, renderTexture, post_effects.back()));
+            renderTarget->endRendering(this);
+        }
+        GL(glDisable(GL_DEPTH_TEST));
+        GL(glDisable(GL_CULL_FACE));
+        GL(glDisable(GL_BLEND));
+    }
     void VulkanRenderer::renderCamera(Scene *scene, Camera *camera,
                                       ShaderManager *shader_manager,
                                       PostEffectShaderManager *post_effect_shader_manager,
@@ -139,7 +255,6 @@ namespace gvr {
         if(!vulkanCore_->swapChainCreated())
             vulkanCore_->initVulkanCore();
 
-        std::vector<RenderData*> render_data_list;
         vulkanCore_->AcquireNextImage();
         RenderState rstate;
         rstate.shadow_map = false;
@@ -150,34 +265,20 @@ namespace gvr {
         rstate.uniforms.u_right = rstate.render_mask & RenderData::RenderMaskBit::Right;
         rstate.uniforms.u_view = camera->getViewMatrix();
         rstate.uniforms.u_proj = camera->getProjectionMatrix();
+        mRenderDataList.clear();
 
+        renderRenderDataVector(rstate);
 
-        for (auto &rdata : render_data_vector)
-        {
-            if (!(rstate.render_mask & rdata->render_mask()))
-                continue;
+        VkCommandBuffer* cmdBuffer = vulkanCore_->getCurrentCmdBuffer();
+        vulkanCore_->beginCommandBuffer(cmdBuffer);
+        VkRenderTexture* renderTexture = vulkanCore_->getCurrentRenderTexture();
+        renderTexture->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),camera->background_color_b(), camera->background_color_a());
+        renderTexture->beginRendering(Renderer::getInstance());
 
-            for(int curr_pass =0; curr_pass< rdata->pass_count(); curr_pass++) {
+        vulkanCore_->BuildCmdBufferForRenderData(mRenderDataList, camera, shader_manager, *cmdBuffer);
+        renderTexture->endRendering(Renderer::getInstance());
+        vulkanCore_->endCommandBuffer(cmdBuffer);
 
-                ShaderData *curr_material = rdata->material(curr_pass);
-                Shader *shader = rstate.shader_manager->getShader(rdata->get_shader(curr_pass));
-                if (shader == NULL)
-                {
-                    LOGE("SHADER: shader not found");
-                    continue;
-                }
-                if (rstate.material_override != nullptr) {
-                    curr_material = rstate.material_override;
-                }
-                if (!renderWithShader(rstate, shader, rdata, curr_material, curr_pass))
-                    break;
-
-                if(curr_pass == rdata->pass_count()-1)
-                    render_data_list.push_back(rdata);
-            }
-        }
-
-        vulkanCore_->BuildCmdBufferForRenderData(render_data_list,camera, shader_manager);
         vulkanCore_->DrawFrameForRenderData();
     }
 

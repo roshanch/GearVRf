@@ -932,14 +932,14 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         LOGI("Vulkan initsync start");
         VkResult ret = VK_SUCCESS;
 
-        ret = vkCreateSemaphore(m_device, gvr::SemaphoreCreateInfo(), nullptr,
+/*        ret = vkCreateSemaphore(m_device, gvr::SemaphoreCreateInfo(), nullptr,
                                 &m_backBufferSemaphore);
         GVR_VK_CHECK(!ret);
 
         ret = vkCreateSemaphore(m_device, gvr::SemaphoreCreateInfo(), nullptr,
                                 &m_renderCompleteSemaphore);
         GVR_VK_CHECK(!ret);
-
+*/
         // Fences (Used to check draw command buffer completion)
         VkFenceCreateInfo fenceCreateInfo = {};
         fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -951,7 +951,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
             GVR_VK_CHECK(!ret);
         }
 
-        waitSCBFences.resize(SWAP_CHAIN_COUNT);
+        waitSCBFences.resize(1);
         for (auto &fence : waitSCBFences) {
             ret = vkCreateFence(m_device, gvr::FenceCreateInfo(), nullptr, &fence);
             GVR_VK_CHECK(!ret);
@@ -959,17 +959,9 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
 
         LOGI("Vulkan initsync end");
     }
-
-    void VulkanCore::BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector,
-                                                 Camera *camera, ShaderManager* shader_manager) {
-        // For the triangle sample, we pre-record our command buffer, as it is static.
-        // We have a buffer per swap chain image, so loop over the creation process.
-        VkCommandBuffer &cmdBuffer = *(swapChainCmdBuffer[imageIndex]);
-
-        // vkBeginCommandBuffer should reset the command buffer, but Reset can be called
-        // to make it more explicit.
+    void VulkanCore::beginCommandBuffer(VkCommandBuffer* cmdBuffer){
         VkResult err;
-        err = vkResetCommandBuffer(cmdBuffer, 0);
+        err = vkResetCommandBuffer(*cmdBuffer, 0);
         GVR_VK_CHECK(!err);
 
         VkCommandBufferInheritanceInfo cmd_buf_hinfo = {};
@@ -989,18 +981,19 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         cmd_buf_info.pInheritanceInfo = &cmd_buf_hinfo;
 
         // By calling vkBeginCommandBuffer, cmdBuffer is put into the recording state.
-        err = vkBeginCommandBuffer(cmdBuffer, &cmd_buf_info);
+        err = vkBeginCommandBuffer(*cmdBuffer, &cmd_buf_info);
         GVR_VK_CHECK(!err);
+    }
 
-        mRenderTexture[imageIndex]->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),camera->background_color_b(), camera->background_color_a());
-        mRenderTexture[imageIndex]->bind();
-        mRenderTexture[imageIndex]->beginRendering(Renderer::getInstance());
+
+    void VulkanCore::BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector,
+                                                 Camera *camera, ShaderManager* shader_manager, const VkCommandBuffer &cmdBuffer) {
 
         for (int j = 0; j < render_data_vector.size(); j++) {
 
             VulkanRenderData *rdata = reinterpret_cast<VulkanRenderData *>(render_data_vector[j]);
 
-            for(int curr_pass =0 ;curr_pass < rdata->pass_count(); curr_pass++) {
+            for(int curr_pass =0; curr_pass< rdata->pass_count(); curr_pass++) {
 
                vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 rdata->getVKPipeline(curr_pass) );
@@ -1046,11 +1039,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
            }
         }
 
-        mRenderTexture[imageIndex]->endRendering(Renderer::getInstance());
-
-        // By ending the command buffer, it is put out of record mode.
-        err = vkEndCommandBuffer(cmdBuffer);
-        GVR_VK_CHECK(!err);
     }
 
     int VulkanCore::AcquireNextImage() {
@@ -1065,19 +1053,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         VkFence nullFence = waitFences[imageIndex];
         vkResetFences(m_device, 1, &waitFences[imageIndex]);
 
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pNext = nullptr;
-        submitInfo.waitSemaphoreCount = 0;
-        submitInfo.pWaitSemaphores = nullptr;
-        submitInfo.pWaitDstStageMask = nullptr;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = swapChainCmdBuffer[imageIndex];
-        submitInfo.signalSemaphoreCount = 0;
-        submitInfo.pSignalSemaphores = nullptr;
-
-        err = vkQueueSubmit(m_queue, 1, &submitInfo, waitFences[imageIndex]);
-        GVR_VK_CHECK(!err);
+        submitCmdBuffer(swapChainCmdBuffer[imageIndex], waitFences[imageIndex]);
 
         err = vkGetFenceStatus(m_device, waitFences[imageIndex]);
         int swapChainIndx = imageIndex;
@@ -1102,7 +1078,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
 
         VkCommandBuffer trnCmdBuf;
         createTransientCmdBuffer(trnCmdBuf);
-        mRenderTexture[swapChainIndx]->readVkRenderResult(&oculusTexData,trnCmdBuf,waitSCBFences[swapChainIndx]);
+        mRenderTexture[swapChainIndx]->readVkRenderResult(&oculusTexData,trnCmdBuf,waitSCBFences[0]);
         vkFreeCommandBuffers(m_device, m_commandPoolTrans, 1, &trnCmdBuf);
         GVR_VK_CHECK(!err);
     }

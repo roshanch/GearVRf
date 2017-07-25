@@ -24,8 +24,17 @@ void VkRenderTexture::endRendering(Renderer* renderer) {
     VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(renderer);
     vkCmdEndRenderPass(*(vk_renderer->getCore()->getCurrentCmdBuffer()));
 }
+/*
+bool VkRenderTexture::isReady() {
+    VkResult err;
+    VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
+    VkDevice device = vk_renderer->getDevice();
+    err = vkGetFenceStatus(device, waitFences[imageIndex]);
+}
+*/
 void VkRenderTexture::beginRendering(Renderer* renderer){
 
+    bind();
     VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(renderer);
 
     clear_values[0].color.float32[0] = mBackColor[0];
@@ -95,6 +104,6 @@ bool VkRenderTexture::readVkRenderResult(uint8_t **readback_buffer, VkCommandBuf
     vkUnmapMemory(device, mem);
     // Makes Fence Un-signalled
     err = vkResetFences(device, 1, &fence);
-
+    GVR_VK_CHECK(!err);
 }
 }

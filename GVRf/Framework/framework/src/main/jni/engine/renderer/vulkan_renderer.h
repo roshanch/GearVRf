@@ -113,7 +113,7 @@ public:
     virtual void cullAndRender(RenderTarget* renderTarget, Scene* scene,
                         ShaderManager* shader_manager, PostEffectShaderManager* post_effect_shader_manager,
                         RenderTexture* post_effect_render_texture_a,
-                        RenderTexture* post_effect_render_texture_b) {};
+                        RenderTexture* post_effect_render_texture_b);
     void makeShadowMaps(Scene* scene, ShaderManager* shader_manager){}
     void set_face_culling(int cull_face){}
     virtual ShaderData* createMaterial(const char* uniform_desc, const char* texture_desc);
@@ -135,14 +135,14 @@ public:
     virtual bool renderWithShader(RenderState& rstate, Shader* shader, RenderData* renderData, ShaderData* shaderData, int);
 private:
     VulkanCore* vulkanCore_;
-    void renderMesh(RenderState& rstate, RenderData* render_data){}
+    void renderMesh(RenderState& rstate, RenderData* render_data);
     void renderMaterialShader(RenderState& rstate, RenderData* render_data, ShaderData *material, Shader*){}
     void occlusion_cull(RenderState& rstate,
                 std::vector<SceneObject*>& scene_objects){
         occlusion_cull_init(rstate.scene, scene_objects);
 
     }
-
+    std::vector<RenderData*> mRenderDataList;
 
 };
 }
