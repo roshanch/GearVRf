@@ -119,12 +119,12 @@ namespace gvr {
         }
         rdata->updateGPU(this,shader);
 
-        vulkanCore_->InitLayoutRenderData(*vkmtl, vkRdata, shader);
+        vulkanCore_->InitLayoutRenderData(*vkmtl, vkRdata, shader, false);
 
         if(vkRdata->isHashCodeDirty() || vkRdata->isDirty(0xFFFF) || vkRdata->isDescriptorSetNull(pass)) {
 
             vulkanCore_->InitDescriptorSetForRenderData(this, pass, shader, vkRdata);
-            vkRdata->createPipeline(shader, this, pass);
+            vkRdata->createPipeline(shader, this, pass, false, 0);
         }
         return true;
     }
@@ -167,9 +167,11 @@ namespace gvr {
         if (!rstate.shadow_map)
         {
             state_sort();
+            /*
             GL(glEnable (GL_BLEND));
             GL(glBlendEquation (GL_FUNC_ADD));
             GL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+             */
         }
 
         if ((post_effects.size() == 0) ||
@@ -245,9 +247,29 @@ namespace gvr {
         GL(glDisable(GL_CULL_FACE));
         GL(glDisable(GL_BLEND));
     }
+    bool VulkanRenderer::renderWithPostEffectShader(RenderState& rstate, Shader* shader, RenderData* rdata, ShaderData* shaderData,  int pass, int postEffectIndx)
+    {
+        // Updates its vertex buffer
+        rdata->updateGPU(this,shader);
+
+        // For its layout (uniforms and samplers)
+        VulkanRenderData* vkRdata = static_cast<VulkanRenderData*>(rdata);
+        VulkanMaterial* vkmtl = static_cast<VulkanMaterial*>(shaderData);
+
+        vulkanCore_->InitLayoutRenderData(*vkmtl, vkRdata, shader, true);
+
+        if(vkRdata->isHashCodeDirty() || vkRdata->isDirty(0xFFFF) || vkRdata->isDescriptorSetNull(pass)) {
+
+            vulkanCore_->InitDescriptorSetForRenderDataPostEffect(this, pass, shader, vkRdata, postEffectIndx);
+            vkRdata->set_depth_test(0);
+            vkRdata->createPipeline(shader, this, pass, true, postEffectIndx);
+       }
+
+        shader->useShader();
+        return true;
+    }
     void VulkanRenderer::renderCamera(Scene *scene, Camera *camera,
                                       ShaderManager *shader_manager,
-                                      PostEffectShaderManager *post_effect_shader_manager,
                                       RenderTexture *post_effect_render_texture_a,
                                       RenderTexture *post_effect_render_texture_b) {
 
@@ -266,7 +288,10 @@ namespace gvr {
         rstate.uniforms.u_view = camera->getViewMatrix();
         rstate.uniforms.u_proj = camera->getProjectionMatrix();
         mRenderDataList.clear();
-
+        std::vector<ShaderData *> post_effects = camera->post_effect_data();
+        int postEffectCount = post_effects.size();
+        
+        
         renderRenderDataVector(rstate);
 
         VkCommandBuffer* cmdBuffer = vulkanCore_->getCurrentCmdBuffer();
@@ -278,8 +303,61 @@ namespace gvr {
         vulkanCore_->BuildCmdBufferForRenderData(mRenderDataList, camera, shader_manager, *cmdBuffer);
         renderTexture->endRendering(Renderer::getInstance());
         vulkanCore_->endCommandBuffer(cmdBuffer);
+        int index = vulkanCore_->DrawFrameForRenderData();
 
-        vulkanCore_->DrawFrameForRenderData();
+        if(postEffectCount)
+            vulkanCore_->InitPostEffectChain();
+
+        // Call Post Effect
+        for(int i = 0; i < post_effects.size(); i++) {
+            RenderData *renderData = post_effect_render_data();
+            if(renderData->material(0) == nullptr){
+                VulkanRenderPass *vulkanRenderPass = new VulkanRenderPass();
+                renderData->add_pass(vulkanRenderPass);
+            }
+            RenderPass* rp =  renderData->pass(0);
+            rp->set_material((VulkanMaterial *)post_effects[i]);
+            Shader* shader = rstate.shader_manager->getShader(post_effects[i]->getNativeShader());
+            renderWithPostEffectShader(rstate, shader, renderData,
+                                       post_effects[i], 0, i);
+
+            vulkanCore_->BuildCmdBufferForRenderDataPE(camera, renderData, shader, i);
+            vulkanCore_->DrawFrameForRenderDataPE();
+            index = i % 2;
+        }
+
+        vulkanCore_->RenderToOculus(index, postEffectCount);
+    }
+
+    RenderData* VulkanRenderer::post_effect_render_data()
+    {
+        if (post_effect_render_data_)
+        {
+            return post_effect_render_data_;
+        }
+        float positions[] = { -1.0f, 1.0f,  1.0f,
+                              -1.0f, -1.0f,  1.0f,
+                              1.0f,  -1.0f,  1.0f,
+                              1.0f,  1.0f,  1.0f,
+                              -1.0f, 1.0f,  1.0f,
+                              1.0f,  -1.0f,  1.0f};
+
+        float uvs[] = { 0.0f, 1.0f,
+                        0.0f, 0.0f,
+                        1.0f, 0.0f,
+                        1.0f, 1.0f,
+                        0.0f, 1.0f,
+                        1.0f, 0.0f};
+
+        const int position_size = sizeof(positions)/ sizeof(positions[0]);
+        const int uv_size = sizeof(uvs)/ sizeof(uvs[0]);
+
+        Mesh* mesh = new Mesh("float3 a_position float2 a_texcoord");
+        mesh->setVertices(positions, position_size);
+        mesh->setFloatVec("a_texcoord", uvs, uv_size);
+        post_effect_render_data_ = createRenderData();
+        post_effect_render_data_->set_mesh(mesh);
+        return post_effect_render_data_;
     }
 
 
