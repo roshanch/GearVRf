@@ -23,6 +23,8 @@ public:
     virtual ~VkRenderTexture(){
         delete fbo;
     }
+    virtual int width() const { return mWidth; }
+    virtual int height() const { return mHeight; }
     VkRenderTexture(int width, int height, int sample_count = 1):RenderTexture(sample_count), fbo(nullptr),mWidth(width), mHeight(height){}
     virtual unsigned int getFrameBufferId() const {
 

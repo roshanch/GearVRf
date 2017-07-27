@@ -99,7 +99,7 @@ void  RenderTarget::beginRendering(Renderer* renderer)
                                            mCamera->background_color_b(), mCamera->background_color_a());
     }
     mRenderTexture->beginRendering(renderer);
-    checkGLError("RenderTarget::beginRendering");
+  //  checkGLError("RenderTarget::beginRendering");
 }
 
 /**
@@ -110,7 +110,7 @@ void  RenderTarget::beginRendering(Renderer* renderer)
 void RenderTarget::endRendering(Renderer* renderer)
 {
     mRenderTexture->endRendering(renderer);
-    checkGLError("RenderTarget::endRendering");
+    //checkGLError("RenderTarget::endRendering");
 }
 
 }

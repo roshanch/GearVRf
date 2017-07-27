@@ -530,7 +530,7 @@ abstract class GVRViewManager extends GVRContext {
     {
         cullAndRender(renderTarget.getNative(), scene.getNative(),
                 mRenderBundle.getMaterialShaderManager().getNative(),
-                mRenderBundle.getPostEffectShaderManager().getNative(),
+                0L,
                 mRenderBundle.getPostEffectRenderTextureA().getNative(),
                 mRenderBundle.getPostEffectRenderTextureB().getNative());
     }

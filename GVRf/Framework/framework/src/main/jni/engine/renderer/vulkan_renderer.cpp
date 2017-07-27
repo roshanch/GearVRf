@@ -77,7 +77,7 @@ namespace gvr {
                                                  int jcolor_format, int jdepth_format, bool resolve_depth,
                                                  const TextureParameters* texture_parameters)
     {
-        return NULL;
+        return new VkRenderTexture(width,height);
     }
 
     Shader* VulkanRenderer::createShader(int id, const char* signature,
@@ -164,6 +164,9 @@ namespace gvr {
         cullFromCamera(scene, camera, shader_manager);
         rstate.shader_manager = shader_manager;
         rstate.scene = scene;
+        if(!vulkanCore_->swapChainCreated())
+            vulkanCore_->initVulkanCore();
+
         if (!rstate.shadow_map)
         {
             state_sort();
@@ -202,6 +205,8 @@ namespace gvr {
 
             vulkanCore_->submitCmdBuffer(&cmdBuffer, fence);
             vkWaitForFences(getDevice(), 1, &fence, VK_TRUE, 4294967295U);
+
+            vkFreeCommandBuffers(getDevice(), vulkanCore_->getTransientCmdPool(), 1, &cmdBuffer);
         }
         else
         {
@@ -243,9 +248,6 @@ namespace gvr {
             GL(renderPostEffectData(rstate, renderTexture, post_effects.back()));
             renderTarget->endRendering(this);
         }
-        GL(glDisable(GL_DEPTH_TEST));
-        GL(glDisable(GL_CULL_FACE));
-        GL(glDisable(GL_BLEND));
     }
     bool VulkanRenderer::renderWithPostEffectShader(RenderState& rstate, Shader* shader, RenderData* rdata, ShaderData* shaderData,  int pass, int postEffectIndx)
     {
@@ -259,7 +261,6 @@ namespace gvr {
         vulkanCore_->InitLayoutRenderData(*vkmtl, vkRdata, shader, true);
 
         if(vkRdata->isHashCodeDirty() || vkRdata->isDirty(0xFFFF) || vkRdata->isDescriptorSetNull(pass)) {
-
             vulkanCore_->InitDescriptorSetForRenderDataPostEffect(this, pass, shader, vkRdata, postEffectIndx);
             vkRdata->set_depth_test(0);
             vkRdata->createPipeline(shader, this, pass, true, postEffectIndx);
@@ -298,10 +299,10 @@ namespace gvr {
         vulkanCore_->beginCommandBuffer(cmdBuffer);
         VkRenderTexture* renderTexture = vulkanCore_->getCurrentRenderTexture();
         renderTexture->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),camera->background_color_b(), camera->background_color_a());
-        renderTexture->beginRendering(Renderer::getInstance());
+        renderTexture->beginRendering(this);
 
         vulkanCore_->BuildCmdBufferForRenderData(mRenderDataList, camera, shader_manager, *cmdBuffer);
-        renderTexture->endRendering(Renderer::getInstance());
+        renderTexture->endRendering(this);
         vulkanCore_->endCommandBuffer(cmdBuffer);
         int index = vulkanCore_->DrawFrameForRenderData();
 
