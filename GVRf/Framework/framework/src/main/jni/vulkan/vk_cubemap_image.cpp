@@ -155,6 +155,7 @@ extern std::map<int, VkFormat> compressed_formats;
             }
             else {
                 pixels = env->GetByteArrayElements(byteArray, 0);
+                pixels = (char*)pixels + getDataOffset(i);
                 mLevels = static_cast<int>(floor(log2(std::max(mWidth, mHeight))) + 1);
                 {
                     VkBufferImageCopy bufferCopyRegion = {};
@@ -187,9 +188,9 @@ extern std::map<int, VkFormat> compressed_formats;
 
         VkFormat internal_format = compressed_formats[mFormat];
         updateMipVkImage(tex_size, texData, imageInfos, bufferCopyRegions, t,
-                         internal_format, mLevels);
+                         internal_format, 1);
         for (int i = 0; i < bitmaps.size(); i++) {
-            env->ReleaseByteArrayElements(bitmaps[i], (jbyte *)texData[i], 0);
+            env->ReleaseByteArrayElements(bitmaps[i], (jbyte *)texData[i]- getDataOffset(i), 0);
             env->DeleteLocalRef(bitmaps[i]);
 
         }
