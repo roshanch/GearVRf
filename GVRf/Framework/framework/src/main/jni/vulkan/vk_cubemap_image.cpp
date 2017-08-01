@@ -156,7 +156,8 @@ extern std::map<int, VkFormat> compressed_formats;
             else {
                 pixels = env->GetByteArrayElements(byteArray, 0);
                 pixels = (char*)pixels + getDataOffset(i);
-                mLevels = static_cast<int>(floor(log2(std::max(mWidth, mHeight))) + 1);
+                // compressed textures doesn't have mipmaps, change it for sampler
+                mLevels = 0;
                 {
                     VkBufferImageCopy bufferCopyRegion = {};
                     ImageInfo imageInfo = {};

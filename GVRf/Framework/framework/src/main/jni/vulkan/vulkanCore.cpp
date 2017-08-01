@@ -972,19 +972,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         LOGI("Vulkan initsync start");
         VkResult ret = VK_SUCCESS;
 
- /*       ret = vkCreateSemaphore(m_device, gvr::SemaphoreCreateInfo(), nullptr,
-                                &m_backBufferSemaphore);
-        GVR_VK_CHECK(!ret);
-
-        ret = vkCreateSemaphore(m_device, gvr::SemaphoreCreateInfo(), nullptr,
-                                &m_renderCompleteSemaphore);
-        GVR_VK_CHECK(!ret);
-*/
-        // Fences (Used to check draw command buffer completion)
-        VkFenceCreateInfo fenceCreateInfo = {};
-        fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-        fenceCreateInfo.flags = 0;
-
         waitFences.resize(SWAP_CHAIN_COUNT);
         for (auto &fence : waitFences) {
             ret = vkCreateFence(m_device, gvr::FenceCreateInfo(), nullptr, &fence);
