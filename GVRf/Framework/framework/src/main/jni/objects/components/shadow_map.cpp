@@ -40,7 +40,7 @@ class Renderer;
     void ShadowMap::setLayerIndex(int layerIndex)
     {
         mLayerIndex = layerIndex;
-        GLRenderTexture* rtex = static_cast<GLRenderTexture*>(mRenderTexture);
+        GLNonMultiviewRenderTexture* rtex = static_cast<GLNonMultiviewRenderTexture*>(mRenderTexture);
 
         if (rtex)
         {

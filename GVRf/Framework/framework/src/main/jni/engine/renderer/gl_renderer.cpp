@@ -112,14 +112,14 @@ namespace gvr
                                                    bool resolve_depth,
                                                    const TextureParameters *texparams)
     {
-        RenderTexture *tex = new GLRenderTexture(width, height, sample_count, jcolor_format, jdepth_format,
+        RenderTexture *tex = new GLNonMultiviewRenderTexture(width, height, sample_count, jcolor_format, jdepth_format,
                                                  resolve_depth, texparams);
         return tex;
     }
 
     RenderTexture* GLRenderer::createRenderTexture(int width, int height, int sample_count, int layers)
     {
-        RenderTexture* tex = new GLRenderTexture(width, height, sample_count, layers, DepthFormat::DEPTH_0);
+        RenderTexture* tex = new GLNonMultiviewRenderTexture(width, height, sample_count, layers, DepthFormat::DEPTH_0);
         return tex;
     }
 

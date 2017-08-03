@@ -64,7 +64,7 @@ public:
     // Copy data in pixel buffer to client memory. This function is synchronous. When
     // it returns, the pixels have been copied to PBO and then to the client memory.
     virtual bool readRenderResult(unsigned int *readback_buffer, long capacity);
-    void bindFrameBufferToLayer(int layerIndex);
+
     bool bindTexture(int gl_location, int texIndex);
 
 private:
@@ -73,16 +73,16 @@ private:
     GLRenderTexture& operator=(const GLRenderTexture&);
     GLRenderTexture& operator=(GLRenderTexture&&);
 
+
+    void invalidateFrameBuffer(GLenum target, bool is_fbo, const bool color_buffer, const bool depth_buffer);
+
+
+protected:
+    void initialize();
     void generateRenderTextureNoMultiSampling(int jdepth_format,GLenum depth_format, int width, int height);
-    void generateRenderTextureLayer(GLenum depth_format, int width, int height);
     void generateRenderTextureEXT(int sample_count,int jdepth_format,GLenum depth_format, int width, int height);
     void generateRenderTexture(int sample_count, int jdepth_format, GLenum depth_format, int width,
-            int height, int jcolor_format);
-    void invalidateFrameBuffer(GLenum target, bool is_fbo, const bool color_buffer, const bool depth_buffer);
-    void initialize();
-
-private:
-    int layer_index_;
+                               int height, int jcolor_format);
     GLenum depth_format_;
     GLRenderBuffer* renderTexture_gl_render_buffer_ = nullptr;// This is actually depth buffer.
     GLFrameBuffer* renderTexture_gl_frame_buffer_ = nullptr;
@@ -91,6 +91,84 @@ private:
                                      // when resolveDepth is on.
     GLuint renderTexture_gl_pbo_ = 0;
 };
+class GLMultiviewRenderTexture: public GLRenderTexture
+{
+public:
+    int mLayers_;
+    GLuint frameBufferDepthTextureId;
+    GLuint render_texture_gl_texture_ = 0;
+    GLFrameBuffer* renderTexture_gl_read_buffer = nullptr;
+    GLuint getReadBufferId(){
+        if(renderTexture_gl_read_buffer == NULL)
+            renderTexture_gl_read_buffer = new GLFrameBuffer();
 
+        return  renderTexture_gl_read_buffer->id();
+    }
+    void startReadBack(int layer);
+    explicit GLMultiviewRenderTexture(int width, int height, int sample_count, int layers, int depth_format): GLRenderTexture(width, height, sample_count, layers, depth_format),
+                                                                                                              mLayers_(layers){}
+    explicit GLMultiviewRenderTexture(int width, int height, int sample_count,
+                                         int jcolor_format, int jdepth_format, bool resolve_depth,
+                                         const TextureParameters* texture_parameters, int layers);
+    bool readRenderResult(uint32_t *readback_buffer, long capacity, int layer);
+    virtual ~GLMultiviewRenderTexture(){
+
+    }
+    virtual bool isReady() {
+        return GLRenderTexture::isReady();
+    }
+    virtual void beginRendering(Renderer* renderer){
+        if (!isReady())
+        {
+            return;
+        }
+
+        bind();
+        GLRenderTexture::beginRendering(renderer);
+    }
+
+};
+
+class GLNonMultiviewRenderTexture: public GLRenderTexture
+{
+public:
+    int layer_index_;
+    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, int layers, int depth_format): GLRenderTexture(width, height, sample_count, layers, depth_format) {}
+    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count,
+                             int jcolor_format, int jdepth_format, bool resolve_depth,
+                             const TextureParameters* texture_parameters);
+    void generateRenderTextureLayer(GLenum depth_format, int width, int height);
+    void bindFrameBufferToLayer(int layerIndex);
+    bool readRenderResult(uint32_t *readback_buffer, long capacity);
+    virtual ~GLNonMultiviewRenderTexture(){
+
+    }
+    void startReadBack(int layer);
+    virtual bool isReady(){
+        bool status = GLRenderTexture::isReady();
+        if (renderTexture_gl_frame_buffer_ == NULL)
+        {
+            renderTexture_gl_frame_buffer_ = new GLFrameBuffer();
+            generateRenderTextureLayer(depth_format_, width(), height());
+            checkGLError("RenderTexture::isReady generateRenderTextureLayer");
+        }
+        return status;
+    }
+    virtual void beginRendering(Renderer* renderer){
+        if (!isReady())
+        {
+            return;
+        }
+
+        bind();
+        if (mImage->getDepth() > 1)
+        {
+            LOGV("GLRenderTexture::beginRendering layer=%d", layer_index_);
+            glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mImage->getId(), 0, layer_index_);
+        }
+        GLRenderTexture::beginRendering(renderer);
+
+    }
+};
 }
 #endif
