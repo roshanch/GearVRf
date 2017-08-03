@@ -33,6 +33,7 @@ class GLRenderImage : public GLImage, public Image
 {
 public:
     explicit GLRenderImage(int width, int height, int layers = 1);
+    explicit GLRenderImage(int width, int height, int layers, GLuint texId, bool marktexParamsDirty);
     explicit GLRenderImage(int width, int height, int color_format, const TextureParameters* texture_parameters);
     explicit GLRenderImage(int width, int height, int color_format, int layers, const TextureParameters* texture_parameters);
     virtual int getId() { return mId; }

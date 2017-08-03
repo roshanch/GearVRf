@@ -37,7 +37,16 @@ typedef void (GL_APIENTRY *PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC)(G
                                                                                GLsizei samples,
                                                                                GLint baseViewIndex,
                                                                                GLsizei numViews);
+GLRenderTexture::GLRenderTexture(int width, int height, int sample_count, int layers, GLuint fboId, GLuint texId):
+        RenderTexture(sample_count),
+        renderTexture_gl_render_buffer_(nullptr),
+        renderTexture_gl_frame_buffer_(nullptr),
+        renderTexture_gl_resolve_buffer_(nullptr),
+        renderTexture_gl_color_buffer_(nullptr){
 
+    mImage = new GLRenderImage(width, height, layers, texId, false);
+    renderTexture_gl_frame_buffer_ = new GLFrameBuffer(fboId);
+}
 GLRenderTexture::GLRenderTexture(int width, int height, int sample_count, int layers, int depth_format) :
         RenderTexture(sample_count),
         renderTexture_gl_render_buffer_(nullptr),
@@ -316,7 +325,6 @@ bool GLMultiviewRenderTexture::readRenderResult(uint32_t *readback_buffer, long 
 }
 bool GLRenderTexture::readRenderResult(uint32_t *readback_buffer, long capacity) {
     long neededCapacity = mImage->getWidth() * mImage->getHeight();
-    GLRenderImage* image = static_cast<GLRenderImage*>(mImage);
 
     if (!readback_started_) {
         glReadPixels(0, 0, mImage->getWidth(), mImage->getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, 0);

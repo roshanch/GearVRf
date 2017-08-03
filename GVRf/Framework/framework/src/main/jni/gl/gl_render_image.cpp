@@ -24,6 +24,14 @@
 
 namespace gvr {
 
+GLRenderImage::GLRenderImage(int width, int height, int layers, GLuint texId, bool marktexParamsDirty)
+        : GLImage((layers > 1) ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D)
+{
+    GLRenderImage(width,height, layers);
+    setTexId(texId);
+    setTexParamsDirty(marktexParamsDirty);
+
+}
 
 GLRenderImage::GLRenderImage(int width, int height, int layers)
         : GLImage((layers > 1) ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D)
@@ -100,7 +108,7 @@ GLRenderImage::GLRenderImage(int width, int height, int color_format, int layers
     GLenum target = GLImage::getTarget();
     mWidth = width;
     mHeight = height;
-    mDepth = 1;
+    mDepth = layers;
     mType = Image::ImageType::BITMAP;
     mState = HAS_DATA;
 

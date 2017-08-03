@@ -34,6 +34,7 @@ class Renderer;
 class GLRenderTexture : public RenderTexture
 {
 public:
+    explicit GLRenderTexture(int width, int height, int sample_count, int layers, GLuint fboId, GLuint texId);
     explicit GLRenderTexture(int width, int height, int sample_count, int layers, int depth_format);
     explicit GLRenderTexture(int width, int height, int sample_count,
             int jcolor_format, int jdepth_format, bool resolve_depth,
@@ -105,15 +106,15 @@ public:
         return  renderTexture_gl_read_buffer->id();
     }
     void startReadBack(int layer);
+    explicit GLMultiviewRenderTexture(int width, int height, int sample_count, int layers, GLuint fboId, GLuint texId):
+            GLRenderTexture(width, height, sample_count, layers,fboId,texId){}
     explicit GLMultiviewRenderTexture(int width, int height, int sample_count, int layers, int depth_format): GLRenderTexture(width, height, sample_count, layers, depth_format),
                                                                                                               mLayers_(layers){}
     explicit GLMultiviewRenderTexture(int width, int height, int sample_count,
                                          int jcolor_format, int jdepth_format, bool resolve_depth,
                                          const TextureParameters* texture_parameters, int layers);
     bool readRenderResult(uint32_t *readback_buffer, long capacity, int layer);
-    virtual ~GLMultiviewRenderTexture(){
-
-    }
+    virtual ~GLMultiviewRenderTexture(){}
     virtual bool isReady() {
         return GLRenderTexture::isReady();
     }
@@ -133,6 +134,8 @@ class GLNonMultiviewRenderTexture: public GLRenderTexture
 {
 public:
     int layer_index_;
+    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, int layers, GLuint fboId, GLuint texId):
+            GLRenderTexture(width, height, sample_count, layers,fboId,texId){}
     explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, int layers, int depth_format): GLRenderTexture(width, height, sample_count, layers, depth_format) {}
     explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count,
                              int jcolor_format, int jdepth_format, bool resolve_depth,

@@ -23,6 +23,9 @@ final class GVRRenderBundle implements IRenderBundle {
     private final GVRRenderTexture mPostEffectRenderTextureA;
     private final GVRRenderTexture mPostEffectRenderTextureB;
 
+    private GVRRenderTarget mLeftEyeRenderTarget[3];
+    private GVRRenderTarget mRightEyeRenderTarget[3];
+    private GVRRenderTarget mMultiviewRenderTarget[3];
     GVRRenderBundle(GVRContext gvrContext, final int width, final int height) {
         mGVRContext = gvrContext;
         mMaterialShaderManager = new GVRMaterialShaderManager(gvrContext);

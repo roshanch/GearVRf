@@ -107,7 +107,16 @@ namespace gvr {
                                                          mMultisamplesConfiguration, mColorTextureFormatConfiguration,
                                                          mResolveDepthConfiguration, mDepthTextureFormatConfiguration);
     }
+RenderTexture*  GVRActivity::createRenderTexture(int eye, int index){
+    // for multiview, eye index would be 2
+    eye = eye % 2;
+    FrameBufferObject fbo = frameBuffer_[eye];
 
+    if(use_multiview)
+        return  new GLMultiviewRenderTexture(fbo.getWidth(),fbo.getHeight(),2,fbo.getRenderBufferFBOId(index), fbo.getColorTexId(index));
+
+    return new GLNonMultiviewRenderTexture(fbo.getWidth(),fbo.getHeight(),2,fbo.getRenderBufferFBOId(index), fbo.getColorTexId(index));
+}
     void GVRActivity::onSurfaceChanged(JNIEnv& env) {
         int maxSamples = MSAA::getMaxSampleCount();
         LOGV("GVRActivityT::onSurfaceChanged");
@@ -256,6 +265,8 @@ void GVRActivity::onDrawFrame(jobject jViewManager) {
     static const GLenum attachments[] = {GL_COLOR_ATTACHMENT0, GL_DEPTH_ATTACHMENT, GL_STENCIL_ATTACHMENT};
 
     void GVRActivity::beginRenderingEye(const int eye) {
+
+       // no n
         frameBuffer_[eye].bind();
 
         GL(glViewport(x, y, width, height));
