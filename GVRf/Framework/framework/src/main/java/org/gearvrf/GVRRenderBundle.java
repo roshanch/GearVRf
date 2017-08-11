@@ -14,40 +14,95 @@
  */
 package org.gearvrf;
 
+import android.transition.Scene;
+
 import org.gearvrf.utility.VrAppSettings;
 
 /** A container for various services and pieces of data required for rendering. */
 final class GVRRenderBundle implements IRenderBundle {
-    private final GVRContext mGVRContext;
-    private final GVRMaterialShaderManager mMaterialShaderManager;
-    private final GVRRenderTexture mPostEffectRenderTextureA;
-    private final GVRRenderTexture mPostEffectRenderTextureB;
+    private  GVRContext mGVRContext;
+    private  GVRMaterialShaderManager mMaterialShaderManager;
+    private  GVRRenderTexture mPostEffectRenderTextureA;
+    private  GVRRenderTexture mPostEffectRenderTextureB;
+    private  GVRRenderTarget mEyeCaptureRenderTarget = null;
+    private  GVRRenderTarget mDaydreamRenderTarget = null;
+    private int  mSampleCount;
 
-    private GVRRenderTarget mLeftEyeRenderTarget[3];
-    private GVRRenderTarget mRightEyeRenderTarget[3];
-    private GVRRenderTarget mMultiviewRenderTarget[3];
+    private GVRRenderTarget[] mLeftEyeRenderTarget = new GVRRenderTarget[3];
+    private GVRRenderTarget [] mRightEyeRenderTarget = new GVRRenderTarget[3];
+    private GVRRenderTarget [] mMultiviewRenderTarget = new GVRRenderTarget[3];
     GVRRenderBundle(GVRContext gvrContext, final int width, final int height) {
         mGVRContext = gvrContext;
         mMaterialShaderManager = new GVRMaterialShaderManager(gvrContext);
 
         final VrAppSettings appSettings = mGVRContext.getActivity().getAppSettings();
-        int sampleCount = appSettings.getEyeBufferParams().getMultiSamples() < 0 ? 0
+        mSampleCount = appSettings.getEyeBufferParams().getMultiSamples() < 0 ? 0
                 : appSettings.getEyeBufferParams().getMultiSamples();
-        if (sampleCount > 1) {
+        if (mSampleCount > 1) {
             int maxSampleCount = GVRMSAA.getMaxSampleCount();
-            if (sampleCount > maxSampleCount) {
-                sampleCount = maxSampleCount;
+            if (mSampleCount > maxSampleCount) {
+                mSampleCount = maxSampleCount;
             }
         }
 
-        if (sampleCount <= 1) {
+        if (mSampleCount <= 1) {
             mPostEffectRenderTextureA = new GVRRenderTexture(mGVRContext, width, height);
             mPostEffectRenderTextureB = new GVRRenderTexture(mGVRContext, width, height);
         } else {
-            mPostEffectRenderTextureA = new GVRRenderTexture(mGVRContext, width, height, sampleCount);
-            mPostEffectRenderTextureB = new GVRRenderTexture(mGVRContext, width, height, sampleCount);
+            mPostEffectRenderTextureA = new GVRRenderTexture(mGVRContext, width, height, mSampleCount);
+            mPostEffectRenderTextureB = new GVRRenderTexture(mGVRContext, width, height, mSampleCount);
+        }
+        boolean isMultiviewSet = mGVRContext.getActivity().getAppSettings().isMultiviewSet();
+        for (int i = 0; i < 3; i++) {
+            if(isMultiviewSet) {
+                    GVRRenderTexture renderTexture = new GVRRenderTexture(mGVRContext, width, height, getRenderTexture(mGVRContext.getActivity().getNative(), GVRViewManager.EYE.MULTIVIEW.ordinal(), i));
+                    mMultiviewRenderTarget[i] = new GVRRenderTarget(renderTexture,mGVRContext.getMainScene(),true);
+            }
+            else {
+                mLeftEyeRenderTarget[i] = new GVRRenderTarget(new GVRRenderTexture(mGVRContext, width, height,
+                        getRenderTexture(mGVRContext.getActivity().getNative(), GVRViewManager.EYE.LEFT.ordinal(), i)), mGVRContext.getMainScene());
+                mRightEyeRenderTarget[i] = new GVRRenderTarget(new GVRRenderTexture(mGVRContext, width, height,
+                        getRenderTexture(mGVRContext.getActivity().getNative(), GVRViewManager.EYE.RIGHT.ordinal(), i)), mGVRContext.getMainScene(),mLeftEyeRenderTarget[i] );
+            }
         }
     }
+    public GVRRenderTarget getDaydreamRenderTarget(){
+        if(null == mDaydreamRenderTarget){
+            mDaydreamRenderTarget = new GVRRenderTarget( mGVRContext);
+        }
+        return mDaydreamRenderTarget;
+    }
+    public GVRRenderTarget getEyeCaptureRenderTarget() {
+        if(mEyeCaptureRenderTarget == null){
+            int width = mGVRContext.getActivity().getAppSettings().getEyeBufferParams().getResolutionWidth();
+            int height = mGVRContext.getActivity().getAppSettings().getEyeBufferParams().getResolutionHeight();
+            // we will be using this render-target when multiview is enabled, so we can share the render-list of multiview-rendertarget with this
+            mEyeCaptureRenderTarget  = new GVRRenderTarget(new GVRRenderTexture(mGVRContext, width, height, mSampleCount, 1), mGVRContext.getMainScene(), mMultiviewRenderTarget[0]);
+        }
+        return  mEyeCaptureRenderTarget;
+    }
+    public GVRRenderTarget getRenderTarget(GVRViewManager.EYE eye, int index){
+        if(eye == GVRViewManager.EYE.LEFT)
+            return mLeftEyeRenderTarget[index];
+        if(eye == GVRViewManager.EYE.RIGHT)
+            return mRightEyeRenderTarget[index];
+
+        return mMultiviewRenderTarget[index];
+    }
+    public void updateMainScene(GVRScene scene){
+
+        boolean isMultiviewSet = mGVRContext.getActivity().getAppSettings().isMultiviewSet();
+        for (int i = 0; i < 3; i++) {
+            if(isMultiviewSet) {
+                mMultiviewRenderTarget[i].setMainScene(scene);
+            }
+            else {
+                mLeftEyeRenderTarget[i].setMainScene(scene);
+                mRightEyeRenderTarget[i].setMainScene(scene);
+            }
+        }
+    }
+
 
     public GVRMaterialShaderManager getMaterialShaderManager() {
         return mMaterialShaderManager;
@@ -64,4 +119,5 @@ final class GVRRenderBundle implements IRenderBundle {
     public GVRRenderTexture getPostEffectRenderTextureB() {
         return mPostEffectRenderTextureB;
     }
+    protected native long getRenderTexture(long activity, int eye, int index);
 }

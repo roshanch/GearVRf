@@ -17,6 +17,7 @@
 
 #include "engine/renderer/renderer.h"
 #include "objects/textures/render_texture.h"
+#include "objects/components/render_target.h"
 //#include "objects/components/camera.h"
 
 namespace gvr {
@@ -62,10 +63,12 @@ extern "C" {
                 reinterpret_cast<RenderTexture *>(jpost_effect_render_texture_a);
         RenderTexture *post_effect_render_texture_b =
                 reinterpret_cast<RenderTexture *>(jpost_effect_render_texture_b);
-
+// TODO : cleanup
+        /*
         gRenderer->cullAndRender(renderTarget, scene, shader_manager,
                                 post_effect_shader_manager, post_effect_render_texture_a,
                                 post_effect_render_texture_b);
+                                */
     }
 
     void Java_org_gearvrf_GVRViewManager_renderCamera(JNIEnv *jni, jclass clazz,
@@ -92,17 +95,22 @@ extern "C" {
 
     JNIEXPORT void JNICALL
     Java_org_gearvrf_GVRViewManager_readRenderResultNative(JNIEnv *env, jclass clazz,
-                                                           jobject jreadback_buffer);
+                                                           jobject jreadback_buffer, jlong jrenderTarget, jint eye, jboolean useMultiview);
 } // extern "C"
 
 
-JNIEXPORT void JNICALL Java_org_gearvrf_GVRViewManager_readRenderResultNative(JNIEnv * env, jclass clazz, jobject jreadback_buffer) {
+JNIEXPORT void JNICALL Java_org_gearvrf_GVRViewManager_readRenderResultNative(JNIEnv *env, jclass clazz,
+                                                                              jobject jreadback_buffer, jlong jrenderTarget, jint eye, jboolean useMultiview){
     uint8_t *readback_buffer = (uint8_t*) env->GetDirectBufferAddress(jreadback_buffer);
+    RenderTarget* renderTarget = reinterpret_cast<RenderTarget*>(jrenderTarget);
+    RenderTexture* renderTexture =    renderTarget->getTexture();
 
     GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    if(useMultiview){
+            renderTexture->setLayerIndex(eye);
+    }
 
-    glReadPixels(viewport[0], viewport[1], viewport[2], viewport[3], GL_RGBA, GL_UNSIGNED_BYTE, readback_buffer);
+    renderTexture->readRenderResult(readback_buffer);
 }
 
 }

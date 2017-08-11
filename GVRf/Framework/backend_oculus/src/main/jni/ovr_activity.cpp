@@ -39,7 +39,7 @@ namespace gvr {
         activity_ = env.NewGlobalRef(activity);
         activityClass_ = GetGlobalClassReference(env, activityClassName);
 
-        onDrawEyeMethodId = GetMethodId(env, env.FindClass(viewManagerClassName), "onDrawEye", "(I)V");
+        onDrawEyeMethodId = GetMethodId(env, env.FindClass(viewManagerClassName), "onDrawEye", "(IIZ)V");
         updateSensoredSceneMethodId = GetMethodId(env, activityClass_, "updateSensoredScene", "()Z");
 
         mainThreadId_ = gettid();
@@ -113,9 +113,9 @@ RenderTexture*  GVRActivity::createRenderTexture(int eye, int index){
     FrameBufferObject fbo = frameBuffer_[eye];
 
     if(use_multiview)
-        return  new GLMultiviewRenderTexture(fbo.getWidth(),fbo.getHeight(),2,fbo.getRenderBufferFBOId(index), fbo.getColorTexId(index));
+        return  new GLMultiviewRenderTexture(fbo.getWidth(),fbo.getHeight(),mMultisamplesConfiguration,2, fbo.getRenderBufferFBOId(index), fbo.getColorTexId(index));
 
-    return new GLNonMultiviewRenderTexture(fbo.getWidth(),fbo.getHeight(),2,fbo.getRenderBufferFBOId(index), fbo.getColorTexId(index));
+    return new GLNonMultiviewRenderTexture(fbo.getWidth(),fbo.getHeight(),mMultisamplesConfiguration,fbo.getRenderBufferFBOId(index), fbo.getColorTexId(index));
 }
     void GVRActivity::onSurfaceChanged(JNIEnv& env) {
         int maxSamples = MSAA::getMaxSampleCount();
@@ -230,11 +230,11 @@ void GVRActivity::onDrawFrame(jobject jViewManager) {
 
         // Render the eye images.
         for (int eye = 0; eye < (use_multiview ? 1 :VRAPI_FRAME_LAYER_EYE_MAX); eye++) {
-
-            beginRenderingEye(eye);
-
-        oculusJavaGlThread_.Env->CallVoidMethod(jViewManager, onDrawEyeMethodId, eye);
             int textureSwapChainIndex = frameBuffer_[eye].mTextureSwapChainIndex;
+           // beginRenderingEye(eye);
+
+           oculusJavaGlThread_.Env->CallVoidMethod(jViewManager, onDrawEyeMethodId, eye, textureSwapChainIndex, use_multiview);
+
             const GLuint colorTexture = vrapi_GetTextureSwapChainHandle(frameBuffer_[eye].mColorTextureSwapChain, textureSwapChainIndex);
             if(gRenderer->isVulkanInstance()){
                 glBindTexture(GL_TEXTURE_2D,colorTexture);
@@ -248,7 +248,7 @@ void GVRActivity::onDrawFrame(jobject jViewManager) {
                                    GL_UNSIGNED_BYTE,
                                    oculusTexData);
             }
-            endRenderingEye(eye);
+            //endRenderingEye(eye);
         }
 
         FrameBufferObject::unbind();

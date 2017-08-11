@@ -288,7 +288,18 @@ void GLRenderTexture::startReadBack() {
     readback_started_ = true;
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 }
-bool GLNonMultiviewRenderTexture::readRenderResult(uint32_t *readback_buffer, long capacity){
+
+bool GLRenderTexture::readRenderResult(uint8_t* readback_buffer){
+    long neededCapacity = mImage->getWidth() * mImage->getHeight();
+    if (!readback_buffer) {
+        LOGE("GLRenderTexture::readRenderResult: readback_buffer is null");
+        return false;
+    }
+    readRenderResult(readback_buffer,neededCapacity);
+}
+
+bool GLRenderTexture::readRenderResult(uint8_t *readback_buffer, long capacity) {
+
     long neededCapacity = mImage->getWidth() * mImage->getHeight();
     if (!readback_buffer) {
         LOGE("GLRenderTexture::readRenderResult: readback_buffer is null");
@@ -302,29 +313,7 @@ bool GLNonMultiviewRenderTexture::readRenderResult(uint32_t *readback_buffer, lo
     }
     GLRenderImage* image = static_cast<GLRenderImage*>(mImage);
 
-    image->setupReadback(renderTexture_gl_pbo_, -1);
-    GLRenderTexture::readRenderResult(readback_buffer,capacity);
-}
-
-bool GLMultiviewRenderTexture::readRenderResult(uint32_t *readback_buffer, long capacity, int layer){
-    long neededCapacity = mImage->getWidth() * mImage->getHeight();
-    if (!readback_buffer) {
-        LOGE("GLRenderTexture::readRenderResult: readback_buffer is null");
-        return false;
-    }
-
-    if (capacity < neededCapacity) {
-        LOGE("GLRenderTexture::readRenderResult: buffer capacity too small "
-                     "(capacity %ld, needed %ld)", capacity, neededCapacity);
-        return false;
-    }
-    GLRenderImage* image = static_cast<GLRenderImage*>(mImage);
-
-    image->setupReadback(renderTexture_gl_pbo_, layer);
-    GLRenderTexture::readRenderResult(readback_buffer,capacity);
-}
-bool GLRenderTexture::readRenderResult(uint32_t *readback_buffer, long capacity) {
-    long neededCapacity = mImage->getWidth() * mImage->getHeight();
+    image->setupReadback(renderTexture_gl_pbo_, layer_index_);
 
     if (!readback_started_) {
         glReadPixels(0, 0, mImage->getWidth(), mImage->getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, 0);
@@ -364,7 +353,7 @@ bool GLRenderTexture::bindTexture(int gl_location, int texIndex)
  * Create the framebuffer and layered texture if necessary.
  * This function must be called from the GL thread.
  */
-void GLNonMultiviewRenderTexture::bindFrameBufferToLayer(int layerIndex)
+void GLRenderTexture::setLayerIndex(int layerIndex)
 {
     layer_index_ = layerIndex;
 }

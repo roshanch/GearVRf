@@ -110,11 +110,13 @@ namespace gvr
     RenderTexture* GLRenderer::createRenderTexture(int width, int height, int sample_count,
                                                    int jcolor_format, int jdepth_format,
                                                    bool resolve_depth,
-                                                   const TextureParameters *texparams)
+                                                   const TextureParameters *texparams, int number_views)
     {
-        RenderTexture *tex = new GLNonMultiviewRenderTexture(width, height, sample_count, jcolor_format, jdepth_format,
+        if(number_views == 1)
+            return new GLNonMultiviewRenderTexture(width, height, sample_count, jcolor_format, jdepth_format,
                                                  resolve_depth, texparams);
-        return tex;
+
+         return new GLMultiviewRenderTexture(width,height,sample_count,jcolor_format,jdepth_format, resolve_depth,texparams, number_views);
     }
 
     RenderTexture* GLRenderer::createRenderTexture(int width, int height, int sample_count, int layers)
@@ -247,9 +249,8 @@ namespace gvr
         GL(glDisable(GL_BLEND));
     }
 
-    void GLRenderer::cullAndRender(RenderTarget* renderTarget, Scene* scene,
+    void GLRenderer::renderRenderTarget(RenderTarget* renderTarget,
                             ShaderManager* shader_manager,
-                            PostEffectShaderManager* post_effect_shader_manager,
                             RenderTexture* post_effect_render_texture_a,
                             RenderTexture* post_effect_render_texture_b)
     {
@@ -257,13 +258,12 @@ namespace gvr
         Camera* camera = renderTarget->getCamera();
         const std::vector<ShaderData*>& post_effects = camera->post_effect_data();
         RenderTexture* saveRenderTexture = renderTarget->getTexture();
+        std::vector<RenderData*>* render_data_vector = renderTarget->getRenderDataVector();
 
-        cullFromCamera(scene, camera, shader_manager);
         rstate.shader_manager = shader_manager;
-        rstate.scene = scene;
         if (!rstate.shadow_map)
         {
-            state_sort();
+            state_sort(render_data_vector);
             GL(glEnable (GL_BLEND));
             GL(glBlendEquation (GL_FUNC_ADD));
             GL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
@@ -280,10 +280,11 @@ namespace gvr
         if ((post_effects.size() == 0) ||
             (post_effect_render_texture_a == nullptr))
         {
-            saveRenderTexture->useStencil(useStencilBuffer_);
-            renderTarget->beginRendering(this);
-            for (auto it = render_data_vector.begin();
-                 it != render_data_vector.end();
+
+
+            //renderTarget->beginRendering(this);
+            for (auto it = render_data_vector->begin();
+                 it != render_data_vector->end();
                  ++it)
             {
                 RenderData* rdata = *it;
@@ -292,7 +293,7 @@ namespace gvr
                     GL(renderRenderData(rstate, rdata));
                 }
             }
-            renderTarget->endRendering(this);
+           // renderTarget->endRendering(this);
         }
         else
         {
@@ -301,8 +302,8 @@ namespace gvr
             renderTexture->useStencil(useStencilBuffer_);
             renderTarget->setTexture(renderTexture);
             renderTarget->beginRendering(this);
-            for (auto it = render_data_vector.begin();
-                 it != render_data_vector.end();
+            for (auto it = render_data_vector->begin();
+                 it != render_data_vector->end();
                  ++it)
             {
                 RenderData* rdata = *it;
@@ -516,10 +517,10 @@ namespace gvr
         }
     }
 
-    void GLRenderer::occlusion_cull(RenderState &rstate, std::vector<SceneObject *> &scene_objects)
+    void GLRenderer::occlusion_cull(RenderState &rstate, std::vector<SceneObject *> &scene_objects, std::vector<RenderData*>* render_data_vector)
     {
 
-        if (!occlusion_cull_init(rstate.scene, scene_objects))
+        if (!occlusion_cull_init(rstate.scene, scene_objects, render_data_vector))
             return;
 
         for (auto it = scene_objects.begin(); it != scene_objects.end(); ++it)
@@ -595,7 +596,7 @@ namespace gvr
 
                 (*it)->set_visible(visibility);
                 (*it)->set_query_issued(false);
-                addRenderData((*it)->render_data(), rstate.scene);
+                addRenderData((*it)->render_data(), rstate.scene, render_data_vector);
                 rstate.scene->pick(scene_object);
             }
         }

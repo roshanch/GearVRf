@@ -23,4 +23,9 @@ interface IRenderBundle {
     GVRRenderTexture getPostEffectRenderTextureA();
 
     GVRRenderTexture getPostEffectRenderTextureB();
+    GVRRenderTarget getEyeCaptureRenderTarget();
+    GVRRenderTarget getDaydreamRenderTarget();
+
+    GVRRenderTarget getRenderTarget(GVRViewManager.EYE eye, int index);
+    void updateMainScene(GVRScene scene);
 }

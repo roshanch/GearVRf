@@ -74,7 +74,7 @@ namespace gvr {
 
     RenderTexture* VulkanRenderer::createRenderTexture(int width, int height, int sample_count,
                                                  int jcolor_format, int jdepth_format, bool resolve_depth,
-                                                 const TextureParameters* texture_parameters)
+                                                 const TextureParameters* texture_parameters, int number_views)
     {
         return NULL;
     }

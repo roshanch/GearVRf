@@ -104,19 +104,19 @@ void Renderer::frustum_cull(glm::vec3 camera_position, SceneObject *object,
     }
 }
 
-void Renderer::state_sort() {
+void Renderer::state_sort(std::vector<RenderData*>* render_data_vector) {
     // The current implementation of sorting is based on
     // 1. rendering order first to maintain specified order
     // 2. shader type second to minimize the gl cost of switching shader
     // 3. camera distance last to minimize overdraw
-    std::sort(render_data_vector.begin(), render_data_vector.end(),
+    std::sort(render_data_vector->begin(), render_data_vector->end(),
             compareRenderDataByOrderShaderDistance);
 
     if (DEBUG_RENDERER) {
         LOGD("SORTING: After sorting");
 
-        for (int i = 0; i < render_data_vector.size(); ++i) {
-            RenderData* renderData = render_data_vector[i];
+        for (int i = 0; i < render_data_vector->size(); ++i) {
+            RenderData* renderData = (*render_data_vector)[i];
 
             if (DEBUG_RENDERER) {
                 LOGD(
@@ -163,10 +163,10 @@ void Renderer::cull(Scene *scene, Camera *camera,
         numLights = nlights;
         scene->bindShaders();
     }
-    cullFromCamera(scene, camera, shader_manager);
+    ///cullFromCamera(scene, camera, shader_manager);
 
     // Note: this needs to be scaled to sort on N states
-    state_sort();
+   // state_sort();
 
     if (do_batching && !gRenderer->isVulkanInstance())
     {
@@ -178,11 +178,11 @@ void Renderer::cull(Scene *scene, Camera *camera,
  * Perform view frustum culling from a specific camera viewpoint
  */
 void Renderer::cullFromCamera(Scene *scene, Camera* camera,
-        ShaderManager* shader_manager)
+        ShaderManager* shader_manager, std::vector<RenderData*>* render_data_vector)
 {
     std::vector<SceneObject*> scene_objects;
 
-    render_data_vector.clear();
+    render_data_vector->clear();
     scene_objects.clear();
     RenderState rstate;
 
@@ -213,7 +213,7 @@ void Renderer::cullFromCamera(Scene *scene, Camera* camera,
         LOGD("FRUSTUM: end frustum culling for root %s\n", object->name().c_str());
     }
     // 3. do occlusion culling, if enabled
-    occlusion_cull(rstate, scene_objects);
+    occlusion_cull(rstate, scene_objects, render_data_vector);
 }
 
 
@@ -229,7 +229,7 @@ void Renderer::renderRenderDataVector(RenderState &rstate) {
     }
 }
 
-void Renderer::addRenderData(RenderData *render_data, Scene* scene) {
+void Renderer::addRenderData(RenderData *render_data, Scene* scene, std::vector<RenderData*>* render_data_vector) {
     if (render_data == 0 || render_data->material(0) == 0 || !render_data->enabled()) {
         return;
     }
@@ -258,11 +258,11 @@ void Renderer::addRenderData(RenderData *render_data, Scene* scene) {
     if (render_data->render_mask() == 0) {
         return;
     }
-    render_data_vector.push_back(render_data);
+    render_data_vector->push_back(render_data);
     return;
 }
 
-bool Renderer::occlusion_cull_init(Scene* scene, std::vector<SceneObject*>& scene_objects){
+bool Renderer::occlusion_cull_init(Scene* scene, std::vector<SceneObject*>& scene_objects,  std::vector<RenderData*>* render_data_vector){
 
     scene->lockColliders();
     scene->clearVisibleColliders();
@@ -271,7 +271,7 @@ bool Renderer::occlusion_cull_init(Scene* scene, std::vector<SceneObject*>& scen
         for (auto it = scene_objects.begin(); it != scene_objects.end(); ++it) {
             SceneObject *scene_object = (*it);
             RenderData* render_data = scene_object->render_data();
-            addRenderData(render_data, scene);
+            addRenderData(render_data, scene, render_data_vector);
             scene->pick(scene_object);
         }
         scene->unlockColliders();

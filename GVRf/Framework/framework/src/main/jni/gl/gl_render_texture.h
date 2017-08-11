@@ -64,9 +64,10 @@ public:
 
     // Copy data in pixel buffer to client memory. This function is synchronous. When
     // it returns, the pixels have been copied to PBO and then to the client memory.
-    virtual bool readRenderResult(unsigned int *readback_buffer, long capacity);
-
+    virtual bool readRenderResult(uint8_t* readback_buffer, long capacity);
+    virtual bool readRenderResult(uint8_t* readback_buffer);
     bool bindTexture(int gl_location, int texIndex);
+    void setLayerIndex(int layerIndex);
 
 private:
     GLRenderTexture(const GLRenderTexture&);
@@ -79,6 +80,7 @@ private:
 
 
 protected:
+    int layer_index_;
     void initialize();
     void generateRenderTextureNoMultiSampling(int jdepth_format,GLenum depth_format, int width, int height);
     void generateRenderTextureEXT(int sample_count,int jdepth_format,GLenum depth_format, int width, int height);
@@ -113,7 +115,7 @@ public:
     explicit GLMultiviewRenderTexture(int width, int height, int sample_count,
                                          int jcolor_format, int jdepth_format, bool resolve_depth,
                                          const TextureParameters* texture_parameters, int layers);
-    bool readRenderResult(uint32_t *readback_buffer, long capacity, int layer);
+
     virtual ~GLMultiviewRenderTexture(){}
     virtual bool isReady() {
         return GLRenderTexture::isReady();
@@ -133,16 +135,15 @@ public:
 class GLNonMultiviewRenderTexture: public GLRenderTexture
 {
 public:
-    int layer_index_;
-    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, int layers, GLuint fboId, GLuint texId):
-            GLRenderTexture(width, height, sample_count, layers,fboId,texId){}
-    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, int layers, int depth_format): GLRenderTexture(width, height, sample_count, layers, depth_format) {}
+
+    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, GLuint fboId, GLuint texId):
+            GLRenderTexture(width, height, sample_count, 1,fboId,texId){}
+    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, int depth_format): GLRenderTexture(width, height, sample_count, 1, depth_format) {}
     explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count,
                              int jcolor_format, int jdepth_format, bool resolve_depth,
                              const TextureParameters* texture_parameters);
     void generateRenderTextureLayer(GLenum depth_format, int width, int height);
     void bindFrameBufferToLayer(int layerIndex);
-    bool readRenderResult(uint32_t *readback_buffer, long capacity);
     virtual ~GLNonMultiviewRenderTexture(){
 
     }

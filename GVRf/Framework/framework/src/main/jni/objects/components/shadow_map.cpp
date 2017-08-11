@@ -18,7 +18,7 @@
 namespace gvr {
 class Renderer;
     ShadowMap::ShadowMap(ShaderData* mtl)
-            : RenderTarget(nullptr),
+            : RenderTarget((RenderTexture*)nullptr),
               mLayerIndex(-1),
               mShadowMaterial(mtl)
     {
@@ -45,7 +45,7 @@ class Renderer;
         if (rtex)
         {
             LOGV("ShadowMap::setLayerIndex %d", layerIndex);
-            rtex->bindFrameBufferToLayer(mLayerIndex);
+            rtex->setLayerIndex(mLayerIndex);
         }
     }
 
