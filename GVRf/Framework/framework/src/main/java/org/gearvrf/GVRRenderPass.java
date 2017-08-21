@@ -137,9 +137,9 @@ public class GVRRenderPass extends GVRHybridObject implements IRenderable {
      *            The native shader this {@link GVRRenderPass pass}
      *            will be rendered with.
      */
-    public void setShader(int shader)
+    public void setShader(int shader, boolean useMultiview)
     {
-        NativeRenderPass.setShader(getNative(), shader);
+        NativeRenderPass.setShader(getNative(), shader, useMultiview);
     }
 
     /**
@@ -153,9 +153,9 @@ public class GVRRenderPass extends GVRHybridObject implements IRenderable {
     /**
      * Get the integer ID for the native shader used by this pass.
      */
-    int getShader()
+    int getShader(boolean useMultiview)
     {
-        return NativeRenderPass.getShader(getNative());
+        return NativeRenderPass.getShader(getNative(), useMultiview);
     }
 
 
@@ -185,11 +185,11 @@ class NativeRenderPass {
     
     static native long ctor();
 
-    static native int getShader(long renderPass);
+    static native int getShader(long renderPass, boolean useMultiview);
 
     static native void setMaterial(long renderPass, long material);
 
-    static native void setShader(long renderPass, int shader);
+    static native void setShader(long renderPass, int shader, boolean useMultiview);
 
     static native void setCullFace(long renderPass, int cullFace);
 }

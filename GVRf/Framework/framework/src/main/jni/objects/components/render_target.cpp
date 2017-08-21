@@ -39,6 +39,7 @@ RenderTarget::RenderTarget(RenderTexture* tex, bool is_multiview)
  //   mRenderState.viewportY = 0;
 //    mRenderState.viewportX = 0;
     mRenderState.shadow_map = false;
+    LOGE("Roshan constructor %d", is_multiview);
     mRenderState.material_override = NULL;
     mRenderState.is_multiview = is_multiview;
 
@@ -71,13 +72,15 @@ RenderTarget::RenderTarget()
 {
     //mRenderState.viewportY = 0;
  //   mRenderState.viewportX = 0;
+    mRenderState.is_multiview = false;
     mRenderState.shadow_map = false;
     mRenderState.material_override = NULL;
 }
- void RenderTarget::cullFromCamera(Camera* camera, Renderer* renderer, ShaderManager* shader_manager){
+ void RenderTarget::cullFromCamera(Scene* scene, Camera* camera, Renderer* renderer, ShaderManager* shader_manager){
     if(camera == nullptr)
         LOGE("camera is NULL");
-    renderer->cullFromCamera(mRenderState.scene,camera,shader_manager, mRenderDataVector.get());
+     renderer->cullFromCamera(scene, camera,shader_manager, mRenderDataVector.get(),mRenderState.is_multiview);
+     renderer->state_sort(mRenderDataVector.get());
 }
 
 
@@ -105,15 +108,15 @@ void RenderTarget::setTexture(RenderTexture* texture)
  * You should not call this function if there is
  * no RenderTexture.
  */
-void  RenderTarget::beginRendering(Renderer* renderer)
+void  RenderTarget::beginRendering(Renderer* renderer )
 {
- //   mRenderState.uniforms.u_proj = mCamera->getProjectionMatrix();
- //   mRenderState.uniforms.u_view = mCamera->getViewMatrix();
+ //   mRenderState.render_mask = mRenderState.camera->render_mask();
+ //   mRenderState.uniforms.u_right = mRenderState.render_mask & RenderData::RenderMaskBit::Right;
+ //   mRenderState.uniforms.u_proj = mRenderState.camera->getProjectionMatrix();
+//    mRenderState.uniforms.u_view = mRenderState.camera->getViewMatrix();
     mRenderTexture->useStencil(renderer->useStencilBuffer());
-    mRenderState.render_mask = (mRenderState.camera)->render_mask();
-    mRenderState.uniforms.u_right = mRenderState.render_mask & RenderData::RenderMaskBit::Right;
-  //  mRenderState.viewportWidth = mRenderTexture->width();
- //   mRenderState.viewportHeight = mRenderTexture->height();
+    mRenderState.viewportWidth = mRenderTexture->width();
+    mRenderState.viewportHeight = mRenderTexture->height();
     if (-1 != mRenderState.camera->background_color_r())
     {
         mRenderTexture->setBackgroundColor(mRenderState.camera->background_color_r(),

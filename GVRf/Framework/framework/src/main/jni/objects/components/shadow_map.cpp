@@ -18,7 +18,7 @@
 namespace gvr {
 class Renderer;
     ShadowMap::ShadowMap(ShaderData* mtl)
-            : RenderTarget((RenderTexture*)nullptr),
+            : RenderTarget((RenderTexture*)nullptr, false),
               mLayerIndex(-1),
               mShadowMaterial(mtl)
     {

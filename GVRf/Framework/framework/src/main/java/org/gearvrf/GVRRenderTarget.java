@@ -15,6 +15,8 @@
 
 package org.gearvrf;
 
+import org.gearvrf.utility.Log;
+
 /**
  * A render target is a component which allows the scene to be rendered
  * into a texture from the viewpoint of a particular scene object.
@@ -54,6 +56,8 @@ public class GVRRenderTarget extends GVRBehavior
         setEnable(false);
         mTexture = texture;
         mScene = scene;
+        setMainScene(scene);
+        setCamera(scene.getMainCameraRig().getCenterCamera());
     }
     public GVRRenderTarget(GVRContext gvrContext)
     {
@@ -74,29 +78,29 @@ public class GVRRenderTarget extends GVRBehavior
         setEnable(false);
         mTexture = texture;
         mScene = scene;
+        setMainScene(scene);
     }
     public GVRRenderTarget(GVRRenderTexture texture, GVRScene scene, boolean isMultiview)
     {
         super(texture.getGVRContext(), NativeRenderTarget.ctorMultiview(texture.getNative(),isMultiview));
+        Log.e("Roshan","GVRRenderTarget "+ isMultiview);
         setEnable(false);
         mTexture = texture;
-        mScene = scene;
+
+        setMainScene(scene);
 
     }
-    public void beginRendering(){
-        NativeRenderTarget.beginRendering(getNative());
+    public void beginRendering(GVRCamera camera){
+        NativeRenderTarget.beginRendering(getNative(), camera.getNative());
     }
     public void endRendering(){
         NativeRenderTarget.endRendering(getNative());
     }
-    public void cullFromCamera(GVRCamera camera, GVRShaderManager shaderManager){
-        NativeRenderTarget.cullFromCamera(getNative(),camera.getNative(), shaderManager.getNative());
+    public void cullFromCamera(GVRScene scene, GVRCamera camera, GVRShaderManager shaderManager){
+        NativeRenderTarget.cullFromCamera(scene.getNative(), getNative(),camera.getNative(), shaderManager.getNative());
     }
-    public void cullFromCamera(GVRShaderManager shaderManager){
-        NativeRenderTarget.cullFromCamera(getNative(),mScene.getMainCameraRig().getCenterCamera().getNative(), shaderManager.getNative());
-    }
-    public void render(GVRCamera camera, GVRShaderManager shaderManager, GVRRenderTexture posteffectRenderTextureA, GVRRenderTexture posteffectRenderTextureB){
-        NativeRenderTarget.render(getNative(), camera.getNative(), shaderManager.getNative(), posteffectRenderTextureA.getNative(), posteffectRenderTextureB.getNative());
+    public void render(GVRScene scene, GVRCamera camera, GVRShaderManager shaderManager, GVRRenderTexture posteffectRenderTextureA, GVRRenderTexture posteffectRenderTextureB){
+        NativeRenderTarget.render(getNative(), camera.getNative(), shaderManager.getNative(), posteffectRenderTextureA.getNative(), posteffectRenderTextureB.getNative(), scene.getNative());
     }
 
     public void setMainScene(GVRScene scene){
@@ -145,12 +149,12 @@ class NativeRenderTarget
     static native long defaultCtr(long scene);
     static native long getComponentType();
     static native void setMainScene(long rendertarget, long scene);
-    static native void beginRendering(long rendertarget);
+    static native void beginRendering(long rendertarget, long camera);
     static native void endRendering(long rendertarget);
     static native long ctorMultiview(long texture, boolean isMultiview);
     static native void setCamera(long rendertarget, long camera);
     static native long ctor(long texture, long sourceRendertarget);
-    static native void cullFromCamera(long renderTarget,long camera, long shader_manager );
-    static native void render(long renderTarget, long camera, long shader_manager, long posteffectrenderTextureA, long posteffectRenderTextureB);
+    static native void cullFromCamera(long scene, long renderTarget,long camera, long shader_manager );
+    static native void render(long renderTarget, long camera, long shader_manager, long posteffectrenderTextureA, long posteffectRenderTextureB, long scene);
     static native void setTexture(long rendertarget, long texture);
 }

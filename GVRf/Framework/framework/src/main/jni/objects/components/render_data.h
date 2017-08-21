@@ -155,7 +155,7 @@ public:
      * Select or generate a shader for this render data.
      * This function executes a Java task on the Framework thread.
      */
-    void bindShader(Scene* scene);
+    void bindShader(Scene* scene,bool);
     void setDirty(u_short dirty);
 
     bool isDirty(u_short bit){
@@ -344,13 +344,13 @@ public:
     // TODO: need to consider texture_capturer in hash_code ?
     TextureCapturer *get_texture_capturer() { return texture_capturer; }
 
-    void set_shader(int pass, int shaderid)
+    void set_shader(int pass, int shaderid, bool isMultiview)
     {
         LOGD("SHADER: RenderData:setNativeShader %d %p", shaderid, this);
-        render_pass_list_[pass]->set_shader(shaderid);
+        render_pass_list_[pass]->set_shader(shaderid, isMultiview);
     }
 
-    int             get_shader(int pass =0) const { return render_pass_list_[pass]->get_shader(); }
+    int             get_shader(bool useMultiview =false, int pass =0) const { return render_pass_list_[pass]->get_shader(useMultiview); }
     std::string     getHashCode();
     void            setCameraDistanceLambda(std::function<float()> func);
 

@@ -218,7 +218,6 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
         mCurrentEye = eye;
         if (!(mSensoredScene == null || !mMainScene.equals(mSensoredScene))) {
             GVRCameraRig mainCameraRig = mMainScene.getMainCameraRig();
-            // Daydream doesn't expose any texture or FBO so we will be using dummy render-target for that
 
              if (use_multiview) {
 
@@ -226,23 +225,22 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
                     mTracerDrawEyes1.enter(); // this eye is drawn first
                     mTracerDrawEyes2.enter();
                 }
+                 GVRRenderTarget renderTarget = mRenderBundle.getRenderTarget(EYE.MULTIVIEW, swapChainIndex);
+                 GVRCamera camera = mMainScene.getMainCameraRig().getCenterCamera();
 
-                GVRRenderTarget renderTarget = mRenderBundle.getRenderTarget(EYE.MULTIVIEW, swapChainIndex);
+                 renderTarget.cullFromCamera(mMainScene, camera,mRenderBundle.getMaterialShaderManager());
 
-                renderTarget.cullFromCamera(mMainScene.getMainCameraRig().getCenterCamera(),mRenderBundle.getMaterialShaderManager());
-                renderTarget.beginRendering();
-                renderTarget.render(mMainScene.getMainCameraRig().getCenterCamera(),mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),
+                 captureCenterEye(renderTarget, true);
+                 capture3DScreenShot(renderTarget, true);
+
+
+                renderTarget.render(mMainScene, camera, mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),
                         mRenderBundle.getPostEffectRenderTextureB());
 
-                captureRightEye(renderTarget, true);
-                captureLeftEye(renderTarget, true);
-                renderTarget.endRendering();
-                GVRRenderTarget eyeCapturer = mRenderBundle.getEyeCaptureRenderTarget();
-                eyeCapturer.beginRendering();
-                captureCenterEye(eyeCapturer);
-                capture3DScreenShot(eyeCapturer);
-                eyeCapturer.endRendering();
-                captureFinish();
+                 captureRightEye(renderTarget, true);
+                 captureLeftEye(renderTarget, true);
+
+                 captureFinish();
 
                 if (DEBUG_STATS) {
                     mTracerDrawEyes1.leave();
@@ -259,12 +257,15 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
 
                      GVRCamera rightCamera = mainCameraRig.getRightCamera();
                      GVRRenderTarget renderTarget = mRenderBundle.getRenderTarget(EYE.RIGHT, swapChainIndex);
-                     renderTarget.beginRendering();
-                     renderTarget.render(rightCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(),
+
+
+                     renderTarget.render(mMainScene, rightCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(),
                              mRenderBundle.getPostEffectRenderTextureB());
-                     captureLeftEye(renderTarget, false);
-                     renderTarget.endRendering();
-                     if (DEBUG_STATS) {
+
+                     captureRightEye(renderTarget, false);
+
+                     captureFinish();
+                    if (DEBUG_STATS) {
                          mTracerDrawEyes1.leave();
                          mTracerDrawEyes.leave();
                      }
@@ -275,18 +276,19 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
                      }
                      GVRRenderTarget renderTarget = mRenderBundle.getRenderTarget(EYE.LEFT, swapChainIndex);
                      GVRCamera leftCamera = mainCameraRig.getLeftCamera();
-                     renderTarget.cullFromCamera(mMainScene.getMainCameraRig().getCenterCamera(), mRenderBundle.getMaterialShaderManager());
-                     renderTarget.beginRendering();
-                     captureCenterEye(renderTarget);
-                     capture3DScreenShot(renderTarget);
 
-                     renderTarget.render(leftCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(),
-                             mRenderBundle.getPostEffectRenderTextureB());
 
+
+
+                     capture3DScreenShot(renderTarget, false);
+
+                     renderTarget.cullFromCamera(mMainScene, mainCameraRig.getCenterCamera(), mRenderBundle.getMaterialShaderManager());
+                     captureCenterEye(renderTarget, false);
+                     renderTarget.render(mMainScene, leftCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(), mRenderBundle.getPostEffectRenderTextureB());
 
                      captureLeftEye(renderTarget, false);
-                     renderTarget.endRendering();
-                     captureFinish();
+
+
 
                      if (DEBUG_STATS) {
                          mTracerDrawEyes2.leave();

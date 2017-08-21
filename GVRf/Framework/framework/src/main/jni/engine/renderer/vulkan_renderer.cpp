@@ -125,7 +125,7 @@ namespace gvr {
             vulkanCore_->InitDescriptorSetForRenderData(this, pass, shader, vkRdata);
             vkRdata->createPipeline(shader, this, pass, false, 0);
         }
-        shader->useShader();
+
         return true;
     }
 
@@ -147,7 +147,6 @@ namespace gvr {
             vkRdata->createPipeline(shader, this, pass, true, postEffectIndx);
        }
 
-        shader->useShader();
         return true;
     }
 
@@ -214,7 +213,7 @@ namespace gvr {
             for(int curr_pass =0; curr_pass< rdata->pass_count(); curr_pass++) {
 
                 ShaderData *curr_material = rdata->material(curr_pass);
-                Shader *shader = rstate.shader_manager->getShader(rdata->get_shader(curr_pass));
+                Shader *shader = rstate.shader_manager->getShader(rdata->get_shader(rstate.is_multiview,curr_pass));
                 if (shader == NULL)
                 {
                     LOGE("SHADER: shader not found");

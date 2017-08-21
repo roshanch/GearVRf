@@ -27,7 +27,11 @@ namespace gvr {
 GLRenderImage::GLRenderImage(int width, int height, int layers, GLuint texId, bool marktexParamsDirty)
         : GLImage((layers > 1) ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D)
 {
-    GLRenderImage(width,height, layers);
+    mWidth = width;
+    mHeight = height;
+    mDepth = layers;
+    mType = (layers > 1) ? Image::ImageType::ARRAY : Image::ImageType::BITMAP;
+    mState = HAS_DATA;
     setTexId(texId);
     setTexParamsDirty(marktexParamsDirty);
 
@@ -170,16 +174,16 @@ GLuint GLRenderImage::createTexture()
 
 void GLRenderImage::setupReadback(GLuint buffer, int layer)
 {
-    glViewport(0, 0, getWidth(), getHeight());
+    //glViewport(0, 0, getWidth(), getHeight());
 
     if(mGLTarget == GL_TEXTURE_2D_ARRAY && layer >=0)
         glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, getId(), 0, layer);
-    else
-        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, getTarget(), getId(), 0);
+  //  else
+  //      glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, getTarget(), getId(), 0);
 
-    glReadBuffer(GL_COLOR_ATTACHMENT0);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer);
-    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+  //  glReadBuffer(GL_COLOR_ATTACHMENT0);
+  //  glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer);
+  // glPixelStorei(GL_PACK_ALIGNMENT, 1);
 }
 
 

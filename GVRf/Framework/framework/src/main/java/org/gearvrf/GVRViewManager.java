@@ -128,7 +128,7 @@ abstract class GVRViewManager extends GVRContext {
         NativeScene.setMainScene(scene.getNative());
         getActivity().setCameraRig(scene.getMainCameraRig());
         mInputManager.setScene(scene);
-        mRenderBundle.updateMainScene(scene);
+      //  mRenderBundle.updateMainScene(scene);
         // Roshan: modify rendlebundle
     }
 
@@ -497,7 +497,7 @@ abstract class GVRViewManager extends GVRContext {
         makeShadowMaps(mMainScene.getNative(), mRenderBundle.getMaterialShaderManager().getNative(),
                 mRenderBundle.getPostEffectRenderTextureA().getWidth(),
                 mRenderBundle.getPostEffectRenderTextureA().getHeight());
-        cull(mMainScene.getNative(), centerCamera.getNative(), mRenderBundle.getMaterialShaderManager().getNative());
+  //     cull(mMainScene.getNative(), centerCamera.getNative(), mRenderBundle.getMaterialShaderManager().getNative());
     }
 
     protected void afterDrawEyes() {
@@ -661,12 +661,12 @@ abstract class GVRViewManager extends GVRContext {
     }
 
     // capture 3D screenshot
-    protected void capture3DScreenShot(GVRRenderTarget renderTarget) {
+    protected void capture3DScreenShot(GVRRenderTarget renderTarget, boolean isMultiview) {
         if (mScreenshot3DCallback == null) {
             return;
         }
         final Bitmap[] bitmaps = new Bitmap[6];
-        renderSixCamerasAndReadback(mMainScene.getMainCameraRig(), bitmaps, renderTarget);
+        renderSixCamerasAndReadback(mMainScene.getMainCameraRig(), bitmaps, renderTarget, isMultiview);
         returnScreenshot3DToCaller(mScreenshot3DCallback, bitmaps, mReadbackBufferWidth, mReadbackBufferHeight);
 
         mScreenshot3DCallback = null;
@@ -678,7 +678,7 @@ abstract class GVRViewManager extends GVRContext {
     }
 
     protected void captureLeftEye(GVRRenderTarget renderTarget, boolean useMultiview) {
-        captureEye(mScreenshotLeftCallback, renderTarget, EYE.RIGHT, useMultiview);
+        captureEye(mScreenshotLeftCallback, renderTarget, EYE.LEFT, useMultiview);
         mScreenshotLeftCallback = null;
     }
 
@@ -693,21 +693,35 @@ abstract class GVRViewManager extends GVRContext {
     }
 
     // capture center eye
-    protected void captureCenterEye(GVRRenderTarget renderTarget) {
+    protected void captureCenterEye(GVRRenderTarget renderTarget, boolean isMultiview) {
         if (mScreenshotCenterCallback == null) {
             return;
         }
 
-        // when we will use multithreading, create new camera using centercamera as we are adding posteffects into it
+
+        Log.e("RC", "rendering center eye");
+        // TODO: when we will use multithreading, create new camera using centercamera as we are adding posteffects into it
         final GVRCamera centerCamera = mMainScene.getMainCameraRig().getCenterCamera();
         final GVRShaderData postEffect = new GVRShaderData(this, GVRMaterial.GVRShaderType.VerticalFlip.ID);
         centerCamera.addPostEffect(postEffect);
 
-        renderTarget.render(centerCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(), mRenderBundle.getPostEffectRenderTextureB());
+
+        if(isMultiview) {
+            renderTarget = mRenderBundle.getEyeCaptureRenderTarget();
+            renderTarget.cullFromCamera(mMainScene, centerCamera ,mRenderBundle.getMaterialShaderManager());
+            renderTarget.beginRendering(centerCamera);
+        }
+
+
+        renderTarget.render(mMainScene,centerCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(), mRenderBundle.getPostEffectRenderTextureB());
 
         centerCamera.removePostEffect(postEffect);
 
         readRenderResult(renderTarget, EYE.MULTIVIEW, false);
+
+        if(isMultiview)
+            renderTarget.endRendering();
+
         final Bitmap bitmap = Bitmap.createBitmap(mReadbackBufferWidth, mReadbackBufferHeight, Bitmap.Config.ARGB_8888);
         mReadbackBuffer.rewind();
         bitmap.copyPixelsFromBuffer(mReadbackBuffer);
@@ -724,7 +738,8 @@ abstract class GVRViewManager extends GVRContext {
 
     private void renderOneCameraAndAddToList(final GVRPerspectiveCamera centerCamera, final Bitmap[] bitmaps, int index, GVRRenderTarget renderTarget) {
 
-        renderTarget.render(centerCamera,mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),mRenderBundle.getPostEffectRenderTextureB());
+        renderTarget.cullFromCamera(mMainScene,centerCamera,mRenderBundle.getMaterialShaderManager());
+        renderTarget.render(mMainScene,centerCamera,mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),mRenderBundle.getPostEffectRenderTextureB());
         readRenderResult(renderTarget,EYE.CENTER, false);
 
         bitmaps[index] = Bitmap.createBitmap(mReadbackBufferWidth, mReadbackBufferHeight, Bitmap.Config.ARGB_8888);
@@ -732,7 +747,7 @@ abstract class GVRViewManager extends GVRContext {
         bitmaps[index].copyPixelsFromBuffer(mReadbackBuffer);
     }
 
-    private void renderSixCamerasAndReadback(final GVRCameraRig mainCameraRig, final Bitmap[] bitmaps, GVRRenderTarget renderTarget) {
+    private void renderSixCamerasAndReadback(final GVRCameraRig mainCameraRig, final Bitmap[] bitmaps, GVRRenderTarget renderTarget, boolean isMultiview) {
         // temporarily create a center camera
         GVRPerspectiveCamera centerCamera = new GVRPerspectiveCamera(this);
         centerCamera.setFovY(90.0f);
@@ -744,6 +759,11 @@ abstract class GVRViewManager extends GVRContext {
 
         mainCameraRig.getOwnerObject().addChildObject(centerCameraObject);
         GVRTransform centerCameraTransform = centerCameraObject.getTransform();
+        if(isMultiview) {
+            renderTarget = mRenderBundle.getEyeCaptureRenderTarget();
+            renderTarget.beginRendering(centerCamera);
+        }
+
         int index = 0;
         // render +x face
         centerCameraTransform.rotateByAxis(-90, 0, 1, 0);
@@ -767,6 +787,8 @@ abstract class GVRViewManager extends GVRContext {
         renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget);
         centerCameraObject.detachCamera();
         mainCameraRig.getOwnerObject().removeChildObject(centerCameraObject);
+        if(isMultiview)
+            renderTarget.endRendering();
     }
 
     protected void captureFinish() {

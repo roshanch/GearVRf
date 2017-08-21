@@ -41,7 +41,7 @@ class Renderer;
 class RenderTarget : public Component
 {
 public:
-    RenderTarget(RenderTexture*, bool is_multiview = false);
+    RenderTarget(RenderTexture*, bool is_multiview);
     RenderTarget(Scene*);
     RenderTarget(RenderTexture*, const RenderTarget* source);
     RenderTarget();
@@ -59,7 +59,7 @@ public:
     std::vector<RenderData*>* getRenderDataVector(){
         return mRenderDataVector.get();
     }
-    virtual void cullFromCamera(Camera* camera, Renderer* renderer, ShaderManager* shader_manager);
+    virtual void cullFromCamera(Scene*, Camera* camera, Renderer* renderer, ShaderManager* shader_manager);
 private:
     RenderTarget(const RenderTarget& render_texture);
     RenderTarget(RenderTarget&& render_texture);

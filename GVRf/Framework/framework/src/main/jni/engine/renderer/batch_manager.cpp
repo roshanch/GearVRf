@@ -86,7 +86,7 @@ void BatchManager::renderBatches(RenderState& rstate) {
     if(renderdata == nullptr)
         continue;
 
-    int currentShaderType = renderdata->get_shader();
+    int currentShaderType = renderdata->get_shader(rstate.is_multiview);
 
     if (currentShaderType == 0)
         continue;

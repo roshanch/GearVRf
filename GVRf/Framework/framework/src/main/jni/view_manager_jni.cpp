@@ -63,12 +63,11 @@ extern "C" {
                 reinterpret_cast<RenderTexture *>(jpost_effect_render_texture_a);
         RenderTexture *post_effect_render_texture_b =
                 reinterpret_cast<RenderTexture *>(jpost_effect_render_texture_b);
-// TODO : cleanup
-        /*
-        gRenderer->cullAndRender(renderTarget, scene, shader_manager,
-                                post_effect_shader_manager, post_effect_render_texture_a,
-                                post_effect_render_texture_b);
-                                */
+
+        renderTarget->cullFromCamera(scene, renderTarget->getCamera(),gRenderer,shader_manager);
+        renderTarget->beginRendering(gRenderer);
+        gRenderer->renderRenderTarget(scene, renderTarget,shader_manager,post_effect_render_texture_a,post_effect_render_texture_b);
+        renderTarget->endRendering(gRenderer);
     }
 
     void Java_org_gearvrf_GVRViewManager_renderCamera(JNIEnv *jni, jclass clazz,
@@ -105,11 +104,9 @@ JNIEXPORT void JNICALL Java_org_gearvrf_GVRViewManager_readRenderResultNative(JN
     RenderTarget* renderTarget = reinterpret_cast<RenderTarget*>(jrenderTarget);
     RenderTexture* renderTexture =    renderTarget->getTexture();
 
-    GLint viewport[4];
     if(useMultiview){
             renderTexture->setLayerIndex(eye);
     }
-
     renderTexture->readRenderResult(readback_buffer);
 }
 

@@ -11,16 +11,16 @@
 namespace gvr {
     extern "C" {
     JNIEXPORT jlong JNICALL
-    Java_org_gearvrf_NativeRenderTarget_ctorMultiview(JNIEnv *env, jobject obj, jobject jtexture, jboolean isMultiview);
+    Java_org_gearvrf_NativeRenderTarget_ctorMultiview(JNIEnv *env, jobject obj, jlong jtexture, jboolean isMultiview);
 
     JNIEXPORT jlong JNICALL
-    Java_org_gearvrf_NativeRenderTarget_ctor(JNIEnv *env, jobject obj, jobject jtexture,  jlong ptr);
+    Java_org_gearvrf_NativeRenderTarget_ctor(JNIEnv *env, jobject obj, jlong jtexture,  jlong ptr);
 
     JNIEXPORT jlong JNICALL
     Java_org_gearvrf_NativeRenderTarget_getComponentType(JNIEnv *env, jobject obj);
 
     JNIEXPORT void JNICALL
-    Java_org_gearvrf_NativeRenderTarget_setTexture(JNIEnv *env, jobject obj, jlong ptr, jobject texture);
+    Java_org_gearvrf_NativeRenderTarget_setTexture(JNIEnv *env, jobject obj, jlong ptr, jlong texture);
 
     JNIEXPORT void JNICALL
     Java_org_gearvrf_NativeRenderTarget_setMainScene(JNIEnv *env, jobject obj, jlong ptr, jlong Sceneptr);
@@ -29,7 +29,7 @@ namespace gvr {
     Java_org_gearvrf_NativeRenderTarget_setCamera(JNIEnv *env, jobject obj, jlong ptr, jlong camera);
 
     JNIEXPORT void JNICALL
-    Java_org_gearvrf_NativeRenderTarget_beginRendering(JNIEnv *env, jobject obj, jlong ptr);
+    Java_org_gearvrf_NativeRenderTarget_beginRendering(JNIEnv *env, jobject obj, jlong ptr, jlong camera);
 
     JNIEXPORT void JNICALL
     Java_org_gearvrf_NativeRenderTarget_endRendering(JNIEnv *env, jobject obj, jlong ptr);
@@ -38,16 +38,21 @@ namespace gvr {
     Java_org_gearvrf_NativeRenderTarget_defaultCtr(JNIEnv *env, jobject obj, jlong jscene);
 
     JNIEXPORT void JNICALL
-    Java_org_gearvrf_NativeRenderTarget_cullFromCamera(JNIEnv *env, jobject obj, jlong ptr, jlong jcamera, jlong jshaderManager);
+    Java_org_gearvrf_NativeRenderTarget_cullFromCamera(JNIEnv *env, jobject obj, jlong jscene, jlong ptr, jlong jcamera, jlong jshaderManager);
     JNIEXPORT void JNICALL
-    Java_org_gearvrf_NativeRenderTarget_render(JNIEnv *env, jobject obj, jlong renderTarget, jlong camera, jlong shader_manager, jlong posteffectrenderTextureA, jlong posteffectRenderTextureB);
+    Java_org_gearvrf_NativeRenderTarget_render(JNIEnv *env, jobject obj, jlong renderTarget, jlong camera,
+                                               jlong shader_manager, jlong posteffectrenderTextureA, jlong posteffectRenderTextureB, jlong jscene);
     };
 
 JNIEXPORT void JNICALL
-Java_org_gearvrf_NativeRenderTarget_render(JNIEnv *env, jobject obj, jlong renderTarget, jlong camera, jlong shader_manager, jlong posteffectrenderTextureA, jlong posteffectRenderTextureB){
+Java_org_gearvrf_NativeRenderTarget_render(JNIEnv *env, jobject obj, jlong renderTarget, jlong camera,
+                                           jlong shader_manager, jlong posteffectrenderTextureA, jlong posteffectRenderTextureB, jlong jscene){
     RenderTarget* target = reinterpret_cast<RenderTarget*>(renderTarget);
+    Scene* scene = reinterpret_cast<Scene*>(jscene);
+  //  target->setMainScene(scene);
+    // Do not remote this: need it for screenshot capturer, center camera rendering
     target->setCamera(reinterpret_cast<Camera*>(camera));
-    gRenderer->getInstance()->renderRenderTarget(target, reinterpret_cast<ShaderManager*>(shader_manager),
+    gRenderer->getInstance()->renderRenderTarget(scene, target, reinterpret_cast<ShaderManager*>(shader_manager),
                                                  reinterpret_cast<RenderTexture*>(posteffectrenderTextureA), reinterpret_cast<RenderTexture*>(posteffectRenderTextureB));
 }
 
@@ -58,13 +63,14 @@ Java_org_gearvrf_NativeRenderTarget_defaultCtr(JNIEnv *env, jobject obj, jlong j
 
 }
 JNIEXPORT jlong JNICALL
-Java_org_gearvrf_NativeRenderTarget_ctorMultiview(JNIEnv *env, jobject obj, jobject jtexture, jboolean isMultiview)
+Java_org_gearvrf_NativeRenderTarget_ctorMultiview(JNIEnv *env, jobject obj, jlong jtexture, jboolean isMultiview)
 {
+
     RenderTexture* texture = reinterpret_cast<RenderTexture*>(jtexture);
     return reinterpret_cast<jlong>(new RenderTarget(texture, isMultiview));
 }
 JNIEXPORT jlong JNICALL
-Java_org_gearvrf_NativeRenderTarget_ctor(JNIEnv *env, jobject obj, jobject jtexture, jlong ptr)
+Java_org_gearvrf_NativeRenderTarget_ctor(JNIEnv *env, jobject obj, jlong jtexture, jlong ptr)
 {
     RenderTexture* texture = reinterpret_cast<RenderTexture*>(jtexture);
     RenderTarget* sourceRenderTarget = reinterpret_cast<RenderTarget*>(ptr);
@@ -78,8 +84,10 @@ Java_org_gearvrf_NativeRenderTarget_setMainScene(JNIEnv *env, jobject obj, jlong
 }
 
 JNIEXPORT void JNICALL
-Java_org_gearvrf_NativeRenderTarget_beginRendering(JNIEnv *env, jobject obj, jlong ptr){
+Java_org_gearvrf_NativeRenderTarget_beginRendering(JNIEnv *env, jobject obj, jlong ptr, jlong jcamera){
     RenderTarget* target = reinterpret_cast<RenderTarget*>(ptr);
+    Camera* camera = reinterpret_cast<Camera*>(jcamera);
+    target->setCamera(camera);
     target->beginRendering(gRenderer->getInstance());
 }
 
@@ -91,16 +99,17 @@ Java_org_gearvrf_NativeRenderTarget_endRendering(JNIEnv *env, jobject obj, jlong
 
 
 JNIEXPORT void JNICALL
-Java_org_gearvrf_NativeRenderTarget_cullFromCamera(JNIEnv *env, jobject obj, jlong ptr, jlong jcamera, jlong jshaderManager){
+Java_org_gearvrf_NativeRenderTarget_cullFromCamera(JNIEnv *env, jobject obj, jlong jscene, jlong ptr, jlong jcamera, jlong jshaderManager){
 
     RenderTarget* target = reinterpret_cast<RenderTarget*>(ptr);
     Camera* camera = reinterpret_cast<Camera*>(jcamera);
+    Scene* scene = reinterpret_cast<Scene*>(jscene);
     ShaderManager* shaderManager = reinterpret_cast<ShaderManager*> (jshaderManager);
-    target->cullFromCamera(camera,gRenderer->getInstance(), shaderManager);
+    target->cullFromCamera(scene, camera,gRenderer->getInstance(), shaderManager);
 }
 
 JNIEXPORT void JNICALL
-Java_org_gearvrf_NativeRenderTarget_setTexture(JNIEnv *env, jobject obj, jlong ptr, jobject jtexture)
+Java_org_gearvrf_NativeRenderTarget_setTexture(JNIEnv *env, jobject obj, jlong ptr, jlong jtexture)
 {
     RenderTarget* target = reinterpret_cast<RenderTarget*>(ptr);
     RenderTexture* texture = reinterpret_cast<RenderTexture*>(jtexture);

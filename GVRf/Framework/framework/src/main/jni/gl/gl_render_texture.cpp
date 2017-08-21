@@ -233,11 +233,17 @@ void GLRenderTexture::beginRendering(Renderer* renderer)
 
     glViewport(0, 0, width, height);
     glScissor(0, 0, width, height);
-    glDepthMask(GL_TRUE);
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
     invalidateFrameBuffer(GL_FRAMEBUFFER, true, true, renderTexture_gl_render_buffer_ != NULL);
-    if ((mBackColor[0] + mBackColor[1] + mBackColor[2] + mUseStencil) != 0)
+    glDepthMask(GL_TRUE);
+    GL(glEnable(GL_DEPTH_TEST));
+    GL(glDepthFunc(GL_LEQUAL));
+    GL(glEnable(GL_CULL_FACE));
+    GL(glFrontFace(GL_CCW));
+    GL(glCullFace(GL_BACK));
+    GL(glDisable(GL_POLYGON_OFFSET_FILL));
+    GL(glLineWidth(1.0f));
+
+    if ((mBackColor[0] != -1))
     {
         int mask = GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT;
         glClearColor(mBackColor[0], mBackColor[1], mBackColor[2], mBackColor[3]);
@@ -316,9 +322,9 @@ bool GLRenderTexture::readRenderResult(uint8_t *readback_buffer, long capacity) 
     image->setupReadback(renderTexture_gl_pbo_, layer_index_);
 
     if (!readback_started_) {
-        glReadPixels(0, 0, mImage->getWidth(), mImage->getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glReadPixels(0, 0, mImage->getWidth(), mImage->getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, readback_buffer);
     }
-
+/*
     int *buf = (int *)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, neededCapacity * 4,
              GL_MAP_READ_BIT);
     if (buf) {
@@ -329,7 +335,7 @@ bool GLRenderTexture::readRenderResult(uint8_t *readback_buffer, long capacity) 
 
     glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-
+*/
     return true;
 }
 
@@ -434,6 +440,7 @@ GLNonMultiviewRenderTexture::GLNonMultiviewRenderTexture(int width, int height, 
         }
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    checkGLError(" GLNonMultiviewRenderTexture:");
 }
 void createArrayTexture(GLuint &texId, int width, int height, GLenum tex_format) {
     glGenTextures(1, &texId);

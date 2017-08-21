@@ -155,17 +155,20 @@ namespace gvr
         return ibuf;
     }
 
-    GLRenderer::GLRenderer() : transform_ubo_(nullptr)
+    GLRenderer::GLRenderer() : transform_ubo_({nullptr, nullptr})
     {
         const char* desc;
 
-        if (use_multiview)
-            desc = " mat4 u_view_[2]; mat4 u_mvp_[2]; mat4 u_mv_[2]; mat4 u_mv_it_[2]; mat4 u_model; mat4 u_view_i; float u_right; ";
-        else
-            desc = " mat4 u_view; mat4 u_mvp; mat4 u_mv; mat4 u_mv_it; mat4 u_model; mat4 u_view_i; float u_right;";
-        transform_ubo_ = reinterpret_cast<GLUniformBlock*>
+        desc = " mat4 u_view_[2]; mat4 u_mvp_[2]; mat4 u_mv_[2]; mat4 u_mv_it_[2]; mat4 u_model; mat4 u_view_i; float u_right; ";
+
+        transform_ubo_[1] = reinterpret_cast<GLUniformBlock*>
+        (createUniformBlock(desc, TRANSFORM_UBO_INDEX, "Transform_ubo", 0));
+        transform_ubo_[1]->useGPUBuffer(false);
+
+        desc = " mat4 u_view; mat4 u_mvp; mat4 u_mv; mat4 u_mv_it; mat4 u_model; mat4 u_view_i; float u_right;";
+        transform_ubo_[0] = reinterpret_cast<GLUniformBlock*>
                             (createUniformBlock(desc, TRANSFORM_UBO_INDEX, "Transform_ubo", 0));
-        transform_ubo_->useGPUBuffer(false);
+        transform_ubo_[0]->useGPUBuffer(false);
     }
 
     void GLRenderer::renderCamera(Scene *scene, Camera *camera, int framebufferId, int viewportX,
@@ -249,40 +252,50 @@ namespace gvr
         GL(glDisable(GL_BLEND));
     }
 
-    void GLRenderer::renderRenderTarget(RenderTarget* renderTarget,
+    void GLRenderer::renderRenderTarget(Scene* scene, RenderTarget* renderTarget,
                             ShaderManager* shader_manager,
                             RenderTexture* post_effect_render_texture_a,
                             RenderTexture* post_effect_render_texture_b)
     {
-        RenderState& rstate = renderTarget->getRenderState();
+
+        resetStats();
+
+        glDepthMask(GL_TRUE);
+        GL(glEnable(GL_DEPTH_TEST));
+        GL(glDepthFunc(GL_LEQUAL));
+        GL(glEnable(GL_CULL_FACE));
+        GL(glFrontFace(GL_CCW));
+        GL(glCullFace(GL_BACK));
+        GL(glDisable(GL_POLYGON_OFFSET_FILL));
         Camera* camera = renderTarget->getCamera();
+        RenderState rstate = renderTarget->getRenderState();
+
+        rstate.scene = scene;
+        rstate.shader_manager = shader_manager;
+        rstate.uniforms.u_view = camera->getViewMatrix();
+        rstate.uniforms.u_proj = camera->getProjectionMatrix();
+        rstate.render_mask = camera->render_mask();
+        rstate.uniforms.u_right = rstate.render_mask & RenderData::RenderMaskBit::Right;
+
         const std::vector<ShaderData*>& post_effects = camera->post_effect_data();
         RenderTexture* saveRenderTexture = renderTarget->getTexture();
         std::vector<RenderData*>* render_data_vector = renderTarget->getRenderDataVector();
-
-        rstate.shader_manager = shader_manager;
+      //  LOGE("render data vetor size is %d", render_data_vector->size());
+#if 1
         if (!rstate.shadow_map)
         {
-            state_sort(render_data_vector);
+            rstate.material_override = NULL;
             GL(glEnable (GL_BLEND));
             GL(glBlendEquation (GL_FUNC_ADD));
             GL(glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA));
+            GL(glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE));
         }
-        GL(glDepthMask(GL_TRUE));
-        GL(glEnable (GL_DEPTH_TEST));
-        GL(glDepthFunc (GL_LEQUAL));
-        GL(glEnable (GL_CULL_FACE));
-        GL(glFrontFace (GL_CCW));
-        GL(glCullFace (GL_BACK));
-        GL(glDisable (GL_POLYGON_OFFSET_FILL));
-        GL(glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE));
-        GL(glLineWidth(1.0f));
+
         if ((post_effects.size() == 0) ||
             (post_effect_render_texture_a == nullptr))
         {
 
-
-            //renderTarget->beginRendering(this);
+            clearBuffers(*camera);
             for (auto it = render_data_vector->begin();
                  it != render_data_vector->end();
                  ++it)
@@ -293,15 +306,58 @@ namespace gvr
                     GL(renderRenderData(rstate, rdata));
                 }
             }
-           // renderTarget->endRendering(this);
+
         }
         else
         {
-            RenderTexture* renderTexture = post_effect_render_texture_a;
 
-            renderTexture->useStencil(useStencilBuffer_);
+            RenderTexture* renderTexture = post_effect_render_texture_a;
+            RenderTexture* input_texture = renderTexture;
+            GL(glBindFramebuffer(GL_FRAMEBUFFER, renderTexture->getFrameBufferId()));
+            GL(glViewport(0, 0, renderTexture->width(), renderTexture->height()));
+            GL(clearBuffers(*camera));
+
+            for (auto it = render_data_vector->begin();
+                 it != render_data_vector->end();
+                 ++it)
+            {
+                RenderData* rdata = *it;
+                if (!rstate.shadow_map || rdata->cast_shadows())
+                {
+
+                    GL(renderRenderData(rstate, rdata));
+                }
+            }
+            GL(glDisable(GL_DEPTH_TEST));
+            GL(glDisable(GL_CULL_FACE));
+            for (int i = 0; i < post_effects.size() - 1; ++i)
+            {
+                if (i % 2 == 0)
+                {
+                    renderTexture = static_cast<GLRenderTexture*>(post_effect_render_texture_b);
+                }
+                else
+                {
+                    renderTexture = static_cast<GLRenderTexture*>(post_effect_render_texture_a);
+                }
+                GL(glBindFramebuffer(GL_FRAMEBUFFER, renderTexture->getFrameBufferId()));
+                GL(glViewport(0, 0, renderTexture->width(), renderTexture->height()));
+                GL(glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT));
+                GL(renderPostEffectData(rstate, input_texture, post_effects[i]));
+                input_texture = renderTexture;
+            }
+            GL(glBindFramebuffer(GL_FRAMEBUFFER, saveRenderTexture->getFrameBufferId()));
+            GL(glViewport(0, 0, saveRenderTexture->width(), saveRenderTexture->height()));
+            GL(glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT));
+            renderPostEffectData(rstate, input_texture, post_effects.back());
+
+
+
+          /*  RenderTexture* renderTexture = post_effect_render_texture_a;
+            RenderTexture* input_texture = renderTexture;
             renderTarget->setTexture(renderTexture);
             renderTarget->beginRendering(this);
+
             for (auto it = render_data_vector->begin();
                  it != render_data_vector->end();
                  ++it)
@@ -315,6 +371,7 @@ namespace gvr
             GL(glDisable(GL_DEPTH_TEST));
             GL(glDisable(GL_CULL_FACE));
             renderTarget->endRendering(this);
+            checkGLError("GLRenderer::renderRenderTarget1");
             for (int i = 0; i < post_effects.size() - 1; ++i)
             {
                 if (i % 2 == 0)
@@ -327,17 +384,18 @@ namespace gvr
                 }
                 renderTarget->setTexture(renderTexture);
                 renderTarget->beginRendering(this);
-                GL(renderPostEffectData(rstate, renderTexture, post_effects[i]));
+                GL(renderPostEffectData(rstate, input_texture, post_effects[i]));
                 renderTarget->endRendering(this);
+                input_texture = renderTexture;
             }
             renderTarget->setTexture(saveRenderTexture);
             renderTarget->beginRendering(this);
-            GL(renderPostEffectData(rstate, renderTexture, post_effects.back()));
+            GL(renderPostEffectData(rstate, input_texture, post_effects.back()));
             renderTarget->endRendering(this);
+            */
         }
-        GL(glDisable(GL_DEPTH_TEST));
-        GL(glDisable(GL_CULL_FACE));
         GL(glDisable(GL_BLEND));
+#endif
     }
 
 /**
@@ -520,7 +578,7 @@ namespace gvr
     void GLRenderer::occlusion_cull(RenderState &rstate, std::vector<SceneObject *> &scene_objects, std::vector<RenderData*>* render_data_vector)
     {
 
-        if (!occlusion_cull_init(rstate.scene, scene_objects, render_data_vector))
+        if (!occlusion_cull_init(rstate, scene_objects, render_data_vector))
             return;
 
         for (auto it = scene_objects.begin(); it != scene_objects.end(); ++it)
@@ -553,7 +611,7 @@ namespace gvr
                 RenderPass *pass = Renderer::getInstance()->createRenderPass();
                 GLShader *bboxShader = reinterpret_cast<GLShader *>(rstate.shader_manager
                         ->findShader("GVRBoundingBoxShader"));
-                pass->set_shader(bboxShader->getProgramId());
+                pass->set_shader(bboxShader->getProgramId(), false);
                 pass->set_material(bbox_material);
                 bounding_box_render_data->set_mesh(bounding_box_mesh);
                 bounding_box_render_data->add_pass(pass);
@@ -596,7 +654,7 @@ namespace gvr
 
                 (*it)->set_visible(visibility);
                 (*it)->set_query_issued(false);
-                addRenderData((*it)->render_data(), rstate.scene, render_data_vector);
+                addRenderData((*it)->render_data(), rstate, render_data_vector);
                 rstate.scene->pick(scene_object);
             }
         }
@@ -609,7 +667,8 @@ namespace gvr
         int indexCount = mesh->getIndexCount();
         ShaderData* curr_material = rstate.material_override;
         Shader* shader = nullptr;
-
+        if(render_data->owner_object()->name().compare("environment")==0)
+            LOGE("it is");
         /*
          * If a material override is provided, render the mesh
          * once with the designated material.
@@ -646,7 +705,7 @@ namespace gvr
             numberDrawCalls++;
             set_face_culling(render_data->pass(curr_pass)->cull_face());
             curr_material = render_data->pass(curr_pass)->material();
-            shader = rstate.shader_manager->getShader(render_data->get_shader(curr_pass));
+            shader = rstate.shader_manager->getShader(render_data->get_shader(rstate.is_multiview, curr_pass));
             renderWithShader(rstate, shader, render_data, curr_material, curr_pass);
         }
     }
@@ -660,14 +719,14 @@ namespace gvr
         Transform* model = render_data->owner_object() ? render_data->owner_object()->transform() : nullptr;
         try
         {
-            shader->useShader();
+            shader->useShader(rstate.is_multiview);
         }
         catch (const std::string &error)
         {
             LOGE("Error detected in Renderer::renderRenderData; name : %s, error : %s",
                  render_data->owner_object()->name().c_str(), error.c_str());
             shader = rstate.shader_manager->findShader("GVRErrorShader");
-            shader->useShader();
+            shader->useShader(rstate.is_multiview);
         }
         if ((drawMode == GL_LINE_STRIP) ||
             (drawMode == GL_LINES) ||
@@ -688,7 +747,7 @@ namespace gvr
         {
             if (shader->usesMatrixUniforms())
             {
-                UniformBlock* transformBlock = getTransformUbo();
+                UniformBlock* transformBlock = getTransformUbo(rstate.is_multiview ? 1 : 0);
                 updateTransforms(rstate, transformBlock, model);
                 if (!transformBlock->usesGPUBuffer())
                 {
@@ -700,6 +759,7 @@ namespace gvr
             {
                 updateLights(rstate, shader, texIndex);
             }
+            checkGLError("renderMesh:before render");
             rdata->render(shader, this);
         }
         checkGLError("renderMesh::renderMaterialShader");

@@ -37,7 +37,7 @@ public:
     int getWidth(){ return  mWidth; }
     int getHeight() { return mHeight; }
     int getSamples() { return mMultisamples; }
-    GLint getColorTexId(int index){   vrapi_GetTextureSwapChainHandle( mColorTextureSwapChain, index); }
+    GLuint getColorTexId(int index){   return vrapi_GetTextureSwapChainHandle( mColorTextureSwapChain, index); }
     GLuint getRenderBufferFBOId(int index) { return mRenderFrameBuffers[index]; }
 public:
     int mWidth = 0;

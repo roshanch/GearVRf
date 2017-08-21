@@ -163,10 +163,10 @@ void Renderer::cull(Scene *scene, Camera *camera,
         numLights = nlights;
         scene->bindShaders();
     }
-    ///cullFromCamera(scene, camera, shader_manager);
+ //   cullFromCamera(scene, camera, shader_manager, &render_data_vector);
 
     // Note: this needs to be scaled to sort on N states
-   // state_sort();
+    state_sort(&render_data_vector);
 
     if (do_batching && !gRenderer->isVulkanInstance())
     {
@@ -178,7 +178,7 @@ void Renderer::cull(Scene *scene, Camera *camera,
  * Perform view frustum culling from a specific camera viewpoint
  */
 void Renderer::cullFromCamera(Scene *scene, Camera* camera,
-        ShaderManager* shader_manager, std::vector<RenderData*>* render_data_vector)
+        ShaderManager* shader_manager, std::vector<RenderData*>* render_data_vector, bool is_multiview)
 {
     std::vector<SceneObject*> scene_objects;
 
@@ -186,6 +186,7 @@ void Renderer::cullFromCamera(Scene *scene, Camera* camera,
     scene_objects.clear();
     RenderState rstate;
 
+    rstate.is_multiview = is_multiview;
     rstate.material_override = NULL;
     rstate.shader_manager = shader_manager;
     rstate.uniforms.u_view = camera->getViewMatrix();
@@ -229,7 +230,7 @@ void Renderer::renderRenderDataVector(RenderState &rstate) {
     }
 }
 
-void Renderer::addRenderData(RenderData *render_data, Scene* scene, std::vector<RenderData*>* render_data_vector) {
+void Renderer::addRenderData(RenderData *render_data, RenderState& renderState, std::vector<RenderData*>* render_data_vector) {
     if (render_data == 0 || render_data->material(0) == 0 || !render_data->enabled()) {
         return;
     }
@@ -237,7 +238,7 @@ void Renderer::addRenderData(RenderData *render_data, Scene* scene, std::vector<
         return;
     }
     const RenderPass* pass = render_data->pass(0);
-    int shaderID = pass->get_shader();
+    int shaderID = pass->get_shader(renderState.is_multiview);
     if (shaderID < 0)
     {
         //LOGE("SHADER: RenderData %p[%p] shader being generated", render_data, pass);
@@ -247,11 +248,13 @@ void Renderer::addRenderData(RenderData *render_data, Scene* scene, std::vector<
     dirty_bits |= (1 << NEW_TEXTURE);
     dirty_bits |= (1 << CUSTOM_ATTRIBS);
     dirty_bits |= (1 << MOD_SHADER_ID);
+    if(render_data->owner_object()->name().compare("environment")==0)
+        LOGE("it is");
     if (shaderID == 0 || render_data->isDirty(dirty_bits))
     {
         LOGE("SHADER: RenderData %p[%p] has no shader", render_data, pass);
-        render_data->set_shader(0, -1);
-        render_data->bindShader(scene);
+        render_data->set_shader(0, -1, renderState.is_multiview);
+        render_data->bindShader(renderState.scene, renderState.is_multiview);
         render_data->clearDirtyBits(~dirty_bits);
         return;
     }
@@ -262,19 +265,19 @@ void Renderer::addRenderData(RenderData *render_data, Scene* scene, std::vector<
     return;
 }
 
-bool Renderer::occlusion_cull_init(Scene* scene, std::vector<SceneObject*>& scene_objects,  std::vector<RenderData*>* render_data_vector){
+bool Renderer::occlusion_cull_init(RenderState& renderState, std::vector<SceneObject*>& scene_objects,  std::vector<RenderData*>* render_data_vector){
 
-    scene->lockColliders();
-    scene->clearVisibleColliders();
-    bool do_culling = scene->get_occlusion_culling();
+    renderState.scene->lockColliders();
+    renderState.scene->clearVisibleColliders();
+    bool do_culling = renderState.scene->get_occlusion_culling();
     if (!do_culling) {
         for (auto it = scene_objects.begin(); it != scene_objects.end(); ++it) {
             SceneObject *scene_object = (*it);
             RenderData* render_data = scene_object->render_data();
-            addRenderData(render_data, scene, render_data_vector);
-            scene->pick(scene_object);
+            addRenderData(render_data, renderState, render_data_vector);
+            renderState.scene->pick(scene_object);
         }
-        scene->unlockColliders();
+        renderState.scene->unlockColliders();
         return false;
     }
     //LOGE("in occlusion cull %d", render_data_vector.size());
@@ -396,8 +399,9 @@ void Renderer::updateTransforms(RenderState& rstate, UniformBlock* transform_ubo
     rstate.uniforms.u_right = rstate.render_mask & RenderData::RenderMaskBit::Right;
     transform_ubo->setMat4("u_model", rstate.uniforms.u_model);
 
-    if (use_multiview)
+    if (rstate.is_multiview)
     {
+      //  LOGE("multiview is true");
         if (!rstate.shadow_map)
         {
             rstate.uniforms.u_view_[0] = rstate.scene->main_camera_rig()->left_camera()->getViewMatrix();
@@ -411,6 +415,7 @@ void Renderer::updateTransforms(RenderState& rstate, UniformBlock* transform_ubo
             rstate.uniforms.u_view_inv_[0] = glm::inverse(rstate.uniforms.u_view_[0]);
             rstate.uniforms.u_view_inv_[1] = glm::inverse(rstate.uniforms.u_view_[1]);
         }
+
         transform_ubo->setMat4("u_view_", rstate.uniforms.u_view_[0]);
         transform_ubo->setMat4("u_mvp_", rstate.uniforms.u_mvp_[0]);
         transform_ubo->setMat4("u_mv_", rstate.uniforms.u_mv_[0]);

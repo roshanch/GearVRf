@@ -231,8 +231,7 @@ void GVRActivity::onDrawFrame(jobject jViewManager) {
         // Render the eye images.
         for (int eye = 0; eye < (use_multiview ? 1 :VRAPI_FRAME_LAYER_EYE_MAX); eye++) {
             int textureSwapChainIndex = frameBuffer_[eye].mTextureSwapChainIndex;
-           // beginRenderingEye(eye);
-
+            beginRenderingEye(eye);
            oculusJavaGlThread_.Env->CallVoidMethod(jViewManager, onDrawEyeMethodId, eye, textureSwapChainIndex, use_multiview);
 
             const GLuint colorTexture = vrapi_GetTextureSwapChainHandle(frameBuffer_[eye].mColorTextureSwapChain, textureSwapChainIndex);
@@ -248,7 +247,7 @@ void GVRActivity::onDrawFrame(jobject jViewManager) {
                                    GL_UNSIGNED_BYTE,
                                    oculusTexData);
             }
-            //endRenderingEye(eye);
+            endRenderingEye(eye);
         }
 
         FrameBufferObject::unbind();

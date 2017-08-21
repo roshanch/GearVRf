@@ -36,8 +36,10 @@ public:
     };
 
     RenderPass() :
-            material_(0), shaderID_(0), cull_face_(DEFAULT_CULL_FACE)
-    { }
+            material_(0), cull_face_(DEFAULT_CULL_FACE)
+    {
+        memset(shaderID_,0,sizeof(shaderID_));
+    }
 
     ShaderData* material() const {
         return material_;
@@ -54,13 +56,13 @@ public:
         dirty(MOD_CULL_FACE);
     }
 
-    void set_shader(int shaderid)
+    void set_shader(int shaderid, bool useMultiview)
     {
-        shaderID_ = shaderid;
+        shaderID_[useMultiview] = shaderid;
         dirty(MOD_SHADER_ID);
     }
 
-    int get_shader() const { return shaderID_; }
+    int get_shader(bool useMultiview) const { return shaderID_[useMultiview]; }
 
     void dirty(DIRTY_BITS bit) {
         dirtyImpl(dirty_flags_,bit);
@@ -71,7 +73,7 @@ public:
 private:
     static const int DEFAULT_CULL_FACE = CullBack;
     ShaderData* material_;
-    int shaderID_;
+    int shaderID_[2];
     int cull_face_;
     std::unordered_set<std::shared_ptr<u_short>> dirty_flags_;
 };

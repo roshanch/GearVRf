@@ -139,7 +139,7 @@ public:
      void updateTransforms(RenderState& rstate, UniformBlock* block, Transform* model);
      virtual void initializeStats();
      virtual void cullFromCamera(Scene *scene, Camera* camera,
-                ShaderManager* shader_manager, std::vector<RenderData*>* render_data_vector);
+                ShaderManager* shader_manager, std::vector<RenderData*>* render_data_vector,bool);
      virtual void set_face_culling(int cull_face) = 0;
      virtual void renderRenderDataVector(RenderState &rstate);
      virtual void cull(Scene *scene, Camera *camera,
@@ -168,7 +168,7 @@ public:
             RenderTexture* render_texture, ShaderManager* shader_manager,
             RenderTexture* post_effect_render_texture_a,
             RenderTexture* post_effect_render_texture_b) = 0;
-    virtual void renderRenderTarget(RenderTarget* renderTarget, ShaderManager* shader_manager,
+    virtual void renderRenderTarget(Scene*, RenderTarget* renderTarget, ShaderManager* shader_manager,
                                     RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b)=0;
     virtual void restoreRenderStates(RenderData* render_data) = 0;
     virtual void setRenderStates(RenderData* render_data, RenderState& rstate) = 0;
@@ -198,11 +198,11 @@ protected:
             delete batch_manager;
         batch_manager = NULL;
     }
-    virtual void state_sort(std::vector<RenderData*>* render_data_vector) ;
+
     virtual void renderMesh(RenderState& rstate, RenderData* render_data) = 0;
     virtual void renderMaterialShader(RenderState& rstate, RenderData* render_data, ShaderData *material, Shader* shader) = 0;
-    void addRenderData(RenderData *render_data, Scene* scene, std::vector<RenderData*>* render_data_vector);
-    virtual bool occlusion_cull_init(Scene* scene, std::vector<SceneObject*>& scene_objects,  std::vector<RenderData*>* render_data_vector);
+    void addRenderData(RenderData *render_data, RenderState& , std::vector<RenderData*>* render_data_vector);
+    virtual bool occlusion_cull_init(RenderState& , std::vector<SceneObject*>& scene_objects,  std::vector<RenderData*>* render_data_vector);
 
     virtual void renderPostEffectData(RenderState& rstate,
             Texture* render_texture, ShaderData* post_effect_data);
@@ -215,6 +215,7 @@ protected:
     RenderData* post_effect_render_data_;
 
 public:
+    virtual void state_sort(std::vector<RenderData*>* render_data_vector) ;
     //to be used only on the rendering thread
     const std::vector<RenderData*>& getRenderDataVector() const { return render_data_vector; }
     int numLights;

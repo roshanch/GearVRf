@@ -50,7 +50,7 @@ public:
         return renderTexture_gl_frame_buffer_->id();
     }
 
-    virtual void bind() {
+        virtual void bind() {
         glBindFramebuffer(GL_FRAMEBUFFER, renderTexture_gl_frame_buffer_->id());
     }
 
@@ -119,6 +119,10 @@ public:
     virtual ~GLMultiviewRenderTexture(){}
     virtual bool isReady() {
         return GLRenderTexture::isReady();
+    }
+    virtual bool readRenderResult(uint8_t* readback_buffer){
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, getReadBufferId());
+        GLRenderTexture::readRenderResult(readback_buffer);
     }
     virtual void beginRendering(Renderer* renderer){
         if (!isReady())

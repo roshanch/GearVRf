@@ -128,7 +128,7 @@ public:
                                  const char* uniformDescriptor, const char* textureDescriptor,
                                  const char* vertexDescriptor, const char* vertexShader,
                                  const char* fragmentShader);
-    virtual void renderRenderTarget(RenderTarget* renderTarget, ShaderManager* shader_manager,
+    virtual void renderRenderTarget(Scene*, RenderTarget* renderTarget, ShaderManager* shader_manager,
                                     RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b){}
     virtual bool renderWithShader(RenderState& rstate, Shader* shader, RenderData* renderData, ShaderData* shaderData, int);
     virtual bool renderWithPostEffectShader(RenderState& rstate, Shader* shader, RenderData* rdata, ShaderData* shaderData,  int pass, int postEffectIndx);
@@ -137,7 +137,7 @@ private:
     void renderMesh(RenderState& rstate, RenderData* render_data){}
     void renderMaterialShader(RenderState& rstate, RenderData* render_data, ShaderData *material, Shader*){}
     virtual void occlusion_cull(RenderState& rstate, std::vector<SceneObject*>& scene_objects, std::vector<RenderData*>* render_data_vector) {
-        occlusion_cull_init(rstate.scene, scene_objects, render_data_vector);
+        occlusion_cull_init(rstate, scene_objects, render_data_vector);
 
     }
     RenderData* post_effect_render_data();

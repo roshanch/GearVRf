@@ -159,9 +159,11 @@ namespace gvr {
         shadowMap->setLayerIndex(texIndex);
         setFloat("shadow_map_index", (float) texIndex);
         Renderer* renderer = gRenderer->getInstance();
-        shadowMap->cullFromCamera(shadowMap->getCamera(),renderer, shader_manager);
-        renderer->renderRenderTarget(shadowMap,shader_manager, nullptr, nullptr);
-
+        shadowMap->setMainScene(scene);
+        shadowMap->cullFromCamera(scene, shadowMap->getCamera(),renderer, shader_manager);
+        shadowMap->beginRendering(renderer);
+        renderer->renderRenderTarget(scene, shadowMap,shader_manager, nullptr, nullptr);
+        shadowMap->endRendering(renderer);
         return true;
     }
 

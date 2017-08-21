@@ -242,16 +242,16 @@ public class GVRRenderData extends GVRJavaComponent implements IRenderable, Pret
         }
     }
 
-    public void setShader(int shader)
+    public void setShader(int shader, boolean useMultiview)
     {
         GVRRenderPass pass = mRenderPassList.get(0);
-        pass.setShader(shader);
+        pass.setShader(shader, useMultiview);
     }
 
-    int getShader()
+    int getShader(boolean useMultiview)
     {
         GVRRenderPass pass = mRenderPassList.get(0);
-        return pass.getShader();
+        return pass.getShader(useMultiview);
     }
 
     /**
@@ -283,14 +283,14 @@ public class GVRRenderData extends GVRJavaComponent implements IRenderable, Pret
      * @param scene scene being rendered
      * @see GVRShaderTemplate GVRMaterialShader.getShaderType
      */
-    public synchronized void bindShader(GVRScene scene)
+    public synchronized void bindShader(GVRScene scene, boolean isMultiview)
     {
         GVRRenderPass pass = mRenderPassList.get(0);
         GVRShaderId shader = pass.getMaterial().getShaderType();
         GVRShader template = shader.getTemplate(getGVRContext());
         if (template != null)
         {
-            template.bindShader(getGVRContext(), this, scene);
+            template.bindShader(getGVRContext(), this, scene, isMultiview);
         }
         for (int i = 1; i < mRenderPassList.size(); ++i)
         {
@@ -299,7 +299,41 @@ public class GVRRenderData extends GVRJavaComponent implements IRenderable, Pret
             template = shader.getTemplate(getGVRContext());
             if (template != null)
             {
-                template.bindShader(getGVRContext(), pass, scene);
+                template.bindShader(getGVRContext(), pass, scene, isMultiview);
+            }
+        }
+    }
+    /**
+     * Selects a specific vertex and fragment shader to use for rendering.
+     *
+     * If a shader template has been specified, it is used to generate
+     * a vertex and fragment shader based on mesh attributes, bound textures
+     * and light sources. If the textures bound to the material are changed
+     * or a new light source is added, this function must be called again
+     * to select the appropriate shaders. This function may cause recompilation
+     * of shaders which is quite slow.
+     *
+     * @param scene scene being rendered
+     * @see GVRShaderTemplate GVRMaterialShader.getShaderType
+     */
+    public synchronized void bindShader(GVRScene scene)
+    {
+        GVRRenderPass pass = mRenderPassList.get(0);
+        GVRShaderId shader = pass.getMaterial().getShaderType();
+        GVRShader template = shader.getTemplate(getGVRContext());
+        boolean isMultiview = getGVRContext().getActivity().getAppSettings().isMultiviewSet();
+        if (template != null)
+        {
+            template.bindShader(getGVRContext(), this, scene, isMultiview);
+        }
+        for (int i = 1; i < mRenderPassList.size(); ++i)
+        {
+            pass = mRenderPassList.get(i);
+            shader = pass.getMaterial().getShaderType();
+            template = shader.getTemplate(getGVRContext());
+            if (template != null)
+            {
+                template.bindShader(getGVRContext(), pass, scene, isMultiview);
             }
         }
     }
@@ -310,9 +344,9 @@ public class GVRRenderData extends GVRJavaComponent implements IRenderable, Pret
      * Called from the GL thread during rendering when a
      * RenderData without a valid shader is encountered.
      */
-    void bindShaderNative(GVRScene scene)
+    void bindShaderNative(GVRScene scene, boolean isMultiview)
     {
-        bindShader(scene);
+        bindShader(scene, isMultiview);
         /*
         if (sBindShaderFromNative == null)
         {

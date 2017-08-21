@@ -73,7 +73,7 @@ JNIEnv *RenderData::set_java(jobject javaObj, JavaVM *javaVM)
     {
         jclass renderDataClass = env->GetObjectClass(javaObj);
         bindShaderMethod_ = env->GetMethodID(renderDataClass, "bindShaderNative",
-                                             "(Lorg/gearvrf/GVRScene;)V");
+                                             "(Lorg/gearvrf/GVRScene;Z)V");
         if (bindShaderMethod_ == 0)
         {
             LOGE("RenderData::bindShader ERROR cannot find 'GVRRenderData.bindShaderNative()' Java method");
@@ -106,7 +106,7 @@ void RenderData::setStencilTest(bool flag) {
  * Called when the shader for a RenderData needs to be generated on the Java side.
  * This function spawns a Java task on the Framework thread which generates the shader.
  */
-void RenderData::bindShader(Scene *scene)
+void RenderData::bindShader(Scene *scene, bool isMultiview)
 {
     if ((bindShaderMethod_ == NULL) || (javaObj_ == NULL))
     {
@@ -118,7 +118,7 @@ void RenderData::bindShader(Scene *scene)
     if (env && (rc >= 0))
     {
         LOGD("SHADER: Calling GVRRenderData.bindShaderNative(%p)", this);
-        env->CallVoidMethod(javaObj_, bindShaderMethod_, scene->getJavaObj());
+        env->CallVoidMethod(javaObj_, bindShaderMethod_, scene->getJavaObj(), isMultiview);
         if (rc > 0)
         {
             scene->getJavaVM()->DetachCurrentThread();
