@@ -174,16 +174,16 @@ GLuint GLRenderImage::createTexture()
 
 void GLRenderImage::setupReadback(GLuint buffer, int layer)
 {
-    //glViewport(0, 0, getWidth(), getHeight());
+    glViewport(0, 0, getWidth(), getHeight());
 
     if(mGLTarget == GL_TEXTURE_2D_ARRAY && layer >=0)
         glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, getId(), 0, layer);
-  //  else
-  //      glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, getTarget(), getId(), 0);
+    else
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, getId(), 0);
 
-  //  glReadBuffer(GL_COLOR_ATTACHMENT0);
-  //  glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer);
-  // glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    glReadBuffer(GL_COLOR_ATTACHMENT0);
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, buffer);
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
 }
 
 

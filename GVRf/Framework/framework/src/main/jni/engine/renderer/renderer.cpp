@@ -261,6 +261,7 @@ void Renderer::addRenderData(RenderData *render_data, RenderState& renderState, 
     if (render_data->render_mask() == 0) {
         return;
     }
+    render_data->adjustRenderingOrderForTransparency();
     render_data_vector->push_back(render_data);
     return;
 }

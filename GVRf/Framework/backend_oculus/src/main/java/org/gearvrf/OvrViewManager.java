@@ -76,7 +76,7 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
     private GVRMethodCallTracer mTracerDrawEyes2;
     private GVRMethodCallTracer mTracerDrawFrame;
     private GVRMethodCallTracer mTracerDrawFrameGap;
-    private OvrGearController mGearController;
+    private GearCursorController mGearController;
 
     /**
      * Constructs OvrViewManager object with GVRMain which controls GL
@@ -141,9 +141,8 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
         mStatsLine.addColumn(mTracerDrawEyes1.getStatColumn());
         mStatsLine.addColumn(mTracerDrawEyes2.getStatColumn());
         mStatsLine.addColumn(mTracerAfterDrawEyes.getStatColumn());
-        mGearController = new OvrGearController(this);
-        nativeInitializeGearController(gvrActivity.getActivityNative().getNative(),
-                mGearController.getPtr());
+
+        mGearController = new GearCursorController(this, new OvrControllerReader(gvrActivity.getActivityNative().getNative()));
     }
 
     /*
@@ -233,7 +232,6 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
                  captureCenterEye(renderTarget, true);
                  capture3DScreenShot(renderTarget, true);
 
-
                 renderTarget.render(mMainScene, camera, mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),
                         mRenderBundle.getPostEffectRenderTextureB());
 
@@ -257,8 +255,6 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
 
                      GVRCamera rightCamera = mainCameraRig.getRightCamera();
                      GVRRenderTarget renderTarget = mRenderBundle.getRenderTarget(EYE.RIGHT, swapChainIndex);
-
-
                      renderTarget.render(mMainScene, rightCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(),
                              mRenderBundle.getPostEffectRenderTextureB());
 
@@ -277,9 +273,6 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
                      GVRRenderTarget renderTarget = mRenderBundle.getRenderTarget(EYE.LEFT, swapChainIndex);
                      GVRCamera leftCamera = mainCameraRig.getLeftCamera();
 
-
-
-
                      capture3DScreenShot(renderTarget, false);
 
                      renderTarget.cullFromCamera(mMainScene, mainCameraRig.getCenterCamera(), mRenderBundle.getMaterialShaderManager());
@@ -287,8 +280,6 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
                      renderTarget.render(mMainScene, leftCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(), mRenderBundle.getPostEffectRenderTextureB());
 
                      captureLeftEye(renderTarget, false);
-
-
 
                      if (DEBUG_STATS) {
                          mTracerDrawEyes2.leave();
@@ -376,5 +367,4 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
     }
 
     private native void drawEyes(long ptr);
-    private static native void nativeInitializeGearController(long ptr, long controllerPtr);
 }

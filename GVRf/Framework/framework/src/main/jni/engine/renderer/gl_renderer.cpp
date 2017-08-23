@@ -155,7 +155,7 @@ namespace gvr
         return ibuf;
     }
 
-    GLRenderer::GLRenderer() : transform_ubo_({nullptr, nullptr})
+    GLRenderer::GLRenderer() : transform_ubo_{nullptr, nullptr}
     {
         const char* desc;
 
@@ -274,16 +274,15 @@ namespace gvr
         rstate.shader_manager = shader_manager;
         rstate.uniforms.u_view = camera->getViewMatrix();
         rstate.uniforms.u_proj = camera->getProjectionMatrix();
-        rstate.render_mask = camera->render_mask();
-        rstate.uniforms.u_right = rstate.render_mask & RenderData::RenderMaskBit::Right;
 
         const std::vector<ShaderData*>& post_effects = camera->post_effect_data();
         RenderTexture* saveRenderTexture = renderTarget->getTexture();
         std::vector<RenderData*>* render_data_vector = renderTarget->getRenderDataVector();
-      //  LOGE("render data vetor size is %d", render_data_vector->size());
-#if 1
+
         if (!rstate.shadow_map)
         {
+            rstate.render_mask = camera->render_mask();
+            rstate.uniforms.u_right = rstate.render_mask & RenderData::RenderMaskBit::Right;
             rstate.material_override = NULL;
             GL(glEnable (GL_BLEND));
             GL(glBlendEquation (GL_FUNC_ADD));
@@ -310,13 +309,13 @@ namespace gvr
         }
         else
         {
-
+            bool isMultiview = rstate.is_multiview;
             RenderTexture* renderTexture = post_effect_render_texture_a;
             RenderTexture* input_texture = renderTexture;
             GL(glBindFramebuffer(GL_FRAMEBUFFER, renderTexture->getFrameBufferId()));
             GL(glViewport(0, 0, renderTexture->width(), renderTexture->height()));
             GL(clearBuffers(*camera));
-
+            rstate.is_multiview = false;
             for (auto it = render_data_vector->begin();
                  it != render_data_vector->end();
                  ++it)
@@ -346,56 +345,15 @@ namespace gvr
                 GL(renderPostEffectData(rstate, input_texture, post_effects[i]));
                 input_texture = renderTexture;
             }
+            rstate.is_multiview = isMultiview;
             GL(glBindFramebuffer(GL_FRAMEBUFFER, saveRenderTexture->getFrameBufferId()));
             GL(glViewport(0, 0, saveRenderTexture->width(), saveRenderTexture->height()));
             GL(glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT));
             renderPostEffectData(rstate, input_texture, post_effects.back());
 
-
-
-          /*  RenderTexture* renderTexture = post_effect_render_texture_a;
-            RenderTexture* input_texture = renderTexture;
-            renderTarget->setTexture(renderTexture);
-            renderTarget->beginRendering(this);
-
-            for (auto it = render_data_vector->begin();
-                 it != render_data_vector->end();
-                 ++it)
-            {
-                RenderData* rdata = *it;
-                if (!rstate.shadow_map || rdata->cast_shadows())
-                {
-                    GL(renderRenderData(rstate, rdata));
-                }
-            }
-            GL(glDisable(GL_DEPTH_TEST));
-            GL(glDisable(GL_CULL_FACE));
-            renderTarget->endRendering(this);
-            checkGLError("GLRenderer::renderRenderTarget1");
-            for (int i = 0; i < post_effects.size() - 1; ++i)
-            {
-                if (i % 2 == 0)
-                {
-                    renderTexture = post_effect_render_texture_a;
-                }
-                else
-                {
-                    renderTexture = post_effect_render_texture_b;
-                }
-                renderTarget->setTexture(renderTexture);
-                renderTarget->beginRendering(this);
-                GL(renderPostEffectData(rstate, input_texture, post_effects[i]));
-                renderTarget->endRendering(this);
-                input_texture = renderTexture;
-            }
-            renderTarget->setTexture(saveRenderTexture);
-            renderTarget->beginRendering(this);
-            GL(renderPostEffectData(rstate, input_texture, post_effects.back()));
-            renderTarget->endRendering(this);
-            */
         }
         GL(glDisable(GL_BLEND));
-#endif
+
     }
 
 /**
@@ -677,8 +635,6 @@ namespace gvr
         int indexCount = mesh->getIndexCount();
         ShaderData* curr_material = rstate.material_override;
         Shader* shader = nullptr;
-        if(render_data->owner_object()->name().compare("environment")==0)
-            LOGE("it is");
         /*
          * If a material override is provided, render the mesh
          * once with the designated material.

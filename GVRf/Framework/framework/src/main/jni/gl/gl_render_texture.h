@@ -122,6 +122,7 @@ public:
     }
     virtual bool readRenderResult(uint8_t* readback_buffer){
         glBindFramebuffer(GL_READ_FRAMEBUFFER, getReadBufferId());
+        glFramebufferTextureLayer(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, getId(), 0, layer_index_ );
         GLRenderTexture::readRenderResult(readback_buffer);
     }
     virtual void beginRendering(Renderer* renderer){
@@ -142,7 +143,7 @@ public:
 
     explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, GLuint fboId, GLuint texId):
             GLRenderTexture(width, height, sample_count, 1,fboId,texId){}
-    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, int depth_format): GLRenderTexture(width, height, sample_count, 1, depth_format) {}
+    explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count, int layers, int depth_format): GLRenderTexture(width, height, sample_count, layers , depth_format) {}
     explicit GLNonMultiviewRenderTexture(int width, int height, int sample_count,
                              int jcolor_format, int jdepth_format, bool resolve_depth,
                              const TextureParameters* texture_parameters);
@@ -152,31 +153,8 @@ public:
 
     }
     void startReadBack(int layer);
-    virtual bool isReady(){
-        bool status = GLRenderTexture::isReady();
-        if (renderTexture_gl_frame_buffer_ == NULL)
-        {
-            renderTexture_gl_frame_buffer_ = new GLFrameBuffer();
-            generateRenderTextureLayer(depth_format_, width(), height());
-            checkGLError("RenderTexture::isReady generateRenderTextureLayer");
-        }
-        return status;
-    }
-    virtual void beginRendering(Renderer* renderer){
-        if (!isReady())
-        {
-            return;
-        }
-
-        bind();
-        if (mImage->getDepth() > 1)
-        {
-            LOGV("GLRenderTexture::beginRendering layer=%d", layer_index_);
-            glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mImage->getId(), 0, layer_index_);
-        }
-        GLRenderTexture::beginRendering(renderer);
-
-    }
+    virtual bool isReady();
+    virtual void beginRendering(Renderer* renderer);
 };
 }
 #endif

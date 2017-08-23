@@ -78,6 +78,7 @@ abstract class GVRViewManager extends GVRContext {
         mFrameListeners.clear();
         mRunnables.clear();
         mRunnablesPostRender.clear();
+        super.onDestroy();
     }
 
     public GVREventManager getEventManager() {
@@ -202,7 +203,8 @@ abstract class GVRViewManager extends GVRContext {
         final DepthFormat depthFormat = getActivity().getAppSettings().getEyeBufferParams().getDepthFormat();
         getActivity().getConfigurationManager().configureRendering(DepthFormat.DEPTH_24_STENCIL_8 == depthFormat);
 
-        setMainSceneImpl(new GVRScene(GVRViewManager.this));
+        final GVRScene scene = null == mMainScene ? new GVRScene(GVRViewManager.this) : mMainScene;
+        setMainSceneImpl(scene);
     }
 
     private void createMainScene() {
@@ -497,7 +499,6 @@ abstract class GVRViewManager extends GVRContext {
         makeShadowMaps(mMainScene.getNative(), mRenderBundle.getMaterialShaderManager().getNative(),
                 mRenderBundle.getPostEffectRenderTextureA().getWidth(),
                 mRenderBundle.getPostEffectRenderTextureA().getHeight());
-  //     cull(mMainScene.getNative(), centerCamera.getNative(), mRenderBundle.getMaterialShaderManager().getNative());
     }
 
     protected void afterDrawEyes() {
@@ -534,7 +535,6 @@ abstract class GVRViewManager extends GVRContext {
     {
         cullAndRender(renderTarget.getNative(), scene.getNative(),
                 mRenderBundle.getMaterialShaderManager().getNative(),
-//                mRenderBundle.getPostEffectShaderManager().getNative(),
                 mRenderBundle.getPostEffectRenderTextureA().getNative(),
                 mRenderBundle.getPostEffectRenderTextureB().getNative());
     }
@@ -687,7 +687,7 @@ abstract class GVRViewManager extends GVRContext {
         if (null == callback) {
             return;
         }
-
+        Log.e("RC","Roshan capture eye");
         readRenderResult(renderTarget,eye,useMultiview);
         returnScreenshotToCaller(callback, mReadbackBufferWidth, mReadbackBufferHeight);
     }
@@ -698,13 +698,10 @@ abstract class GVRViewManager extends GVRContext {
             return;
         }
 
-
-        Log.e("RC", "rendering center eye");
         // TODO: when we will use multithreading, create new camera using centercamera as we are adding posteffects into it
         final GVRCamera centerCamera = mMainScene.getMainCameraRig().getCenterCamera();
         final GVRShaderData postEffect = new GVRShaderData(this, GVRMaterial.GVRShaderType.VerticalFlip.ID);
         centerCamera.addPostEffect(postEffect);
-
 
         if(isMultiview) {
             renderTarget = mRenderBundle.getEyeCaptureRenderTarget();
@@ -712,11 +709,8 @@ abstract class GVRViewManager extends GVRContext {
             renderTarget.beginRendering(centerCamera);
         }
 
-
         renderTarget.render(mMainScene,centerCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(), mRenderBundle.getPostEffectRenderTextureB());
-
         centerCamera.removePostEffect(postEffect);
-
         readRenderResult(renderTarget, EYE.MULTIVIEW, false);
 
         if(isMultiview)

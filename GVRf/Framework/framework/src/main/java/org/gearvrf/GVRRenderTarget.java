@@ -52,12 +52,7 @@ public class GVRRenderTarget extends GVRBehavior
      */
     public GVRRenderTarget(GVRRenderTexture texture, GVRScene scene)
     {
-        super(texture.getGVRContext(), NativeRenderTarget.ctorMultiview(texture.getNative(), false));
-        setEnable(false);
-        mTexture = texture;
-        mScene = scene;
-        setMainScene(scene);
-        setCamera(scene.getMainCameraRig().getCenterCamera());
+        this(texture,scene,false);
     }
     public GVRRenderTarget(GVRContext gvrContext)
     {
@@ -83,11 +78,11 @@ public class GVRRenderTarget extends GVRBehavior
     public GVRRenderTarget(GVRRenderTexture texture, GVRScene scene, boolean isMultiview)
     {
         super(texture.getGVRContext(), NativeRenderTarget.ctorMultiview(texture.getNative(),isMultiview));
-        Log.e("Roshan","GVRRenderTarget "+ isMultiview);
         setEnable(false);
         mTexture = texture;
-
+        mScene = scene;
         setMainScene(scene);
+        setCamera(scene.getMainCameraRig().getCenterCamera());
 
     }
     public void beginRendering(GVRCamera camera){

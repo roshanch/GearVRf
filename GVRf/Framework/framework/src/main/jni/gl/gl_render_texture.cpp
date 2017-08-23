@@ -133,7 +133,31 @@ void GLRenderTexture::generateRenderTextureNoMultiSampling(int jdepth_format,
     glBindFramebuffer(GL_FRAMEBUFFER, renderTexture_gl_frame_buffer_->id());
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, image->getTarget(), image->getId(), 0);
 }
+ bool GLNonMultiviewRenderTexture::isReady(){
+    bool status = GLRenderTexture::isReady();
+    if (renderTexture_gl_frame_buffer_ == NULL)
+    {
+        renderTexture_gl_frame_buffer_ = new GLFrameBuffer();
+        generateRenderTextureLayer(depth_format_, width(), height());
+        checkGLError("RenderTexture::isReady generateRenderTextureLayer");
+    }
+    return status;
+}
+ void GLNonMultiviewRenderTexture::beginRendering(Renderer* renderer){
+    if (!isReady())
+    {
+        return;
+    }
 
+    bind();
+    if (mImage->getDepth() > 1)
+    {
+        LOGV("GLRenderTexture::beginRendering layer=%d", layer_index_);
+        glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, mImage->getId(), 0, layer_index_);
+    }
+    GLRenderTexture::beginRendering(renderer);
+
+}
 void GLNonMultiviewRenderTexture::generateRenderTextureLayer(GLenum depth_format, int width, int height)
 {
     if (depth_format_ && (renderTexture_gl_render_buffer_ == nullptr))
@@ -319,23 +343,10 @@ bool GLRenderTexture::readRenderResult(uint8_t *readback_buffer, long capacity) 
     }
     GLRenderImage* image = static_cast<GLRenderImage*>(mImage);
 
-    image->setupReadback(renderTexture_gl_pbo_, layer_index_);
-
     if (!readback_started_) {
         glReadPixels(0, 0, mImage->getWidth(), mImage->getHeight(), GL_RGBA, GL_UNSIGNED_BYTE, readback_buffer);
     }
-/*
-    int *buf = (int *)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, neededCapacity * 4,
-             GL_MAP_READ_BIT);
-    if (buf) {
-        memcpy(readback_buffer, buf, neededCapacity * 4);
-    }
 
-    readback_started_ = false;
-
-    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-*/
     return true;
 }
 

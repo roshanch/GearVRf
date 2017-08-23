@@ -360,7 +360,9 @@ public:
         render_pass_list_[pass]->set_shader(shaderid, isMultiview);
     }
 
-    int             get_shader(bool useMultiview =false, int pass =0) const { return render_pass_list_[pass]->get_shader(useMultiview); }
+    void adjustRenderingOrderForTransparency();
+
+    int            get_shader(bool useMultiview =false, int pass =0) const { return render_pass_list_[pass]->get_shader(useMultiview); }
     std::string     getHashCode();
     void            setCameraDistanceLambda(std::function<float()> func);
 

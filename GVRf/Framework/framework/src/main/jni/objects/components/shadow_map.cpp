@@ -51,7 +51,7 @@ class Renderer;
 
     void ShadowMap::bindTexture(int loc, int texIndex)
     {
-        GLRenderTexture* rtex = static_cast<GLRenderTexture*>(mRenderTexture);
+        GLNonMultiviewRenderTexture* rtex = static_cast<GLNonMultiviewRenderTexture*>(mRenderTexture);
 
         if (rtex)
         {

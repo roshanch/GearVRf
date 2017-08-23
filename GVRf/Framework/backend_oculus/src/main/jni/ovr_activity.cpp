@@ -217,6 +217,8 @@ void GVRActivity::onDrawFrame(jobject jViewManager) {
             const ovrQuatf& orientation = updatedTracking.HeadPose.Pose.Orientation;
             const glm::quat tmp(orientation.w, orientation.x, orientation.y, orientation.z);
             const glm::quat quat = glm::conjugate(glm::inverse(tmp));
+
+            cameraRig_->setRotationSensorData(0, quat.w, quat.x, quat.y, quat.z, 0, 0, 0);
             cameraRig_->setRotation(quat);
         } else if (nullptr != cameraRig_) {
             cameraRig_->updateRotation();
@@ -232,11 +234,9 @@ void GVRActivity::onDrawFrame(jobject jViewManager) {
         for (int eye = 0; eye < (use_multiview ? 1 :VRAPI_FRAME_LAYER_EYE_MAX); eye++) {
             int textureSwapChainIndex = frameBuffer_[eye].mTextureSwapChainIndex;
             beginRenderingEye(eye);
-           oculusJavaGlThread_.Env->CallVoidMethod(jViewManager, onDrawEyeMethodId, eye, textureSwapChainIndex, use_multiview);
-
-            const GLuint colorTexture = vrapi_GetTextureSwapChainHandle(frameBuffer_[eye].mColorTextureSwapChain, textureSwapChainIndex);
+            oculusJavaGlThread_.Env->CallVoidMethod(jViewManager, onDrawEyeMethodId, eye, textureSwapChainIndex, use_multiview);
             if(gRenderer->isVulkanInstance()){
-                glBindTexture(GL_TEXTURE_2D,colorTexture);
+                glBindTexture(GL_TEXTURE_2D,vrapi_GetTextureSwapChainHandle(frameBuffer_[eye].mColorTextureSwapChain, textureSwapChainIndex));
                 glTexSubImage2D(   GL_TEXTURE_2D,
                                    0,
                                    0,
