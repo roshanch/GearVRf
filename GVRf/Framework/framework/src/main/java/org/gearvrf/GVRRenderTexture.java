@@ -50,10 +50,7 @@ public class GVRRenderTexture extends GVRTexture {
      */
     public GVRRenderTexture(GVRContext gvrContext, int width, int height, int sampleCount)
     {
-        super(gvrContext, NativeRenderTexture.ctorMSAA(width, height,
-                                                       sampleCount, 1));
-        mWidth = width;
-        mHeight = height;
+        this(gvrContext,width,height,sampleCount,1);
     }
 
     public GVRRenderTexture(GVRContext gvrContext, int width, int height, int sampleCount, int number_views)

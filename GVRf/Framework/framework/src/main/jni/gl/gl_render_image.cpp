@@ -106,7 +106,7 @@ void texImage2D(int color_format, int width, int height, GLenum target){
     }
 
 }
-GLRenderImage::GLRenderImage(int width, int height, int color_format, int layers, const TextureParameters* texparams)
+GLRenderImage::GLRenderImage(int width, int height, int layers, int color_format,  const TextureParameters* texparams)
         : GLImage((layers > 1) ? GL_TEXTURE_2D_ARRAY : GL_TEXTURE_2D)
 {
     GLenum target = GLImage::getTarget();

@@ -50,6 +50,7 @@ public class GVRShaderId {
         if (mShaderTemplate == null)
         {
             mShaderTemplate = makeTemplate(ID, ctx);
+            ctx.getMaterialShaderManager().addShaderID(this);
         }
         return mShaderTemplate.getUniformDescriptor();
     }
@@ -65,6 +66,7 @@ public class GVRShaderId {
         if (mShaderTemplate == null)
         {
             mShaderTemplate = makeTemplate(ID, ctx);
+            ctx.getMaterialShaderManager().addShaderID(this);
         }
         return mShaderTemplate.getTextureDescriptor();
     }
@@ -80,6 +82,7 @@ public class GVRShaderId {
         if (mShaderTemplate == null)
         {
             mShaderTemplate = makeTemplate(ID, ctx);
+            ctx.getMaterialShaderManager().addShaderID(this);
         }
         return mShaderTemplate;
     }
@@ -110,7 +113,8 @@ public class GVRShaderId {
             GVRShader shader = getTemplate(ctx);
             if ((shader != null) && !shader.hasVariants())
             {
-                mNativeShader = shader.bindShader(ctx, material, null);
+                //mNativeShader = shader.bindShader(ctx, material, null);
+                mNativeShader = 0 ;
             }
         }
         return mNativeShader;

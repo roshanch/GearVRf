@@ -28,7 +28,7 @@ class DaydreamViewManager extends GVRViewManager {
     private GLSurfaceView surfaceView;
     private GVRCameraRig cameraRig;
     private boolean sensoredSceneUpdated = false;
-
+    private  GVRRenderTarget mDaydreamRenderTarget = null;
     // This is done on the GL thread because refreshViewerProfile isn't thread-safe.
     private final Runnable refreshViewerProfileRunnable =
             new Runnable() {
@@ -71,7 +71,12 @@ class DaydreamViewManager extends GVRViewManager {
         // Prevent screen from dimming/locking.
         gvrActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
-
+    public GVRRenderTarget getRenderTarget(){
+        if(null == mDaydreamRenderTarget){
+            mDaydreamRenderTarget = new GVRRenderTarget(getActivity().getGVRContext());
+        }
+        return mDaydreamRenderTarget;
+    }
     @Override
     void onResume() {
         super.onResume();
@@ -105,7 +110,7 @@ class DaydreamViewManager extends GVRViewManager {
         }
 
         if (eye == 0) {
-            GVRRenderTarget renderTarget = mRenderBundle.getDaydreamRenderTarget();
+            GVRRenderTarget renderTarget = getRenderTarget();
             GVRCamera leftCamera = cameraRig.getLeftCamera();
             renderTarget.cullFromCamera(mMainScene,mMainScene.getMainCameraRig().getCenterCamera(),mRenderBundle.getMaterialShaderManager());
             captureCenterEye(renderTarget, false);
@@ -118,7 +123,7 @@ class DaydreamViewManager extends GVRViewManager {
             captureLeftEye(renderTarget, false);
         } else {
             GVRCamera rightCamera = cameraRig.getRightCamera();
-            GVRRenderTarget renderTarget = mRenderBundle.getDaydreamRenderTarget();
+            GVRRenderTarget renderTarget = getRenderTarget();
 
             renderTarget.render(mMainScene, rightCamera, mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),
                     mRenderBundle.getPostEffectRenderTextureB());

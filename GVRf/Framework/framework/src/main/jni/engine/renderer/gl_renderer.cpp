@@ -309,13 +309,11 @@ namespace gvr
         }
         else
         {
-            bool isMultiview = rstate.is_multiview;
             RenderTexture* renderTexture = post_effect_render_texture_a;
             RenderTexture* input_texture = renderTexture;
             GL(glBindFramebuffer(GL_FRAMEBUFFER, renderTexture->getFrameBufferId()));
             GL(glViewport(0, 0, renderTexture->width(), renderTexture->height()));
             GL(clearBuffers(*camera));
-            rstate.is_multiview = false;
             for (auto it = render_data_vector->begin();
                  it != render_data_vector->end();
                  ++it)
@@ -323,7 +321,6 @@ namespace gvr
                 RenderData* rdata = *it;
                 if (!rstate.shadow_map || rdata->cast_shadows())
                 {
-
                     GL(renderRenderData(rstate, rdata));
                 }
             }
@@ -345,7 +342,6 @@ namespace gvr
                 GL(renderPostEffectData(rstate, input_texture, post_effects[i]));
                 input_texture = renderTexture;
             }
-            rstate.is_multiview = isMultiview;
             GL(glBindFramebuffer(GL_FRAMEBUFFER, saveRenderTexture->getFrameBufferId()));
             GL(glViewport(0, 0, saveRenderTexture->width(), saveRenderTexture->height()));
             GL(glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT));
@@ -671,7 +667,13 @@ namespace gvr
             numberDrawCalls++;
             set_face_culling(render_data->pass(curr_pass)->cull_face());
             curr_material = render_data->pass(curr_pass)->material();
-            shader = rstate.shader_manager->getShader(render_data->get_shader(rstate.is_multiview, curr_pass));
+            int shader_id = render_data->get_shader(rstate.is_multiview, curr_pass);
+
+            if(shader_id == 0) {
+                render_data->bindShader(rstate.scene, rstate.is_multiview);
+                return;
+            }
+            shader = rstate.shader_manager->getShader(shader_id);
             renderWithShader(rstate, shader, render_data, curr_material, curr_pass);
         }
     }
@@ -682,6 +684,7 @@ namespace gvr
         GLMaterial* material = static_cast<GLMaterial*>(curr_material);
         GLRenderData* rdata = static_cast<GLRenderData*>(render_data);
         int drawMode = render_data->draw_mode();
+
         Transform* model = render_data->owner_object() ? render_data->owner_object()->transform() : nullptr;
         try
         {

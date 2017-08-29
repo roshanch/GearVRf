@@ -226,13 +226,13 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
                 }
                  GVRRenderTarget renderTarget = mRenderBundle.getRenderTarget(EYE.MULTIVIEW, swapChainIndex);
                  GVRCamera camera = mMainScene.getMainCameraRig().getCenterCamera();
-
+                 GVRCamera left_camera = mMainScene.getMainCameraRig().getLeftCamera();
                  renderTarget.cullFromCamera(mMainScene, camera,mRenderBundle.getMaterialShaderManager());
 
                  captureCenterEye(renderTarget, true);
                  capture3DScreenShot(renderTarget, true);
 
-                renderTarget.render(mMainScene, camera, mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),
+                renderTarget.render(mMainScene, left_camera, mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),
                         mRenderBundle.getPostEffectRenderTextureB());
 
                  captureRightEye(renderTarget, true);

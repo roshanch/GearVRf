@@ -703,13 +703,22 @@ abstract class GVRViewManager extends GVRContext {
         final GVRShaderData postEffect = new GVRShaderData(this, GVRMaterial.GVRShaderType.VerticalFlip.ID);
         centerCamera.addPostEffect(postEffect);
 
+        GVRRenderTexture posteffectRenderTextureB = null;
+        GVRRenderTexture posteffectRenderTextureA = null;
+
         if(isMultiview) {
+            posteffectRenderTextureA = mRenderBundle.getEyeCapturePostEffectRenderTextureA();
+            posteffectRenderTextureB = mRenderBundle.getEyeCapturePostEffectRenderTextureB();
             renderTarget = mRenderBundle.getEyeCaptureRenderTarget();
             renderTarget.cullFromCamera(mMainScene, centerCamera ,mRenderBundle.getMaterialShaderManager());
             renderTarget.beginRendering(centerCamera);
         }
+        else {
+            posteffectRenderTextureA = mRenderBundle.getPostEffectRenderTextureA();
+            posteffectRenderTextureB = mRenderBundle.getPostEffectRenderTextureB();
+        }
 
-        renderTarget.render(mMainScene,centerCamera, mRenderBundle.getMaterialShaderManager(), mRenderBundle.getPostEffectRenderTextureA(), mRenderBundle.getPostEffectRenderTextureB());
+        renderTarget.render(mMainScene,centerCamera, mRenderBundle.getMaterialShaderManager(), posteffectRenderTextureA, posteffectRenderTextureB);
         centerCamera.removePostEffect(postEffect);
         readRenderResult(renderTarget, EYE.MULTIVIEW, false);
 
@@ -730,10 +739,11 @@ abstract class GVRViewManager extends GVRContext {
         mScreenshotCenterCallback = null;
     }
 
-    private void renderOneCameraAndAddToList(final GVRPerspectiveCamera centerCamera, final Bitmap[] bitmaps, int index, GVRRenderTarget renderTarget) {
+    private void renderOneCameraAndAddToList(final GVRPerspectiveCamera centerCamera, final Bitmap[] bitmaps, int index,
+                                             GVRRenderTarget renderTarget, GVRRenderTexture postEffectRenderTextureA, GVRRenderTexture postEffectRenderTextureB ) {
 
         renderTarget.cullFromCamera(mMainScene,centerCamera,mRenderBundle.getMaterialShaderManager());
-        renderTarget.render(mMainScene,centerCamera,mRenderBundle.getMaterialShaderManager(),mRenderBundle.getPostEffectRenderTextureA(),mRenderBundle.getPostEffectRenderTextureB());
+        renderTarget.render(mMainScene,centerCamera,mRenderBundle.getMaterialShaderManager(),postEffectRenderTextureA, postEffectRenderTextureB);
         readRenderResult(renderTarget,EYE.CENTER, false);
 
         bitmaps[index] = Bitmap.createBitmap(mReadbackBufferWidth, mReadbackBufferHeight, Bitmap.Config.ARGB_8888);
@@ -752,33 +762,42 @@ abstract class GVRViewManager extends GVRContext {
         centerCamera.addPostEffect(new GVRShaderData(this, GVRMaterial.GVRShaderType.VerticalFlip.ID));
 
         mainCameraRig.getOwnerObject().addChildObject(centerCameraObject);
+        GVRRenderTexture posteffectRenderTextureB = null;
+        GVRRenderTexture posteffectRenderTextureA = null;
         GVRTransform centerCameraTransform = centerCameraObject.getTransform();
+
         if(isMultiview) {
             renderTarget = mRenderBundle.getEyeCaptureRenderTarget();
+            posteffectRenderTextureA = mRenderBundle.getEyeCapturePostEffectRenderTextureA();
+            posteffectRenderTextureB = mRenderBundle.getEyeCapturePostEffectRenderTextureB();
             renderTarget.beginRendering(centerCamera);
+        }
+        else {
+            posteffectRenderTextureA = mRenderBundle.getPostEffectRenderTextureA();
+            posteffectRenderTextureB = mRenderBundle.getPostEffectRenderTextureB();
         }
 
         int index = 0;
         // render +x face
         centerCameraTransform.rotateByAxis(-90, 0, 1, 0);
-        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget);
+        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget, posteffectRenderTextureA, posteffectRenderTextureB);
         // render -x face
         centerCameraTransform.rotateByAxis(180, 0, 1, 0);
-        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget);
+        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget, posteffectRenderTextureA, posteffectRenderTextureB);
         // render +y face
         centerCameraTransform.rotateByAxis(-90, 0, 1, 0);
         centerCameraTransform.rotateByAxis(90, 1, 0, 0);
-        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget);
+        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget, posteffectRenderTextureA, posteffectRenderTextureB);
         // render -y face
         centerCameraTransform.rotateByAxis(180, 1, 0, 0);
-        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget);
+        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget, posteffectRenderTextureA, posteffectRenderTextureB);
         // render +z face
         centerCameraTransform.rotateByAxis(90, 1, 0, 0);
         centerCameraTransform.rotateByAxis(180, 0, 1, 0);
-        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget);
+        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget, posteffectRenderTextureA, posteffectRenderTextureB);
         // render -z face
         centerCameraTransform.rotateByAxis(180, 0, 1, 0);
-        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget);
+        renderOneCameraAndAddToList(centerCamera, bitmaps, index++, renderTarget, posteffectRenderTextureA, posteffectRenderTextureB);
         centerCameraObject.detachCamera();
         mainCameraRig.getOwnerObject().removeChildObject(centerCameraObject);
         if(isMultiview)

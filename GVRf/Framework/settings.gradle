@@ -1,12 +1,6 @@
 include ':framework'
 include ':backend_oculus'
 include ':backend_daydream'
-include ':gvr-simplesample'
-project(':gvr-simplesample').projectDir=new File('/home/roshan/GearVRf/samsung/GearVRf-Demos/gvr-simplesample/app')
-//include ':gvr-tutorial-lesson6'
-//project(':gvr-tutorial-lesson6').projectDir=new File('/home/roshan/GearVRf/multiview/GearVRf-Demos/gvr-tutorial-lesson6/app')
-//include ':gvr-simplephysics'
-//project(':gvr-simplephysics').projectDir=new File('/home/roshan/GearVRf/multiview/GearVRf-Demos/gvr-simplephysics/app')
 
 if(file("../../../extra_settings.gradle").exists()) {
     apply from: '../../../extra_settings.gradle'

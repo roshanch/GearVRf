@@ -125,9 +125,7 @@ void GLShader::initialize(bool is_multiview)
 {
     convertToGLShaders();
     mProgram = new GLProgram(mVertexShader.c_str(), mFragmentShader.c_str());
-    if (is_multiview && !(strstr(mVertexShader.c_str(), "gl_ViewID_OVR")
-                           && strstr(mVertexShader.c_str(), "GL_OVR_multiview2")
-                           && strstr(mVertexShader.c_str(), "GL_OVR_multiview2")))
+    if (is_multiview && !(strstr(mVertexShader.c_str(), "GL_OVR_multiview2")))
     {
         std::string error = "Your shaders are not multiview";
         LOGE("Your shaders are not multiview");
