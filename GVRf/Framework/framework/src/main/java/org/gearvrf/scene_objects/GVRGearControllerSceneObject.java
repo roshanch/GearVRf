@@ -6,6 +6,7 @@ import org.gearvrf.GVRBaseSensor;
 import org.gearvrf.GVRContext;
 import org.gearvrf.GVRCursorController;
 import org.gearvrf.GVRMaterial;
+import org.gearvrf.GVRPhongShader;
 import org.gearvrf.GVRPicker;
 import org.gearvrf.GVRSceneObject;
 import org.gearvrf.GVRTexture;
@@ -243,7 +244,6 @@ public class GVRGearControllerSceneObject extends GVRSceneObject {
         private final float[] nullCoords = {-1f, -1f, -1f};
         @Override
         public void onSensorEvent(SensorEvent event){
-            //TODO: Find a way to ensure projection only occurs on the first intersected object.
             if(event.getCursorController() != gearCursorController) { return; }
 
             GVRPicker.GVRPickedObject collision = event.getPickedObject();
