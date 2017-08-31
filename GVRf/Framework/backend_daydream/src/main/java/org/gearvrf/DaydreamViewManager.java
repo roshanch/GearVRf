@@ -41,7 +41,6 @@ class DaydreamViewManager extends GVRViewManager {
 
     DaydreamViewManager(final GVRActivity gvrActivity, GVRMain gvrMain, boolean useMultiview) {
         super(gvrActivity, gvrMain, useMultiview);
-
         // Initialize GvrLayout and the native renderer.
         gvrLayout = new GvrLayout(gvrActivity);
 
@@ -71,9 +70,11 @@ class DaydreamViewManager extends GVRViewManager {
 
         // Prevent screen from dimming/locking.
         gvrActivity.getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        mGearController = new GearCursorController(this, new DayDreamControllerReader(gvrActivity.getGVRContext()));
+        mGearController = new GearCursorController(this, new DayDreamControllerReader(gvrActivity));
     }
-
+    public long getNativeRenderer(){
+        return renderer.getNativeDaydreamRenderer();
+    }
     @Override
     void onResume() {
         super.onResume();

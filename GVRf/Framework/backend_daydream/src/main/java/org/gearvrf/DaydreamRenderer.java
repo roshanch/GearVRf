@@ -52,7 +52,9 @@ class DaydreamRenderer implements GLSurfaceView.Renderer {
     public void onSurfaceChanged(GL10 gl, int width, int height) {
         //Do nothing
     }
-
+    public long getNativeDaydreamRenderer(){
+        return nativeDaydreamRenderer;
+    }
     @Override
     public void onDrawFrame(GL10 gl) {
         if (cameraRig == null) {
