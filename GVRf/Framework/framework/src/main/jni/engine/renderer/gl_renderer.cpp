@@ -668,11 +668,6 @@ namespace gvr
             set_face_culling(render_data->pass(curr_pass)->cull_face());
             curr_material = render_data->pass(curr_pass)->material();
             int shader_id = render_data->get_shader(rstate.is_multiview, curr_pass);
-
-            if(shader_id == 0) {
-                render_data->bindShader(rstate.scene, rstate.is_multiview);
-                return;
-            }
             shader = rstate.shader_manager->getShader(shader_id);
             renderWithShader(rstate, shader, render_data, curr_material, curr_pass);
         }
