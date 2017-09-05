@@ -24,9 +24,11 @@
 #include <unordered_set>
 #include "objects/hybrid_object.h"
 #include "objects/helpers.h"
+
 namespace gvr {
 
 class ShaderData;
+struct RenderState;
 
 class RenderPass : public HybridObject {
 public:
@@ -35,11 +37,7 @@ public:
         CullBack = 0, CullFront, CullNone
     };
 
-    RenderPass() :
-            material_(0), cull_face_(DEFAULT_CULL_FACE)
-    {
-        memset(shaderID_,0,sizeof(shaderID_));
-    }
+    RenderPass();
 
     ShaderData* material() const {
         return material_;
@@ -51,31 +49,37 @@ public:
         return cull_face_;
     }
 
-    void set_cull_face(int cull_face) {
-        cull_face_ = cull_face;
-        dirty(MOD_CULL_FACE);
-    }
+    void set_cull_face(int cull_face);
 
-    void set_shader(int shaderid, bool useMultiview)
-    {
-        shaderID_[useMultiview] = shaderid;
-        dirty(MOD_SHADER_ID);
-    }
+    void set_shader(int shaderid, bool useMultiview);
 
     int get_shader(bool useMultiview) const { return shaderID_[useMultiview]; }
 
-    void dirty(DIRTY_BITS bit) {
-        dirtyImpl(dirty_flags_,bit);
+    void markDirty() {
+        dirty_ = true;
     }
 
-    void add_dirty_flag(const std::shared_ptr<u_short>& dirty_flag);
+    void clearDirty() {
+        dirty_ = false;
+    }
+
+    /**
+     * Determine whether this RenderPass is dirty and might
+     * need a different shader. A RenderPass is marked dirty
+     * when its material is changed.
+     * @param renderer  Renderer used to render this RenderData
+     * @param rstate    current rendering state
+     * @param rdata     RenderData this RenderPass belongs to
+     * @returns -1 = material not ready, 0 = dirty, 1 = clean
+     */
+    int isValid(Renderer* renderer, const RenderState& rstate, RenderData* rdata);
 
 private:
     static const int DEFAULT_CULL_FACE = CullBack;
     ShaderData* material_;
     int shaderID_[2];
     int cull_face_;
-    std::unordered_set<std::shared_ptr<u_short>> dirty_flags_;
+    bool dirty_;
 };
 
 }

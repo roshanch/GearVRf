@@ -52,6 +52,7 @@ class VertexBuffer;
 class IndexBuffer;
 class UniformBlock;
 class Image;
+class RenderPass;
 class Texture;
 extern uint8_t *oculusTexData;
 /*
@@ -177,6 +178,8 @@ public:
 
     virtual void makeShadowMaps(Scene* scene, ShaderManager* shader_manager) = 0;
     virtual void occlusion_cull(RenderState& rstate, std::vector<SceneObject*>& scene_objects, std::vector<RenderData*>* render_data_vector) = 0;
+    virtual Mesh* getPostEffectMesh() = 0;
+    void addRenderData(RenderData *render_data, RenderState& rstate, std::vector<RenderData*>& renderList);
 private:
     static bool isVulkan_;
     virtual void build_frustum(float frustum[6][4], const float *vp_matrix);
@@ -201,19 +204,16 @@ protected:
 
     virtual void renderMesh(RenderState& rstate, RenderData* render_data) = 0;
     virtual void renderMaterialShader(RenderState& rstate, RenderData* render_data, ShaderData *material, Shader* shader) = 0;
-    void addRenderData(RenderData *render_data, RenderState& , std::vector<RenderData*>* render_data_vector);
+
     virtual bool occlusion_cull_init(RenderState& , std::vector<SceneObject*>& scene_objects,  std::vector<RenderData*>* render_data_vector);
 
-    virtual void renderPostEffectData(RenderState& rstate,
-            Texture* render_texture, ShaderData* post_effect_data);
-    virtual RenderData* post_effect_render_data() = 0;
+    virtual void renderPostEffectData(RenderState& rstate, RenderTexture* input_texture, RenderData* post_effect, int pass);
 
     std::vector<RenderData*> render_data_vector;
     int numberDrawCalls;
     int numberTriangles;
     bool useStencilBuffer_ = false;
-    RenderData* post_effect_render_data_;
-
+    Mesh* post_effect_mesh_;
 public:
     virtual void state_sort(std::vector<RenderData*>* render_data_vector) ;
     //to be used only on the rendering thread

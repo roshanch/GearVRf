@@ -120,6 +120,7 @@ public class GVRRenderTarget extends GVRBehavior
      */
     public void setTexture(GVRRenderTexture texture)
     {
+        mTexture = texture;
         NativeRenderTarget.setTexture(getNative(), texture.getNative());
     }
 

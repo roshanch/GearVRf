@@ -21,18 +21,18 @@ import java.util.concurrent.ExecutionException;
 /**
  * A RenderPass let one render the same scene object multiple times with different settings. This is useful to
  * achieve effects like outline in cartoon-ish rendering or computing addictive lights for instance.
- * 
+ *
  * The benefit of using a render pass over duplicating the object and rendering twice is that like culling, transform and
  * skinning are performed only once.
- * 
+ *
  * A render pass encapsulates a material and all rendering states that can be set per pass. 
- * 
+ *
  *
  */
 public class GVRRenderPass extends GVRHybridObject implements IRenderable {
-    
-    private GVRMaterial mMaterial;
-    private GVRMesh     mMesh;
+
+    private GVRMaterial     mMaterial;
+    private GVRMesh         mMesh;
     private GVRCullFaceEnum mCullFace;
 
     public enum GVRCullFaceEnum {
@@ -51,33 +51,33 @@ public class GVRRenderPass extends GVRHybridObject implements IRenderable {
          * Tell Graphics API render both front and back faces.
          */
         None(2);
-        
+
         private final int mValue;
-        
+
         private GVRCullFaceEnum(int value) {
             mValue = value;
         }
-        
+
         public static GVRCullFaceEnum fromInt(int value) {
             switch (value) {
-            case 1:
-                return GVRCullFaceEnum.Front;
-                
-            case 2:
-                return GVRCullFaceEnum.None;
-                
-            default:
-                return GVRCullFaceEnum.Back;
+                case 1:
+                    return GVRCullFaceEnum.Front;
+
+                case 2:
+                    return GVRCullFaceEnum.None;
+
+                default:
+                    return GVRCullFaceEnum.Back;
             }
         }
         public int getValue() {
             return mValue;
         }
     }
-    
+
     /**
      * Constructor.
-     * 
+     *
      * @param gvrContext
      *            Current {@link GVRContext}
      */
@@ -96,8 +96,8 @@ public class GVRRenderPass extends GVRHybridObject implements IRenderable {
     }
 
     /**
-     * Set the {@link GVRMaterial material} for this pass.
-     * 
+     * Set the {@link GVRShaderData material} for this pass.
+     *
      * @param material
      *            The {@link GVRMaterial material} this {@link GVRRenderPass pass}
      *            will be rendered with.
@@ -143,7 +143,7 @@ public class GVRRenderPass extends GVRHybridObject implements IRenderable {
     }
 
     /**
-     * @return The {@link GVRMaterial material} this {@link GVRRenderPass pass} will
+     * @return The {@link GVRShaderData material} this {@link GVRRenderPass pass} will
      *         being rendered with.
      */
     public GVRMaterial getMaterial() {
@@ -161,7 +161,7 @@ public class GVRRenderPass extends GVRHybridObject implements IRenderable {
 
     /**
      * Set the {@link GVRCullFaceEnum face} to be culled when rendering this {@link GVRRenderPass pass}
-     * 
+     *
      * @param cullFace
      *            {@code GVRCullFaceEnum.Back} Tells Graphics API to discard
      *            back faces, {@code GVRCullFaceEnum.Front} Tells Graphics API
@@ -172,7 +172,7 @@ public class GVRRenderPass extends GVRHybridObject implements IRenderable {
         mCullFace = cullFace;
         NativeRenderPass.setCullFace(getNative(), cullFace.getValue());
     }
-    
+
     /**
      * @return The current {@link GVRCullFaceEnum face} to be culled.
      */
@@ -182,7 +182,7 @@ public class GVRRenderPass extends GVRHybridObject implements IRenderable {
 }
 
 class NativeRenderPass {
-    
+
     static native long ctor();
 
     static native int getShader(long renderPass, boolean useMultiview);

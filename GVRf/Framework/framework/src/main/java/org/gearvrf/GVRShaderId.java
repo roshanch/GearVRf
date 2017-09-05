@@ -98,29 +98,6 @@ public class GVRShaderId {
     }
 
     /**
-     * Gets the native shader ID for this shader, if it exists.
-     * If a shader does not have any variants, it will have a native
-     * shader ID. Usually this is only true for post effect shaders.
-     * @param manager   shader manager that owns the shader
-     * @param material  material this shader is bound to
-     * @return native shader ID, -1 if none
-     */
-    public int getNativeShader(GVRShaderManager manager, GVRShaderData material)
-    {
-        if (mNativeShader == 0)
-        {
-            GVRContext ctx = manager.getGVRContext();
-            GVRShader shader = getTemplate(ctx);
-            if ((shader != null) && !shader.hasVariants())
-            {
-                //mNativeShader = shader.bindShader(ctx, material, null);
-                mNativeShader = 0 ;
-            }
-        }
-        return mNativeShader;
-    }
-
-    /**
      * Instantiates an instance of input Java shader class,
      * which must be derived from GVRShader or GVRShaderTemplate.
      * @param id        Java class which implements shaders of this type.

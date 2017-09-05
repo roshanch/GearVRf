@@ -129,7 +129,7 @@ abstract class GVRViewManager extends GVRContext {
         NativeScene.setMainScene(scene.getNative());
         getActivity().setCameraRig(scene.getMainCameraRig());
         mInputManager.setScene(scene);
-      //  mRenderBundle.updateMainScene(scene);
+        //  mRenderBundle.updateMainScene(scene);
         // Roshan: modify rendlebundle
     }
 
@@ -682,7 +682,7 @@ abstract class GVRViewManager extends GVRContext {
         mScreenshotLeftCallback = null;
     }
 
-        // capture screenshot of an eye
+    // capture screenshot of an eye
     private void captureEye(GVRScreenshotCallback callback, GVRRenderTarget renderTarget, GVRViewManager.EYE eye, boolean useMultiview) {
         if (null == callback) {
             return;
@@ -700,7 +700,7 @@ abstract class GVRViewManager extends GVRContext {
 
         // TODO: when we will use multithreading, create new camera using centercamera as we are adding posteffects into it
         final GVRCamera centerCamera = mMainScene.getMainCameraRig().getCenterCamera();
-        final GVRShaderData postEffect = new GVRShaderData(this, GVRMaterial.GVRShaderType.VerticalFlip.ID);
+        final GVRMaterial postEffect = new GVRMaterial(this, GVRMaterial.GVRShaderType.VerticalFlip.ID);
         centerCamera.addPostEffect(postEffect);
 
         GVRRenderTexture posteffectRenderTextureB = null;
@@ -759,7 +759,7 @@ abstract class GVRViewManager extends GVRContext {
         GVRSceneObject centerCameraObject = new GVRSceneObject(this);
 
         centerCameraObject.attachCamera(centerCamera);
-        centerCamera.addPostEffect(new GVRShaderData(this, GVRMaterial.GVRShaderType.VerticalFlip.ID));
+        centerCamera.addPostEffect(new GVRMaterial(this, GVRMaterial.GVRShaderType.VerticalFlip.ID));
 
         mainCameraRig.getOwnerObject().addChildObject(centerCameraObject);
         GVRRenderTexture posteffectRenderTextureB = null;

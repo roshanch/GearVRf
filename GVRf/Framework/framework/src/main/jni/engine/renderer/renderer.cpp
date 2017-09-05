@@ -38,7 +38,7 @@ Renderer::Renderer() : numberDrawCalls(0),
                        numberTriangles(0),
                        numLights(0),
                        batch_manager(nullptr),
-                       post_effect_render_data_(nullptr){
+                       post_effect_mesh_(nullptr){
     if(do_batching && !gRenderer->isVulkanInstance()) {
         batch_manager = new BatchManager(BATCH_SIZE, MAX_INDICES);
     }
@@ -230,40 +230,12 @@ void Renderer::renderRenderDataVector(RenderState &rstate) {
     }
 }
 
-void Renderer::addRenderData(RenderData *render_data, RenderState& renderState, std::vector<RenderData*>* render_data_vector) {
-    if (render_data == 0 || render_data->material(0) == 0 || !render_data->enabled()) {
-        return;
-    }
-    if (render_data->mesh() == NULL) {
-        return;
-    }
-    const RenderPass* pass = render_data->pass(0);
-    int shaderID = pass->get_shader(renderState.is_multiview);
-    if (shaderID < 0)
+void Renderer::addRenderData(RenderData *render_data, RenderState& rstate, std::vector<RenderData*>& renderList)
+{
+    if (render_data && (render_data->isValid(this, rstate) >= 0))
     {
-        //LOGE("SHADER: RenderData %p[%p] shader being generated", render_data, pass);
-        return;
+        renderList.push_back(render_data);
     }
-    u_short dirty_bits =0;
-    dirty_bits |= (1 << NEW_TEXTURE);
-    dirty_bits |= (1 << CUSTOM_ATTRIBS);
-    dirty_bits |= (1 << MOD_SHADER_ID);
-    if(render_data->owner_object()->name().compare("environment")==0)
-        LOGE("it is");
-    if (shaderID == 0 || render_data->isDirty(dirty_bits))
-    {
-        LOGE("SHADER: RenderData %p[%p] has no shader", render_data, pass);
-        render_data->set_shader(0, -1, renderState.is_multiview);
-        render_data->bindShader(renderState.scene, renderState.is_multiview);
-        render_data->clearDirtyBits(~dirty_bits);
-        return;
-    }
-    if (render_data->render_mask() == 0) {
-        return;
-    }
-    render_data->adjustRenderingOrderForTransparency();
-    render_data_vector->push_back(render_data);
-    return;
 }
 
 bool Renderer::occlusion_cull_init(RenderState& renderState, std::vector<SceneObject*>& scene_objects,  std::vector<RenderData*>* render_data_vector){
@@ -275,7 +247,7 @@ bool Renderer::occlusion_cull_init(RenderState& renderState, std::vector<SceneOb
         for (auto it = scene_objects.begin(); it != scene_objects.end(); ++it) {
             SceneObject *scene_object = (*it);
             RenderData* render_data = scene_object->render_data();
-            addRenderData(render_data, renderState, render_data_vector);
+            addRenderData(render_data, renderState, *render_data_vector);
             renderState.scene->pick(scene_object);
         }
         renderState.scene->unlockColliders();
@@ -437,12 +409,28 @@ void Renderer::updateTransforms(RenderState& rstate, UniformBlock* transform_ubo
     transform_ubo->updateGPU(this);
 }
 
-void Renderer::renderPostEffectData(RenderState& rstate, Texture* render_texture, ShaderData* post_effect_data)
+void Renderer::renderPostEffectData(RenderState& rstate, RenderTexture* input_texture, RenderData* post_effect, int pass)
 {
-    Shader* shader = rstate.shader_manager->getShader(post_effect_data->getNativeShader());
+    RenderPass* rpass = post_effect->pass(pass);
+    ShaderData* material = rpass->material();
 
-    post_effect_data->setTexture("u_texture", render_texture);
-    renderWithShader(rstate, shader, post_effect_render_data(), post_effect_data, 0);
+    material->setTexture("u_texture", input_texture);
+    int result = rpass->isValid(this, rstate, post_effect);
+    if (result < 0)         // something wrong with material or texture
+    {
+        LOGE("Renderer::renderPostEffectData pass %d material or texture not ready", pass);
+        return;             // don't render this pass
+    }
+    if ((result == 0) && (post_effect->isValid(this, rstate) < 0))
+    {
+        LOGE("Renderer::renderPostEffectData pass %d shader not available", pass);
+        return;             // no shader available
+    }
+    int nativeShader = rpass->get_shader(rstate.is_multiview);
+    Shader* shader = rstate.shader_manager->getShader(nativeShader);
+
+    renderWithShader(rstate, shader, post_effect, material, 0);
+    post_effect->clearDirty();
 }
 
 }
