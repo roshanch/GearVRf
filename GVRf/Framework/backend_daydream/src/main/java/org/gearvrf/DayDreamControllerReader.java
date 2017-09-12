@@ -3,6 +3,7 @@ package org.gearvrf;
 import android.graphics.PointF;
 
 import org.gearvrf.utility.Log;
+import org.joml.Math;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -53,11 +54,13 @@ class DayDreamControllerReader implements GearCursorController.ControllerReader 
     public void updateRotation(Quaternionf quat) {
         Orientation orientation = mController.orientation;
         quat.set(orientation.x, orientation.y, orientation.z,orientation.w);
+        quat.rotateLocalY(-(float)Math.toRadians(45.0));  // this makes it to look same as other backends
     }
 
     @Override
     public void updatePosition(Vector3f vec) {
         vec.set(mController.position[0], mController.position[1], mController.position[2]);
+        vec.add(0.341f, -0.486f, -0.383f); // this makes it to look same as other backends
     }
 
     @Override
