@@ -31,6 +31,7 @@
 #include "objects/bounding_volume.h"
 #include "shaders/shader_manager.h"
 #include "batch_manager.h"
+#include "../../../../../../backend_oculus/src/main/jni/ovr_activity.h"
 
 typedef unsigned long Long;
 
@@ -131,6 +132,7 @@ public:
                                                 int jcolor_format, int jdepth_format, bool resolve_depth,
                                                 const TextureParameters* texture_parameters, int number_views) = 0;
     virtual RenderTexture* createRenderTexture(int width, int height, int sample_count, int layers) = 0;
+    virtual RenderTexture* createRenderTexture(const RenderTextureInfo&)=0;
     virtual Shader* createShader(int id, const char* signature,
                                  const char* uniformDescriptor, const char* textureDescriptor,
                                  const char* vertexDescriptor, const char* vertexShader,
@@ -146,8 +148,9 @@ public:
      virtual void cull(Scene *scene, Camera *camera,
             ShaderManager* shader_manager);
      virtual void renderRenderData(RenderState& rstate, RenderData* render_data);
-
-
+    virtual RenderTarget* createRenderTarget(Scene*) = 0;
+    virtual RenderTarget* createRenderTarget(RenderTexture*, bool) = 0;
+    virtual RenderTarget* createRenderTarget(RenderTexture*, const RenderTarget*) = 0;
      virtual void renderCamera(Scene* scene, Camera* camera,
              ShaderManager* shader_manager,
              RenderTexture* post_effect_render_texture_a,

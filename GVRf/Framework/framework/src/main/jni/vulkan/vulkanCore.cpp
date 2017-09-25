@@ -476,18 +476,36 @@ namespace gvr {
         return false;
     }
 
-    void VulkanCore::InitTransientCmdPool() {
-        VkResult ret = VK_SUCCESS;
+void VulkanCore::InitCommandPools(){
+    VkResult ret = VK_SUCCESS;
 
-        ret = vkCreateCommandPool(
-                m_device,
-                gvr::CmdPoolCreateInfo(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, m_queueFamilyIndex),
-                nullptr, &m_commandPoolTrans
-        );
+    ret = vkCreateCommandPool(
+            m_device,
+            gvr::CmdPoolCreateInfo(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT, m_queueFamilyIndex),
+            nullptr, &m_commandPoolTrans
+    );
 
-        GVR_VK_CHECK(!ret);
-    }
+    GVR_VK_CHECK(!ret);
 
+    ret = vkCreateCommandPool(
+            m_device,
+            gvr::CmdPoolCreateInfo(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                                   m_queueFamilyIndex),
+            nullptr, &m_commandPool
+    );
+
+    GVR_VK_CHECK(!ret);
+
+#ifdef CUSTOM_TEXTURE
+    // Allocating Command Buffer for Texture
+    ret = vkAllocateCommandBuffers(
+            m_device,
+            gvr::CmdBufferCreateInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_commandPool),
+            &textureCmdBuffer
+    );
+#endif
+    GVR_VK_CHECK(!ret);
+}
     void VulkanCore::createTransientCmdBuffer(VkCommandBuffer &cmdBuff) {
         VkResult ret = VK_SUCCESS;
         ret = vkAllocateCommandBuffers(
@@ -495,40 +513,6 @@ namespace gvr {
                 gvr::CmdBufferCreateInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_commandPoolTrans),
                 &cmdBuff
         );
-        GVR_VK_CHECK(!ret);
-    }
-
-    void VulkanCore::InitCommandbuffers() {
-        VkResult ret = VK_SUCCESS;
-
-        ret = vkCreateCommandPool(
-                m_device,
-                gvr::CmdPoolCreateInfo(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-                                       m_queueFamilyIndex),
-                nullptr, &m_commandPool
-        );
-
-        GVR_VK_CHECK(!ret);
-
-        // Create render command buffers, one per swapchain image
-
-        for (int i = 0; i < SWAP_CHAIN_COUNT; i++) {
-            ret = vkAllocateCommandBuffers(
-                    m_device,
-                    gvr::CmdBufferCreateInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_commandPool),
-                    swapChainCmdBuffer[i]
-            );
-            GVR_VK_CHECK(!ret);
-        }
-
-#ifdef CUSTOM_TEXTURE
-        // Allocating Command Buffer for Texture
-        ret = vkAllocateCommandBuffers(
-                m_device,
-                gvr::CmdBufferCreateInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_commandPool),
-                &textureCmdBuffer
-        );
-#endif
         GVR_VK_CHECK(!ret);
     }
 
@@ -973,12 +957,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     void VulkanCore::InitSync() {
         LOGI("Vulkan initsync start");
         VkResult ret = VK_SUCCESS;
-
-        waitFences.resize(SWAP_CHAIN_COUNT);
-        for (auto &fence : waitFences) {
-            ret = vkCreateFence(m_device, gvr::FenceCreateInfo(), nullptr, &fence);
-            GVR_VK_CHECK(!ret);
-        }
 
         ret = vkCreateFence(m_device, gvr::FenceCreateInfo(), nullptr, &waitSCBFences);
         GVR_VK_CHECK(!ret);
@@ -1632,16 +1610,11 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     }
 
     void VulkanCore::initVulkanCore() {
-        GLint viewport[4];
-        glGetIntegerv(GL_VIEWPORT, viewport);
-        InitSwapchain(viewport[2], viewport[3]);
-        InitTransientCmdPool();
-        InitCommandbuffers();
+        InitCommandPools();
 #ifdef  CUSTOM_TEXTURE
         InitTexture();
 #endif
         LOGE("Vulkan after intialization");
         InitSync();
-        swap_chain_init_ = true;
     }
 }

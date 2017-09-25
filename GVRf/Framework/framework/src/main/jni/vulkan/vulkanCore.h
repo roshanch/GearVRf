@@ -83,6 +83,7 @@ public:
     static VulkanCore *getInstance(ANativeWindow *newNativeWindow = nullptr) {
         if (!theInstance) {
             theInstance = new VulkanCore(newNativeWindow);
+            theInstance->initVulkanCore();
         }
         if (theInstance->m_Vulkan_Initialised)
             return theInstance;
@@ -145,9 +146,7 @@ public:
     }
 
     void initVulkanCore();
-    bool swapChainCreated(){
-        return swap_chain_init_;
-    }
+
     VkRenderPass createVkRenderPass(RenderPassType render_pass_type, int sample_count = 1);
     void RenderToOculus(int index, int postEffectFlag);
     void InitPostEffectChain();
@@ -163,6 +162,10 @@ public:
     void addPipeline(std::string key, VkPipeline pipeline){
         pipelineHashMap[key] = pipeline;
     }
+    void InitCommandPools();
+    VkCommandPool getCommandPool(){
+        return m_commandPool;
+    }
 private:
     std::vector <VkFence> waitFences;
     VkFence postEffectFence;
@@ -170,8 +173,8 @@ private:
     static VulkanCore *theInstance;
     std::unordered_map<std::string, VkPipeline> pipelineHashMap;
 
-    bool swap_chain_init_;
-    VulkanCore(ANativeWindow *newNativeWindow) : m_pPhysicalDevices(NULL),swap_chain_init_(false) {
+
+    VulkanCore(ANativeWindow *newNativeWindow) : m_pPhysicalDevices(NULL) {
         m_Vulkan_Initialised = false;
         initVulkanDevice(newNativeWindow);
 
@@ -188,11 +191,6 @@ private:
     void InitSurface();
 
     void InitSwapchain(uint32_t width, uint32_t height);
-
-
-    void InitCommandbuffers();
-
-    void InitTransientCmdPool();
 
     void InitSync();
 

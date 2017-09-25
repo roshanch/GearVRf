@@ -2,6 +2,115 @@ include ':framework'
 include ':backend_oculus'
 include ':backend_daydream'
 
+include ':gvr-simplesample'
+project(':gvr-simplesample').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-simplesample/app')
+
+/*include ':gvr-controller'
+project(':gvr-controller').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-controller/app')
+include ':gvr-x3d-demo'
+project(':gvr-x3d-demo').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-x3d-demo/app')
+include ':gvr-unittestutils'
+project(':gvr-unittestutils').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Tests/gvr-unittestutils')
+include ':unit-tests'
+project(':unit-tests').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Tests/unit-tests/app')
+include ':asset-tests'
+project(':asset-tests').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Tests/asset-tests/app')
+
+include ':gvr-3dcursor'
+project(':gvr-3dcursor').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-3dcursor/app')
+include ':gvr-3dcursor-simple'
+project(':gvr-3dcursor-simple').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-3dcursor-simple/app')
+include ':gvr-360photo'
+project(':gvr-360photo').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-360photo/app')
+include ':gvr-360video'
+project(':gvr-360video').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-360video/app')
+include ':gvr-accessibility'
+project(':gvr-accessibility').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-accessibility/app')
+include ':gvr-blurfilter'
+project(':gvr-blurfilter').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-blurfilter/app')
+include ':gvr-bullet'
+project(':gvr-bullet').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-bullet/app')
+include ':gvr-camera2renderscript'
+project(':gvr-camera2renderscript').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-camera2renderscript/app')
+include ':gvr-cardboard-audio'
+project(':gvr-cardboard-audio').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-cardboard-audio/app')
+include ':gvr-complexscene'
+project(':gvr-complexscene').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-complexscene/app')
+include ':gvr-controls'
+project(':gvr-controls').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-controls/app')
+
+include ':gvr-cubemap'
+project(':gvr-cubemap').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-cubemap/app')
+include ':gvr-events'
+project(':gvr-events').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-events/app')
+include ':gvr-eyepicking'
+project(':gvr-eyepicking').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-eyepicking/app')
+include ':gvr-gamepad'
+project(':gvr-gamepad').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-gamepad/app')
+include ':gvr-immersivepedia'
+project(':gvr-immersivepedia').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-immersivepedia/app')
+include ':gvr-javascript'
+project(':gvr-javascript').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-javascript/app')
+include ':gvr-keyboard'
+project(':gvr-keyboard').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-keyboard/app')
+include ':gvr-lua'
+project(':gvr-lua').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-lua/app')
+include ':gvr-meshanimation'
+project(':gvr-meshanimation').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-meshanimation/app')
+include ':gvr-modelviewer2'
+project(':gvr-modelviewer2').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-modelviewer2/app')
+
+include ':gvr-multilight'
+project(':gvr-multilight').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-multilight/app')
+include ':gvr-opacityanigallery'
+project(':gvr-opacityanigallery').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-opacityanigallery/app')
+include ':gvr-outline'
+project(':gvr-outline').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-outline/app')
+include ':gvr-particles'
+project(':gvr-particles').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-particles/app')
+include ':gvr-performance'
+project(':gvr-performance').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-performance/app')
+include ':gvr-polyline'
+project(':gvr-polyline').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-polyline/app')
+
+
+include ':gvr-remote-scripting'
+project(':gvr-remote-scripting').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-remote-scripting/app')
+include ':gvr-renderableview'
+project(':gvr-renderableview').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-renderableview/app')
+include ':gvr-rendertotexture'
+project(':gvr-rendertotexture').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-rendertotexture/app')
+include ':gvr-sample'
+project(':gvr-sample').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-sample/app')
+include ':gvr-sceneobjects'
+project(':gvr-sceneobjects').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-sceneobjects/app')
+include ':gvr-shadows'
+project(':gvr-shadows').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-shadows/app')
+include ':gvr-simplegallery'
+project(':gvr-simplegallery').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-simplegallery/app')
+include ':gvr-simplephysics'
+project(':gvr-simplephysics').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-simplephysics/app')
+include ':gvr-solarsystem'
+project(':gvr-solarsystem').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-solarsystem/app')
+include ':gvr-switch'
+project(':gvr-switch').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-switch/app')
+include ':gvr-tutorial-lesson2'
+project(':gvr-tutorial-lesson2').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-tutorial-lesson2/app')
+include ':gvr-tutorial-lesson3'
+project(':gvr-tutorial-lesson3').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-tutorial-lesson3/app')
+include ':gvr-tutorial-lesson4'
+project(':gvr-tutorial-lesson4').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-tutorial-lesson4/app')
+include ':gvr-tutorial-lesson5'
+project(':gvr-tutorial-lesson5').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-tutorial-lesson5/app')
+include ':gvr-tutorial-lesson6'
+project(':gvr-tutorial-lesson6').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-tutorial-lesson6/app')
+include ':gvr-video'
+project(':gvr-video').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-video/app')
+include ':gvr-vuforia'
+project(':gvr-vuforia').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-vuforia/app')
+include ':gvr-widgetviewer'
+project(':gvr-widgetviewer').projectDir=new File('/home/roshan/GearVRf/samsung_master/GearVRf-Demos/gvr-widgetviewer/app')
+*/
 if(file("../../../extra_settings.gradle").exists()) {
     apply from: '../../../extra_settings.gradle'
 }

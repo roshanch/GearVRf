@@ -17,7 +17,8 @@
 #ifndef FRAMEWORK_OVR_GEAR_CONTROLLER_H
 #define FRAMEWORK_OVR_GEAR_CONTROLLER_H
 
-#include "VrApi_Input.h"
+//#include "VrApi_Input.h"
+#include "../../../../../../../../../Downloads/ovr_sdk_mobile/VrApi/Include/VrApi_Input.h"
 #include "glm/glm.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "util/gvr_log.h"

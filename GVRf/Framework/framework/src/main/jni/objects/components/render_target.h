@@ -53,8 +53,8 @@ public:
     RenderTexture*  getTexture()  { return mRenderTexture; }
     void            setTexture(RenderTexture* texture);
     RenderState&    getRenderState() { return mRenderState; }
-    virtual void    beginRendering(Renderer* renderer);
-    virtual void    endRendering(Renderer* renderer);
+    virtual void    beginRendering(Renderer* renderer) =0;
+    virtual void    endRendering(Renderer* renderer) = 0;
     static long long getComponentType() { return COMPONENT_TYPE_RENDER_TARGET; }
     std::vector<RenderData*>* getRenderDataVector(){
         return mRenderDataVector.get();
@@ -70,7 +70,6 @@ protected:
     RenderState     mRenderState;
     RenderTexture*  mRenderTexture;
     std::shared_ptr<std::vector<RenderData*>> mRenderDataVector;
-    //Camera*         mCamera;
 };
 
 }

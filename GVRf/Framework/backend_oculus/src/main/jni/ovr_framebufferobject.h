@@ -18,8 +18,8 @@
 #define _FRAMEBUFFEROBJECT_H_
 
 #include <GLES3/gl3.h>
-#include <VrApi.h>
-#include "VrApi_Types.h"
+#include <../../../../../../../../../Downloads/ovr_sdk_mobile/VrApi/Include/VrApi.h>
+#include "../../../../../../../../../Downloads/ovr_sdk_mobile/VrApi/Include/VrApi_Types.h"
 
 namespace gvr {
 
