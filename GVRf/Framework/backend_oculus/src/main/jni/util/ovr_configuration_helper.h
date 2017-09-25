@@ -17,7 +17,7 @@
 #ifndef CONFIGURATION_HELPER_H
 #define CONFIGURATION_HELPER_H
 
-#include "VrApi_Types.h"
+#include "../../../../../../../../../Downloads/ovr_sdk_mobile/VrApi/Include/VrApi_Types.h"
 
 namespace gvr {
 

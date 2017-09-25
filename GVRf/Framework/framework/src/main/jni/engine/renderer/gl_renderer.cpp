@@ -15,6 +15,7 @@
 
 #include <gl/gl_index_buffer.h>
 #include <gl/gl_vertex_buffer.h>
+#include <gl/gl_render_target.h>
 #include "glm/gtc/matrix_inverse.hpp"
 #include "gl/gl_material.h"
 #include "gl/gl_render_data.h"
@@ -44,7 +45,22 @@ namespace gvr
     {
         return new RenderPass();
     }
+   RenderTarget* GLRenderer::createRenderTarget(Scene* scene) {
+        return new GLRenderTarget(scene);
+    }
+    RenderTarget* GLRenderer::createRenderTarget(RenderTexture* renderTexture, bool isMultiview){
+        return new GLRenderTarget(renderTexture, isMultiview);
+    }
+    RenderTarget* GLRenderer::createRenderTarget(RenderTexture* renderTexture, const RenderTarget* renderTarget){
+        return new GLRenderTarget(renderTexture, renderTarget);
+    }
+    RenderTexture* GLRenderer::createRenderTexture(const RenderTextureInfo& renderTextureInfo){
 
+        if(renderTextureInfo.useMultiview)
+            return  new GLMultiviewRenderTexture(renderTextureInfo.fdboWidth,renderTextureInfo.fboHeight,renderTextureInfo.multisamples,2, renderTextureInfo.fboId, renderTextureInfo.texId);
+
+        return new GLNonMultiviewRenderTexture(renderTextureInfo.fdboWidth,renderTextureInfo.fboHeight,renderTextureInfo.multisamples,renderTextureInfo.fboId, renderTextureInfo.texId);
+    }
     void GLRenderer::clearBuffers(const Camera &camera) const
     {
         GLbitfield mask = GL_DEPTH_BUFFER_BIT;

@@ -49,7 +49,6 @@ Java_org_gearvrf_NativeRenderTarget_render(JNIEnv *env, jobject obj, jlong rende
                                            jlong shader_manager, jlong posteffectrenderTextureA, jlong posteffectRenderTextureB, jlong jscene){
     RenderTarget* target = reinterpret_cast<RenderTarget*>(renderTarget);
     Scene* scene = reinterpret_cast<Scene*>(jscene);
-  //  target->setMainScene(scene);
     // Do not remote this: need it for screenshot capturer, center camera rendering
     target->setCamera(reinterpret_cast<Camera*>(camera));
     gRenderer->getInstance()->renderRenderTarget(scene, target, reinterpret_cast<ShaderManager*>(shader_manager),
@@ -59,7 +58,7 @@ Java_org_gearvrf_NativeRenderTarget_render(JNIEnv *env, jobject obj, jlong rende
 JNIEXPORT jlong JNICALL
 Java_org_gearvrf_NativeRenderTarget_defaultCtr(JNIEnv *env, jobject obj, jlong jscene){
     Scene* scene = reinterpret_cast<Scene*>(jscene);
-    return reinterpret_cast<jlong>(new RenderTarget(scene));
+    return reinterpret_cast<jlong>(Renderer::getInstance()->createRenderTarget(scene));
 
 }
 JNIEXPORT jlong JNICALL
@@ -67,14 +66,14 @@ Java_org_gearvrf_NativeRenderTarget_ctorMultiview(JNIEnv *env, jobject obj, jlon
 {
 
     RenderTexture* texture = reinterpret_cast<RenderTexture*>(jtexture);
-    return reinterpret_cast<jlong>(new RenderTarget(texture, isMultiview));
+    return reinterpret_cast<jlong>(Renderer::getInstance()->createRenderTarget(texture, isMultiview));
 }
 JNIEXPORT jlong JNICALL
 Java_org_gearvrf_NativeRenderTarget_ctor(JNIEnv *env, jobject obj, jlong jtexture, jlong ptr)
 {
     RenderTexture* texture = reinterpret_cast<RenderTexture*>(jtexture);
     RenderTarget* sourceRenderTarget = reinterpret_cast<RenderTarget*>(ptr);
-    return reinterpret_cast<jlong>(new RenderTarget(texture, sourceRenderTarget));
+    return reinterpret_cast<jlong>(Renderer::getInstance()->createRenderTarget(texture, sourceRenderTarget));
 }
 JNIEXPORT void JNICALL
 Java_org_gearvrf_NativeRenderTarget_setMainScene(JNIEnv *env, jobject obj, jlong ptr, jlong Sceneptr){
