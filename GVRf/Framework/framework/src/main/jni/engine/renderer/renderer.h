@@ -139,7 +139,7 @@ public:
                                  const char* fragmentShader) = 0;
      virtual VertexBuffer* createVertexBuffer(const char* descriptor, int vcount) = 0;
      virtual IndexBuffer* createIndexBuffer(int bytesPerIndex, int icount) = 0;
-     void updateTransforms(RenderState& rstate, UniformBlock* block, Transform* model);
+     void updateTransforms(RenderState& rstate, UniformBlock* block, RenderData*);
      virtual void initializeStats();
      virtual void cullFromCamera(Scene *scene, Camera* camera,
                 ShaderManager* shader_manager, std::vector<RenderData*>* render_data_vector,bool);

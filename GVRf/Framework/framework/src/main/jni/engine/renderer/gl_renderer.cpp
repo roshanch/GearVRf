@@ -175,7 +175,7 @@ namespace gvr
     {
         const char* desc;
 
-        desc = " mat4 u_view_[2]; mat4 u_mvp_[2]; mat4 u_mv_[2]; mat4 u_mv_it_[2]; mat4 u_model; mat4 u_view_i; float u_right; ";
+        desc = " mat4 u_view_[2]; mat4 u_mvp_[2]; mat4 u_mv_[2]; mat4 u_mv_it_[2]; mat4 u_model; mat4 u_view_i; float u_right; uint u_render_mask; ";
 
         transform_ubo_[1] = reinterpret_cast<GLUniformBlock*>
         (createUniformBlock(desc, TRANSFORM_UBO_INDEX, "Transform_ubo", 0));
@@ -299,6 +299,9 @@ namespace gvr
         if (!rstate.shadow_map)
         {
             rstate.render_mask = camera->render_mask();
+            if(rstate.is_multiview)
+                rstate.render_mask = RenderData::RenderMaskBit::Right | RenderData::RenderMaskBit::Left;
+
             rstate.uniforms.u_right = rstate.render_mask & RenderData::RenderMaskBit::Right;
             rstate.material_override = NULL;
             GL(glEnable (GL_BLEND));
@@ -697,7 +700,6 @@ namespace gvr
         GLRenderData* rdata = static_cast<GLRenderData*>(render_data);
         int drawMode = render_data->draw_mode();
 
-        Transform* model = render_data->owner_object() ? render_data->owner_object()->transform() : nullptr;
         try
         {
             shader->useShader(rstate.is_multiview);
@@ -729,7 +731,7 @@ namespace gvr
             if (shader->usesMatrixUniforms())
             {
                 UniformBlock* transformBlock = getTransformUbo(rstate.is_multiview ? 1 : 0);
-                updateTransforms(rstate, transformBlock, model);
+                updateTransforms(rstate, transformBlock, rdata);
                 if (!transformBlock->usesGPUBuffer())
                 {
                     static_cast<GLShader*>(shader)->findUniforms(*transformBlock, TRANSFORM_UBO_INDEX);

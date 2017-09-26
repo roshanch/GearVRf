@@ -24,12 +24,17 @@ public:
     explicit  VkRenderTarget(){}
     ~VkRenderTarget(){}
     virtual void    beginRendering(Renderer* renderer);
-    virtual void    endRendering(Renderer* renderer);
+    virtual void    endRendering(Renderer*);
+    VkCommandBuffer& getCommandBuffer(){
+        return mCmdBuffer;
+    }
+    VkFence& getFenceObject(){
+        return mWaitFence;
+    }
 
 private:
     VkFence mWaitFence;
     VkCommandBuffer mCmdBuffer;
-    VkRenderTexture* mPostEffectTexture;
 };
 }
 #endif //FRAMEWORK_VK_RENDER_TARGET_H

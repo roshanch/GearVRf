@@ -22,7 +22,7 @@
 #include "objects/components/camera.h"
 #include "objects/components/camera_rig.h"
 #include "util/ovr_configuration_helper.h"
-#include "../../../../../../../../../Downloads/ovr_sdk_mobile/VrApi/Include/VrApi_Types.h"
+#include "VrApi_Types.h"
 
 namespace gvr {
     struct RenderTextureInfo;

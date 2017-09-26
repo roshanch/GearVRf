@@ -17,12 +17,13 @@
 #include "../util/jni_utils.h"
 #include "../eglextension/msaa/msaa.h"
 #include "VrApi_Helpers.h"
+#include "VrApi.h"
 #include "VrApi_SystemUtils.h"
 #include <cstring>
 #include <unistd.h>
 #include <objects/textures/render_texture.h>
 #include "engine/renderer/renderer.h"
-
+#include <VrApi_Types.h>
 
 static const char* activityClassName = "org/gearvrf/GVRActivity";
 static const char* viewManagerClassName = "org/gearvrf/OvrViewManager";
@@ -269,15 +270,14 @@ void GVRActivity::onDrawFrame(jobject jViewManager) {
                                    GL_RGBA,
                                    GL_UNSIGNED_BYTE,
                                    oculusTexData);
-
+                glFlush();
                 frameBuffer_[eye].advance();
             }
             else {
                 endRenderingEye(eye);
+                FrameBufferObject::unbind();
             }
         }
-
-        FrameBufferObject::unbind();
 
         // check if the controller is available
         if (gearController != nullptr && gearController->findConnectedGearController()) {
