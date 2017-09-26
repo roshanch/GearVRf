@@ -374,7 +374,6 @@ void Renderer::updateTransforms(RenderState& rstate, UniformBlock* transform_ubo
 
     if (rstate.is_multiview)
     {
-      //  LOGE("multiview is true");
         if (!rstate.shadow_map)
         {
             rstate.uniforms.u_view_[0] = rstate.scene->main_camera_rig()->left_camera()->getViewMatrix();

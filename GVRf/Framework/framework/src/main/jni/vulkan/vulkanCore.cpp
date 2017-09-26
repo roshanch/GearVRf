@@ -23,9 +23,12 @@
 #include "vulkan/vk_framebuffer.h"
 #include "vulkan/vk_render_to_texture.h"
 #include "vk_imagebase.h"
+#include "vk_render_target.h"
 #include <array>
 
 #define CUSTOM_TEXTURE
+#define VIEWPORT_WIDTH 1024
+#define VIEWPORT_HEIGHT 1024
 #define TEXTURE_BIND_START 4
 #define QUEUE_INDEX_MAX 99999
 #define VERTEX_BUFFER_BIND_ID 0
@@ -428,24 +431,12 @@ namespace gvr {
         return true;
     }
 
-    void VulkanCore::InitSwapchain(uint32_t width, uint32_t height) {
-
-        m_width = width;
-        m_height = height;
-        swapChainCmdBuffer.reserve(SWAP_CHAIN_COUNT);
-        for (int i = 0; i < SWAP_CHAIN_COUNT; i++) {
-            mRenderTexture[i] = new VkRenderTexture(width,height);
-            swapChainCmdBuffer[i] = new VkCommandBuffer();
-        }
-
-    }
-
     void VulkanCore::InitPostEffectChain(){
         if(postEffectCmdBuffer != nullptr)
             return;
 
         for (int i = 0; i < POSTEFFECT_CHAIN_COUNT; i++) {
-            mPostEffectTexture[i] = new VkRenderTexture(m_width, m_height);
+            mPostEffectTexture[i] = new VkRenderTexture(VIEWPORT_WIDTH, VIEWPORT_WIDTH);
         }
 
         postEffectCmdBuffer = new VkCommandBuffer();
@@ -632,6 +623,7 @@ void VulkanCore::InitCommandPools(){
 
     VkRenderPass VulkanCore::createVkRenderPass(RenderPassType render_pass_type, int sample_count){
 
+
         if(mRenderPassMap[render_pass_type])
             return mRenderPassMap[render_pass_type];
 
@@ -782,7 +774,7 @@ void VulkanCore::InitCommandPools(){
         }
 
     }
-void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, VulkanRenderData *rdata, VulkanShader* shader, int pass, bool postEffect, int postEffectIndx) {
+void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, VulkanRenderData *rdata, VulkanShader* shader, int pass, VkRenderPass renderPass) {
     VkResult err;
 
 
@@ -810,14 +802,14 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     }
 
     VkViewport viewport = {};
-    viewport.height = (float) m_height;
-    viewport.width = (float) m_width;
+    viewport.height = (float) VIEWPORT_HEIGHT;
+    viewport.width = (float) VIEWPORT_WIDTH;
     viewport.minDepth = (float) 0.0f;
     viewport.maxDepth = (float) 1.0f;
 
     VkRect2D scissor = {};
-    scissor.extent.width = m_width;
-    scissor.extent.height = m_height;
+    scissor.extent.width = VIEWPORT_WIDTH;
+    scissor.extent.height = VIEWPORT_HEIGHT;
     scissor.offset.x = 0;
     scissor.offset.y = 0;
 
@@ -844,9 +836,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     pipelineCreateInfo.pInputAssemblyState = gvr::PipelineInputAssemblyStateCreateInfo(
             getTopology(rdata->draw_mode()));
     VkCullModeFlagBits cull_face = (rdata->cull_face(pass) ==  RenderData::CullBack) ? VK_CULL_MODE_BACK_BIT : VK_CULL_MODE_FRONT_BIT;
-    ShaderData *curr_material = rdata->material(pass);
-    float line_width = 1.0;
-    curr_material->getFloat("line_width", line_width);
     pipelineCreateInfo.pRasterizationState = gvr::PipelineRasterizationStateCreateInfo(VK_FALSE,
                                                                                        VK_FALSE,
                                                                                        VK_POLYGON_MODE_FILL,
@@ -854,7 +843,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
                                                                                        VK_FRONT_FACE_CLOCKWISE,
                                                                                        VK_FALSE,
                                                                                        0, 0, 0,
-                                                                                       line_width);
+                                                                                       1.0);
     pipelineCreateInfo.pColorBlendState = gvr::PipelineColorBlendStateCreateInfo(1,
                                                                                  &att_state[0]);
     pipelineCreateInfo.pMultisampleState = gvr::PipelineMultisampleStateCreateInfo(
@@ -871,10 +860,10 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
                                                                                      VK_COMPARE_OP_ALWAYS,
                                                                                      VK_FALSE);
     pipelineCreateInfo.pStages = &shaderStages[0];
-    if(!postEffect)
-        pipelineCreateInfo.renderPass =(mRenderTexture[imageIndex]->getRenderPass());
-    else
-        pipelineCreateInfo.renderPass =(mPostEffectTexture[postEffect%2]->getRenderPass());
+
+    pipelineCreateInfo.renderPass = renderPass;
+
+
 
     pipelineCreateInfo.pDynamicState = nullptr;
     pipelineCreateInfo.stageCount = 2; //vertex and fragment
@@ -969,10 +958,10 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     }
 
     void VulkanCore::BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector,
-                                                 Camera *camera, ShaderManager* shader_manager) {
+                                                 Camera *camera, ShaderManager* shader_manager, RenderTarget* renderTarget) {
         // For the triangle sample, we pre-record our command buffer, as it is static.
         // We have a buffer per swap chain image, so loop over the creation process.
-        VkCommandBuffer &cmdBuffer = *(swapChainCmdBuffer[imageIndex]);
+        VkCommandBuffer &cmdBuffer = (reinterpret_cast<VkRenderTarget*>(renderTarget))->getCommandBuffer();
 
         // vkBeginCommandBuffer should reset the command buffer, but Reset can be called
         // to make it more explicit.
@@ -999,10 +988,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         // By calling vkBeginCommandBuffer, cmdBuffer is put into the recording state.
         err = vkBeginCommandBuffer(cmdBuffer, &cmd_buf_info);
         GVR_VK_CHECK(!err);
-
-        mRenderTexture[imageIndex]->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),camera->background_color_b(), camera->background_color_a());
-        mRenderTexture[imageIndex]->bind();
-        mRenderTexture[imageIndex]->beginRendering(Renderer::getInstance());
+        renderTarget->beginRendering(Renderer::getInstance());
 
         for (int j = 0; j < render_data_vector.size(); j++) {
 
@@ -1053,7 +1039,8 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
                     vkCmdDraw(cmdBuffer, mesh->getVertexCount(), 1, 0, 1);
            }
         }
-        mRenderTexture[imageIndex]->endRendering(Renderer::getInstance());
+
+        renderTarget->endRendering(Renderer::getInstance());
 
         // By ending the command buffer, it is put out of record mode.
         err = vkEndCommandBuffer(cmdBuffer);
@@ -1154,12 +1141,12 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         return imageIndex;
     }
 
-    int VulkanCore::DrawFrameForRenderData() {
+    int VulkanCore::DrawFrameForRenderData(VkRenderTarget* renderTarget) {
 
+        VkFence fence = (renderTarget)->getFenceObject();
         VkResult err;
         // Get the next image to render to, then queue a wait until the image is ready
-        VkFence nullFence = waitFences[imageIndex];
-        vkResetFences(m_device, 1, &waitFences[imageIndex]);
+        vkResetFences(m_device, 1, &fence);
 
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -1168,30 +1155,32 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         submitInfo.pWaitSemaphores = nullptr;
         submitInfo.pWaitDstStageMask = nullptr;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = swapChainCmdBuffer[imageIndex];
+        submitInfo.pCommandBuffers = &renderTarget->getCommandBuffer();
         submitInfo.signalSemaphoreCount = 0;
         submitInfo.pSignalSemaphores = nullptr;
 
-        err = vkQueueSubmit(m_queue, 1, &submitInfo, waitFences[imageIndex]);
+        err = vkQueueSubmit(m_queue, 1, &submitInfo,fence);
         GVR_VK_CHECK(!err);
 
-        err = vkGetFenceStatus(m_device, waitFences[imageIndex]);
+        err = vkGetFenceStatus(m_device, fence);
         int swapChainIndx = imageIndex;
         bool found = false;
         VkResult status;
         // check the status of current fence, if not ready take the previous one, we are incrementing with 2 for left and right frames.
         if (err != VK_SUCCESS) {
-            swapChainIndx = (imageIndex + 2) % SWAP_CHAIN_COUNT;
-            while (swapChainIndx != imageIndex) {
-                status = vkGetFenceStatus(m_device, waitFences[swapChainIndx]);
+            VkRenderTarget* renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget());
+            while (renderTarget1!= nullptr && renderTarget1 != renderTarget) {
+                VkFence fence1 = (renderTarget1)->getFenceObject();
+                status = vkGetFenceStatus(m_device, fence1);
                 if (VK_SUCCESS == status) {
                     found = true;
                     break;
                 }
-                swapChainIndx = (swapChainIndx + 2) % SWAP_CHAIN_COUNT;
+                renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget1->getNextRenderTarget());
             }
              if (!found) {
-            err = vkWaitForFences(m_device, 1, &waitFences[(swapChainIndx+2)%SWAP_CHAIN_COUNT], VK_TRUE,
+                 VkFence fence1 = reinterpret_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget())->getFenceObject();
+                err = vkWaitForFences(m_device, 1, &fence1 , VK_TRUE,
                                   4294967295U);
              }
         }
@@ -1226,13 +1215,11 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         //GVR_VK_CHECK(!err);
     }
 
-    void VulkanCore::RenderToOculus(int index, int postEffectFlag){
+    void VulkanCore::RenderToOculus(VkRenderTexture* renderTexture){
         VkCommandBuffer trnCmdBuf;
         createTransientCmdBuffer(trnCmdBuf);
-        if(postEffectFlag)
-            mPostEffectTexture[index]->readVkRenderResult(&oculusTexData,trnCmdBuf,waitSCBFences);
-        else
-            mRenderTexture[index]->readVkRenderResult(&oculusTexData,trnCmdBuf,waitSCBFences);
+
+        renderTexture->readVkRenderResult(&oculusTexData,trnCmdBuf,waitSCBFences);
 
         vkFreeCommandBuffers(m_device, m_commandPoolTrans, 1, &trnCmdBuf);
     }
@@ -1310,7 +1297,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         return true;
     }
 
-    bool VulkanCore::InitDescriptorSetForRenderDataPostEffect(VulkanRenderer* renderer, int pass, Shader* shader, VulkanRenderData* vkData, int postEffectIndx) {
+    bool VulkanCore::InitDescriptorSetForRenderDataPostEffect(VulkanRenderer* renderer, int pass, Shader* shader, VulkanRenderData* vkData, int postEffectIndx, VkRenderTarget* renderTarget) {
         VkDescriptorPool descriptorPool;
         GetDescriptorPool(descriptorPool);
         VkDescriptorSetLayout &descriptorLayout = reinterpret_cast<VulkanShader *>(shader)->getDescriptorLayout();
@@ -1328,11 +1315,13 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         vkData->setDescriptorSet(descriptorSet,pass);
         VkDescriptorImageInfo descriptorImageInfoPass2[1] = {};
              descriptorImageInfoPass2[0].sampler = VK_NULL_HANDLE;
-        mRenderTexture[imageIndex]->getRenderPass();
+
+        VkRenderTexture* renderTexture = reinterpret_cast<VkRenderTexture*>(renderTarget->getTexture());
+        renderTexture->getRenderPass();
         if(postEffectIndx == 0) {
-            descriptorImageInfoPass2[0].imageView = mRenderTexture[imageIndex]->getFBO()->getImageView(
+            descriptorImageInfoPass2[0].imageView = renderTexture->getFBO()->getImageView(
                     COLOR_IMAGE);
-            descriptorImageInfoPass2[0].imageLayout = mRenderTexture[imageIndex]->getFBO()->getImageLayout(
+            descriptorImageInfoPass2[0].imageLayout = renderTexture->getFBO()->getImageLayout(
                     COLOR_IMAGE);
         }else{
             descriptorImageInfoPass2[0].imageView = mPostEffectTexture[(postEffectIndx - 1) % 2]->getFBO()->getImageView(
@@ -1586,14 +1575,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     }
 
     VulkanCore::~VulkanCore() {
-        if(swapChainCmdBuffer.capacity() != 0) {
-            for (int i = 0; i < SWAP_CHAIN_COUNT; i++) {
-                delete mRenderTexture[i];
-                vkFreeCommandBuffers(m_device, m_commandPool, 1, swapChainCmdBuffer[i]);
-
-                vkDestroyFence(m_device, waitFences[i], nullptr);
-            }
-        }
 
         if(postEffectCmdBuffer != nullptr){
             vkFreeCommandBuffers(m_device, m_commandPool, 1, postEffectCmdBuffer);

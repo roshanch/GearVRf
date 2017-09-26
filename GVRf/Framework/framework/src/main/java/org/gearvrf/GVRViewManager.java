@@ -129,8 +129,6 @@ abstract class GVRViewManager extends GVRContext {
         NativeScene.setMainScene(scene.getNative());
         getActivity().setCameraRig(scene.getMainCameraRig());
         mInputManager.setScene(scene);
-        //  mRenderBundle.updateMainScene(scene);
-        // Roshan: modify rendlebundle
     }
 
     protected boolean updateSensoredScene() {

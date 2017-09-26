@@ -8,15 +8,17 @@
 
 namespace gvr{
  void VkRenderTarget::beginRendering(Renderer* renderer){
-
- }
- void VkRenderTarget::endRendering(Renderer* renderer){
-
+     mRenderTexture->bind();
+     RenderTarget::beginRendering(renderer);
+     VkRenderPassBeginInfo rp_begin =  (reinterpret_cast<VkRenderTexture*>(mRenderTexture))->getRenderPassBeginInfo();
+     vkCmdBeginRenderPass(mCmdBuffer, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
  }
 VkRenderTarget::VkRenderTarget(RenderTexture* renderTexture, bool is_multiview): RenderTarget(renderTexture, is_multiview){
     initVkData();
 }
-
+void VkRenderTarget::endRendering(Renderer *) {
+    vkCmdEndRenderPass(mCmdBuffer);
+}
 void VkRenderTarget::createFenceObject(VkDevice device){
     VkResult ret = VK_SUCCESS;
     ret = vkCreateFence(device, gvr::FenceCreateInfo(), nullptr, &mWaitFence);
@@ -35,7 +37,6 @@ void VkRenderTarget::initVkData() {
     VkCommandPool commandPool = renderer->getCore()->getCommandPool();
     createCmdBuffer(device,commandPool);
     createFenceObject(device);
-    mPostEffectTexture = new VkRenderTexture(mRenderTexture->width(), mRenderTexture->height());
 }
 VkRenderTarget::VkRenderTarget(Scene* scene): RenderTarget(scene){
     initVkData();

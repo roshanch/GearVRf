@@ -25,6 +25,6 @@ interface IRenderBundle {
     GVRRenderTexture getEyeCapturePostEffectRenderTextureB();
     GVRRenderTexture getPostEffectRenderTextureB();
     GVRRenderTarget getEyeCaptureRenderTarget();
-
+    // void createRenderTargetChain(boolean useMultiview);
     GVRRenderTarget getRenderTarget(GVRViewManager.EYE eye, int index);
 }

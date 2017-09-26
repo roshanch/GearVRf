@@ -46,6 +46,12 @@ public:
     RenderTarget(RenderTexture*, const RenderTarget* source);
     RenderTarget();
     ~RenderTarget();
+    void attachNextRenderTarget(RenderTarget* renderTarget){
+        mNextRenderTarget = renderTarget;
+    }
+    RenderTarget*   getNextRenderTarget(){
+        return mNextRenderTarget;
+    }
     void            setMainScene(Scene* scene){mRenderState.scene = scene;}
     void            setCamera(Camera* cam) { mRenderState.camera= cam; }
     Camera*         getCamera() const { return mRenderState.camera; }
@@ -53,8 +59,8 @@ public:
     RenderTexture*  getTexture()  { return mRenderTexture; }
     void            setTexture(RenderTexture* texture);
     RenderState&    getRenderState() { return mRenderState; }
-    virtual void    beginRendering(Renderer* renderer) =0;
-    virtual void    endRendering(Renderer* renderer) = 0;
+    virtual void    beginRendering(Renderer* renderer);
+    virtual void    endRendering(Renderer* renderer);
     static long long getComponentType() { return COMPONENT_TYPE_RENDER_TARGET; }
     std::vector<RenderData*>* getRenderDataVector(){
         return mRenderDataVector.get();
@@ -67,6 +73,7 @@ private:
     RenderTarget& operator=(RenderTarget&& render_texture);
 
 protected:
+    RenderTarget* mNextRenderTarget;
     RenderState     mRenderState;
     RenderTexture*  mRenderTexture;
     std::shared_ptr<std::vector<RenderData*>> mRenderDataVector;
