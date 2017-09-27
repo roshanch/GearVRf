@@ -59,9 +59,7 @@ public:
     }
     bool readVkRenderResult(uint8_t **readback_buffer, VkCommandBuffer& cmd_buffer,VkFence& fence);
     VkRenderPass getRenderPass(){
-        if(fbo == nullptr)
-            bind();
-
+        bind();
         return fbo->getRenderPass();
     }
 };

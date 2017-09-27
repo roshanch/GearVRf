@@ -110,11 +110,8 @@ public:
     void BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector, Camera*, ShaderManager*,RenderTarget*);
     void BuildCmdBufferForRenderDataPE(Camera*, RenderData* rdata, Shader* shader, int postEffectIndx);
 
-    int DrawFrameForRenderData(VkRenderTarget*);
+    VkRenderTexture* DrawFrameForRenderData(VkRenderTarget*);
     int DrawFrameForRenderDataPE();
-    int getCurrentSwapChainIndx(){
-        return imageIndex;
-    }
 
     VkCommandBuffer* getCurrentCmdBufferPE(){
         return postEffectCmdBuffer;
@@ -168,6 +165,7 @@ public:
     VkRenderTexture* getPostEffectRenderTexture(int index){
         return mPostEffectTexture[index];
     }
+
 private:
  //   std::vector <VkFence> waitFences;
     VkFence postEffectFence;
@@ -223,7 +221,6 @@ private:
     uint32_t m_queueFamilyIndex;
     VkQueue m_queue;
     VkSurfaceKHR m_surface;
-
 
     VkCommandBuffer * postEffectCmdBuffer;
 

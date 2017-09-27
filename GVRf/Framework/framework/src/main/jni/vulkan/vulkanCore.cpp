@@ -777,7 +777,6 @@ void VulkanCore::InitCommandPools(){
 void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, VulkanRenderData *rdata, VulkanShader* shader, int pass, VkRenderPass renderPass) {
     VkResult err;
 
-
     // The pipeline contains all major state for rendering.
 
     // Our vertex input is a single vertex buffer, and its layout is defined
@@ -825,6 +824,9 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     // We define two shader stages: our vertex and fragment shader.
     // they are embedded as SPIR-V into a header file for ease of deployment.
     VkPipelineShaderStageCreateInfo shaderStages[2] = {};
+
+
+
     InitShaders(shaderStages,result_vert,result_frag);
     // Out graphics pipeline records all state information, including our renderpass
     // and pipeline layout. We do not have any dynamic state in this example.
@@ -861,8 +863,8 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
                                                                                      VK_FALSE);
     pipelineCreateInfo.pStages = &shaderStages[0];
 
-    pipelineCreateInfo.renderPass = renderPass;
-
+ //   pipelineCreateInfo.renderPass = renderPass;
+    pipelineCreateInfo.renderPass = createVkRenderPass(NORMAL_RENDERPASS,1);
 
 
     pipelineCreateInfo.pDynamicState = nullptr;
@@ -1141,7 +1143,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         return imageIndex;
     }
 
-    int VulkanCore::DrawFrameForRenderData(VkRenderTarget* renderTarget) {
+    VkRenderTexture* VulkanCore::DrawFrameForRenderData(VkRenderTarget* renderTarget) {
 
         VkFence fence = (renderTarget)->getFenceObject();
         VkResult err;
@@ -1163,14 +1165,14 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         GVR_VK_CHECK(!err);
 
         err = vkGetFenceStatus(m_device, fence);
-        int swapChainIndx = imageIndex;
+        VkRenderTarget* renderTarget1 = renderTarget ;
         bool found = false;
         VkResult status;
         // check the status of current fence, if not ready take the previous one, we are incrementing with 2 for left and right frames.
         if (err != VK_SUCCESS) {
-            VkRenderTarget* renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget());
+            renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget());
             while (renderTarget1!= nullptr && renderTarget1 != renderTarget) {
-                VkFence fence1 = (renderTarget1)->getFenceObject();
+                VkFence fence1 = renderTarget1->getFenceObject();
                 status = vkGetFenceStatus(m_device, fence1);
                 if (VK_SUCCESS == status) {
                     found = true;
@@ -1179,14 +1181,14 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
                 renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget1->getNextRenderTarget());
             }
              if (!found) {
-                 VkFence fence1 = reinterpret_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget())->getFenceObject();
+                 renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget());
+                 VkFence fence1 = renderTarget1->getFenceObject();
                 err = vkWaitForFences(m_device, 1, &fence1 , VK_TRUE,
                                   4294967295U);
              }
         }
 
-        return swapChainIndx;
-        //GVR_VK_CHECK(!err);
+        return reinterpret_cast<VkRenderTexture*>(renderTarget1->getTexture());
     }
 
     int VulkanCore::DrawFrameForRenderDataPE() {
