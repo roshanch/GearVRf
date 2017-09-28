@@ -68,7 +68,7 @@ namespace {
 
 DaydreamRenderer::DaydreamRenderer(JNIEnv &env, jclass clazz,
                                    gvr_context *gvr_context)
-        : gvr_api_(gvr::GvrApi::WrapNonOwned(gvr_context)),
+        : gvr_api_(gvr::GvrApi::WrapNonOwned(gvr_context)), mUserPrefs(0),
           scratch_viewport_(gvr_api_->CreateBufferViewport()) {
     jclass rendererClass = env.GetObjectClass(clazz);
     rendererObject_ = env.NewGlobalRef(clazz);
