@@ -31,12 +31,12 @@
 #include "objects/bounding_volume.h"
 #include "shaders/shader_manager.h"
 #include "batch_manager.h"
-#include "../../../../../../backend_oculus/src/main/jni/ovr_activity.h"
 
 typedef unsigned long Long;
 
 namespace gvr {
 extern bool use_multiview;
+struct RenderTextureInfo;
 class Camera;
 class Scene;
 class SceneObject;

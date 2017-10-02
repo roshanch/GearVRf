@@ -16,7 +16,7 @@
 #include <jni.h>
 #include <engine/renderer/renderer.h>
 #include <objects/textures/render_texture.h>
-
+#include "ovr_activity.h"
 namespace gvr {
     extern "C" {
 
