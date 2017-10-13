@@ -175,13 +175,13 @@ namespace gvr
     {
         const char* desc;
 
-        desc = " mat4 u_view_[2]; mat4 u_mvp_[2]; mat4 u_mv_[2]; mat4 u_mv_it_[2]; mat4 u_model; mat4 u_view_i; float u_right; uint u_render_mask; ";
+        desc = " mat4 u_view_[2]; mat4 u_mvp_[2]; mat4 u_mv_[2]; mat4 u_mv_it_[2]; mat4 u_view_i_[2]; mat4 u_model; float u_right; uint u_render_mask; ";
 
         transform_ubo_[1] = reinterpret_cast<GLUniformBlock*>
         (createUniformBlock(desc, TRANSFORM_UBO_INDEX, "Transform_ubo", 0));
         transform_ubo_[1]->useGPUBuffer(false);
 
-        desc = " mat4 u_view; mat4 u_mvp; mat4 u_mv; mat4 u_mv_it; mat4 u_model; mat4 u_view_i; float u_right;";
+        desc = " mat4 u_view; mat4 u_mvp; mat4 u_mv; mat4 u_mv_it; mat4 u_view_i; mat4 u_model; float u_right;";
         transform_ubo_[0] = reinterpret_cast<GLUniformBlock*>
                             (createUniformBlock(desc, TRANSFORM_UBO_INDEX, "Transform_ubo", 0));
         transform_ubo_[0]->useGPUBuffer(false);
@@ -266,7 +266,7 @@ namespace gvr
             }
             GL(glDisable(GL_DEPTH_TEST));
             GL(glDisable(GL_CULL_FACE));
-            for (int i = 0; i < npost - 1; ++i)
+            for (int i = 0; i < npost; ++i)
             {
                 if (i % 2 == 0)
                 {
@@ -673,28 +673,20 @@ namespace gvr
         }
         checkGLError("GLRenderer::updateLights");
     }
-Mesh* GLRenderer::getPostEffectMesh()
+void GLRenderer::updatePostEffectMesh(Mesh* copy_mesh)
 {
-    if (post_effect_mesh_)
-    {
-        return post_effect_mesh_;
-    }
     float positions[] = { -1.0f, -1.0f, 0.0f, -1.0f, 1.0f, 0.0f, 1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 0.0f };
     float uvs[] = { 0.0f, 0.0, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f };
     unsigned short faces[] = { 0, 2, 1, 1, 2, 3 };
-    Mesh* mesh = new Mesh("float3 a_position float2 a_texcoord");
 
     const int position_size = sizeof(positions)/ sizeof(positions[0]);
     const int uv_size = sizeof(uvs)/ sizeof(uvs[0]);
     const int faces_size = sizeof(faces)/ sizeof(faces[0]);
 
-    mesh->setVertices(positions, position_size);
-    mesh->setFloatVec("a_texcoord", uvs, uv_size);
-    mesh->setTriangles(faces, faces_size);
-    post_effect_mesh_ = mesh;
-    return mesh;
-}
+    copy_mesh->setVertices(positions, position_size);
+    copy_mesh->setFloatVec("a_texcoord", uvs, uv_size);
+    copy_mesh->setTriangles(faces, faces_size);
 }
 
-
+}
 

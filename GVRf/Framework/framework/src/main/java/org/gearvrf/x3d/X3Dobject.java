@@ -453,8 +453,6 @@ public class X3Dobject {
             float[] pos = new float[3];
             float[] norm = new float[3];
             float[] tc = new float[2];
-            float minYtextureCoordinate = Float.MAX_VALUE;
-            float maxYtextureCoordinate = Float.MIN_VALUE;
             int[] normalIndices = (mNormalIndices.getSize() > 0) ? mNormalIndices.array() : mPositionIndices.array();
             int[] texcoordIndices = (mTexcoordIndices.getSize() > 0) ? mTexcoordIndices.array() : mPositionIndices.array();
 
@@ -474,15 +472,8 @@ public class X3Dobject {
                 {
                     int tindex = texcoordIndices[f] * 2;
                     mInputTexCoords.get(tindex, tc);
-
-                    if (tc[1] < minYtextureCoordinate)
-                    {
-                        minYtextureCoordinate = tc[1];
-                    }
-                    if (tc[0] > maxYtextureCoordinate)
-                    {
-                        maxYtextureCoordinate = tc[0];
-                    }
+                    // flip the Y texture coordinate
+                    tc[1] = -tc[1];
                     key += String.valueOf(tc[0]) + String.valueOf(tc[1]);
                 }
                 if (hasNormals)
@@ -570,7 +561,15 @@ public class X3Dobject {
             }
             if (mInputTexCoords.getSize() > 0)
             {
-                vbuffer.setFloatArray("a_texcoord", mInputTexCoords.array(), 2, 0);
+                // flip the Y texture coordinate
+
+                float[] texCoords = mInputTexCoords.array().clone();
+                int n = texCoords.length;
+                for(int i=1; i<n; i+=2)
+                {
+                    texCoords[i] = -texCoords[i];
+                }
+                vbuffer.setFloatArray("a_texcoord", texCoords, 2, 0);
             }
             ibuf.setIntVec(mPositionIndices.array());
             clear();
