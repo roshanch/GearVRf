@@ -42,7 +42,7 @@ public class GVRTextureParameters {
      */
     public GVRTextureParameters(GVRContext gvrContext) {
         mGVRContext = gvrContext;
-        minFilterType = TextureFilterType.GL_LINEAR;
+        minFilterType = TextureFilterType.GL_LINEAR_MIPMAP_NEAREST;
         magFilterType = TextureFilterType.GL_LINEAR;
         wrapSType = TextureWrapType.GL_CLAMP_TO_EDGE;
         wrapTType = TextureWrapType.GL_CLAMP_TO_EDGE;
