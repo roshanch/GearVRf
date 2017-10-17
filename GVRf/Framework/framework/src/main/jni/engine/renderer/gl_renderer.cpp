@@ -285,7 +285,7 @@ namespace gvr
                 input_texture = renderTexture;
             }
             GL(glBindFramebuffer(GL_FRAMEBUFFER, drawFboId));
-            GL(glViewport(0, 0, viewport[2], viewport[3]));
+            GL(glViewport(viewport[0], viewport[1], viewport[2], viewport[3]));
             GL(glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT));
             renderPostEffectData(rstate, input_texture, post_effects, npost);
         }
