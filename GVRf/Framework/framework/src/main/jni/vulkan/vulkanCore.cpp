@@ -85,6 +85,7 @@ std::string vertexShaderData = std::string("") +
                                "}";
 
 namespace gvr {
+
     std::vector<uint64_t> samplers;
     VulkanCore *VulkanCore::theInstance = NULL;
     uint8_t *oculusTexData;
@@ -435,10 +436,6 @@ namespace gvr {
         if(postEffectCmdBuffer != nullptr)
             return;
 
-        for (int i = 0; i < POSTEFFECT_CHAIN_COUNT; i++) {
-            mPostEffectTexture[i] = new VkRenderTexture(VIEWPORT_WIDTH, VIEWPORT_WIDTH);
-        }
-
         postEffectCmdBuffer = new VkCommandBuffer();
         VkResult ret = vkAllocateCommandBuffers(
                 m_device,
@@ -519,7 +516,7 @@ void VulkanCore::InitCommandPools(){
         GVR_VK_CHECK(!ret);
     }
 
-    void VulkanCore::InitLayoutRenderData(VulkanMaterial &vkMtl, VulkanRenderData* vkdata, Shader *shader, bool postEffectFlag) {
+    void VulkanCore::InitLayoutRenderData(VulkanMaterial &vkMtl, VulkanRenderData* vkdata, Shader *shader) {
 
         const DataDescriptor& textureDescriptor = shader->getTextureDescriptor();
         DataDescriptor &uniformDescriptor = shader->getUniformDescriptor();
@@ -537,18 +534,6 @@ void VulkanCore::InitCommandPools(){
         uint32_t index = 0;
         std::vector<VkDescriptorSetLayoutBinding> uniformAndSamplerBinding;
 
-        if(postEffectFlag){
-            // Has only one sampler input
-            index = TEXTURE_BIND_START;
-            VkDescriptorSetLayoutBinding layoutBinding;
-            layoutBinding.binding = index++;
-            layoutBinding.descriptorCount = 1;
-            layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-            layoutBinding.pImmutableSamplers = nullptr;
-            (uniformAndSamplerBinding).push_back(layoutBinding);
-        }
-        else
         vk_shader->makeLayout(vkMtl, uniformAndSamplerBinding,  index, vkdata);
 
         VkDescriptorSetLayout &descriptorLayout = reinterpret_cast<VulkanShader *>(shader)->getDescriptorLayout();
@@ -960,19 +945,12 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
 
         LOGI("Vulkan initsync end");
     }
-
-    void VulkanCore::BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector,
-                                                 Camera *camera, ShaderManager* shader_manager, RenderTarget* renderTarget) {
-        // For the triangle sample, we pre-record our command buffer, as it is static.
-        // We have a buffer per swap chain image, so loop over the creation process.
-        VkCommandBuffer &cmdBuffer = (reinterpret_cast<VkRenderTarget*>(renderTarget))->getCommandBuffer();
-
+    void beginCmdBuffer(VkCommandBuffer cmdBuffer){
         // vkBeginCommandBuffer should reset the command buffer, but Reset can be called
         // to make it more explicit.
         VkResult err;
         err = vkResetCommandBuffer(cmdBuffer, 0);
         GVR_VK_CHECK(!err);
-
 
         VkCommandBufferInheritanceInfo cmd_buf_hinfo = {};
         cmd_buf_hinfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
@@ -991,15 +969,52 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         cmd_buf_info.pInheritanceInfo = &cmd_buf_hinfo;
 
         // By calling vkBeginCommandBuffer, cmdBuffer is put into the recording state.
-        err = vkBeginCommandBuffer(cmdBuffer, &cmd_buf_info);
+        vkBeginCommandBuffer(cmdBuffer, &cmd_buf_info);
         GVR_VK_CHECK(!err);
-        renderTarget->beginRendering(Renderer::getInstance());
+    }
 
+    void VulkanCore::BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector,
+                                                 Camera *camera, ShaderManager* shader_manager, RenderTarget* renderTarget, VkRenderTexture* postEffectRenderTexture, bool postEffectFlag) {
+
+        VkResult err;
+        // For the triangle sample, we pre-record our command buffer, as it is static.
+        // We have a buffer per swap chain image, so loop over the creation process.
+        VkCommandBuffer cmdBuffer;
+
+        if(renderTarget != NULL)
+            cmdBuffer= (reinterpret_cast<VkRenderTarget*>(renderTarget))->getCommandBuffer();
+        else
+            cmdBuffer = *postEffectCmdBuffer;
+
+        beginCmdBuffer(cmdBuffer);
+
+        if(renderTarget!= NULL)
+            renderTarget->beginRendering(Renderer::getInstance());
+        else {
+            postEffectRenderTexture->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),camera->background_color_b(), camera->background_color_a());
+            postEffectRenderTexture->bind();
+            postEffectRenderTexture->beginRenderingPE(Renderer::getInstance());
+            VkViewport viewport = {};
+            viewport.height = (float) postEffectRenderTexture->height() ;
+            viewport.width = (float) postEffectRenderTexture->width();
+            viewport.minDepth = (float) 0.0f;
+            viewport.maxDepth = (float) 1.0f;
+
+            VkRect2D scissor = {};
+            scissor.extent.width = postEffectRenderTexture->width();
+            scissor.extent.height = postEffectRenderTexture->height();
+            scissor.offset.x = 0;
+            scissor.offset.y = 0;
+
+            vkCmdSetScissor(cmdBuffer,0,1, &scissor);
+            vkCmdSetViewport(cmdBuffer,0,1,&viewport);
+
+        }
         for (int j = 0; j < render_data_vector.size(); j++) {
 
             VulkanRenderData *rdata = reinterpret_cast<VulkanRenderData *>(render_data_vector[j]);
 
-            for(int curr_pass =0 ;curr_pass < rdata->pass_count(); curr_pass++) {
+            for(int curr_pass = postEffectFlag ? (rdata->pass_count() - 1) : 0 ;curr_pass < rdata->pass_count(); curr_pass++) {
 
                vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 rdata->getVKPipeline(curr_pass) );
@@ -1044,8 +1059,10 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
                     vkCmdDraw(cmdBuffer, mesh->getVertexCount(), 1, 0, 1);
            }
         }
-
-        renderTarget->endRendering(Renderer::getInstance());
+        if(renderTarget!= NULL)
+            renderTarget->endRendering(Renderer::getInstance());
+        else
+            postEffectRenderTexture->endRenderingPE(Renderer::getInstance());
 
         // By ending the command buffer, it is put out of record mode.
         err = vkEndCommandBuffer(cmdBuffer);
@@ -1053,54 +1070,44 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     }
 
 
-    void VulkanCore::BuildCmdBufferForRenderDataPE(Camera *camera, RenderData* rdataPE, Shader* shader, int postEffectIndx) {
+    void VulkanCore::BuildCmdBufferForRenderDataPE(VkCommandBuffer &cmdBuffer, ShaderManager* shader_manager, Camera *camera, RenderData* rdataPE, VkRenderTexture* renderTexture, int pass) {
         // For the triangle sample, we pre-record our command buffer, as it is static.
         // We have a buffer per swap chain image, so loop over the creation process.
-        VkCommandBuffer &cmdBuffer = *(postEffectCmdBuffer);
 
-        // vkBeginCommandBuffer should reset the command buffer, but Reset can be called
-        // to make it more explicit.
         VkResult err;
-        err = vkResetCommandBuffer(cmdBuffer, 0);
-        GVR_VK_CHECK(!err);
+        beginCmdBuffer(cmdBuffer);
 
-        VkCommandBufferInheritanceInfo cmd_buf_hinfo = {};
-        cmd_buf_hinfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
-        cmd_buf_hinfo.pNext = nullptr;
-        cmd_buf_hinfo.renderPass = VK_NULL_HANDLE;
-        cmd_buf_hinfo.subpass = 0;
-        cmd_buf_hinfo.framebuffer = VK_NULL_HANDLE;
-        cmd_buf_hinfo.occlusionQueryEnable = VK_FALSE;
-        cmd_buf_hinfo.queryFlags = 0;
-        cmd_buf_hinfo.pipelineStatistics = 0;
+        renderTexture->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),camera->background_color_b(), camera->background_color_a());
+        renderTexture->bind();
+        renderTexture->beginRenderingPE(Renderer::getInstance());
+        VkViewport viewport = {};
+        viewport.height = (float) renderTexture->height() ;
+        viewport.width = (float) renderTexture->width();
+        viewport.minDepth = (float) 0.0f;
+        viewport.maxDepth = (float) 1.0f;
 
-        VkCommandBufferBeginInfo cmd_buf_info = {};
-        cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        cmd_buf_info.pNext = nullptr;
-        cmd_buf_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
-        cmd_buf_info.pInheritanceInfo = &cmd_buf_hinfo;
+        VkRect2D scissor = {};
+        scissor.extent.width = renderTexture->width();
+        scissor.extent.height = renderTexture->height();
+        scissor.offset.x = 0;
+        scissor.offset.y = 0;
 
-        // By calling vkBeginCommandBuffer, cmdBuffer is put into the recording state.
-        err = vkBeginCommandBuffer(cmdBuffer, &cmd_buf_info);
-        GVR_VK_CHECK(!err);
-
-        mPostEffectTexture[postEffectIndx%2]->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),camera->background_color_b(), camera->background_color_a());
-        mPostEffectTexture[postEffectIndx%2]->bind();
-        mPostEffectTexture[postEffectIndx%2]->beginRenderingPE(Renderer::getInstance());
-
+        vkCmdSetScissor(cmdBuffer,0,1, &scissor);
+        vkCmdSetViewport(cmdBuffer,0,1,&viewport);
         // Apply Post Effects
             VulkanRenderData *vkRdata = static_cast<VulkanRenderData *>(rdataPE);
 
             // Set our pipeline. This holds all major state
             // the pipeline defines, for example, that the vertex buffer is a triangle list.
             vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                              vkRdata->getVKPipeline(0));
+                              vkRdata->getVKPipeline(pass));
+            VulkanShader *shader = reinterpret_cast<VulkanShader *>(shader_manager->getShader(
+                rdataPE->get_shader(false,pass)));
+            VkPipelineLayout &pipelineLayout = (shader)->getPipelineLayout();
 
-            VkPipelineLayout &pipelineLayout = reinterpret_cast<VulkanShader *>(shader)->getPipelineLayout();
-
-            VkDescriptorSet descriptorSet1 = vkRdata->getDescriptorSet(0);
-            VulkanMaterial *vkmtl = (VulkanMaterial *)static_cast<VulkanMaterial *>(vkRdata->material(
-                    0));
+            VkDescriptorSet descriptorSet1 = vkRdata->getDescriptorSet(pass);
+            VulkanMaterial *vkmtl = static_cast<VulkanMaterial *>(vkRdata->material(
+                    pass));
             vkCmdPushConstants(cmdBuffer, pipelineLayout,
                                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
                                0,
@@ -1134,20 +1141,15 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
             vkCmdDraw(cmdBuffer, mesh->getVertexCount(), 1, 0, 1);
 
 
-        mPostEffectTexture[postEffectIndx%2]->endRenderingPE(Renderer::getInstance());
+        renderTexture->endRenderingPE(Renderer::getInstance());
 
         // By ending the command buffer, it is put out of record mode.
         err = vkEndCommandBuffer(cmdBuffer);
         GVR_VK_CHECK(!err);
     }
 
-    int VulkanCore::AcquireNextImage() {
-        imageIndex = (imageIndex + 1) % SWAP_CHAIN_COUNT;
-        return imageIndex;
-    }
-    void VulkanCore::submitCmdBuffer(VkRenderTarget* renderTarget){
+    void VulkanCore::submitCmdBuffer(VkFence fence, VkCommandBuffer cmdBuffer){
 
-        VkFence fence = reinterpret_cast<VkRenderTexture*>(renderTarget->getTexture())->getFenceObject();
         VkResult err;
         // Get the next image to render to, then queue a wait until the image is ready
         vkResetFences(m_device, 1, &fence);
@@ -1159,7 +1161,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         submitInfo.pWaitSemaphores = nullptr;
         submitInfo.pWaitDstStageMask = nullptr;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = &renderTarget->getCommandBuffer();
+        submitInfo.pCommandBuffers = &cmdBuffer;
         submitInfo.signalSemaphoreCount = 0;
         submitInfo.pSignalSemaphores = nullptr;
 
@@ -1200,51 +1202,21 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         return reinterpret_cast<VkRenderTexture*>(renderTarget1->getTexture());
     }
 
-    int VulkanCore::DrawFrameForRenderDataPE() {
+     int VulkanCore::waitForFence(VkFence fence) {
+        if(VK_SUCCESS == vkWaitForFences(m_device, 1, &fence, VK_TRUE,
+                        4294967295U))
+            return 1;
 
-        VkResult err;
-        // Get the next image to render to, then queue a wait until the image is ready
-        VkFence nullFence = postEffectFence;
-        vkResetFences(m_device, 1, &postEffectFence);
+        return 0;
 
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.pNext = nullptr;
-        submitInfo.waitSemaphoreCount = 0;
-        submitInfo.pWaitSemaphores = nullptr;
-        submitInfo.pWaitDstStageMask = nullptr;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pCommandBuffers = postEffectCmdBuffer;
-        submitInfo.signalSemaphoreCount = 0;
-        submitInfo.pSignalSemaphores = nullptr;
-
-        err = vkQueueSubmit(m_queue, 1, &submitInfo, postEffectFence);
-        GVR_VK_CHECK(!err);
-
-        vkWaitForFences(m_device, 1, &postEffectFence, VK_TRUE,
-                        4294967295U);
-        //GVR_VK_CHECK(!err);
     }
     void VulkanCore::renderToOculus(RenderTarget* renderTarget){
-        Camera* camera = renderTarget->getCamera();
-        RenderData* post_effects = camera->post_effect_data();
-        int posteffectCount = 0;
-        if(post_effects)
-            posteffectCount = post_effects->pass_count();
 
-        VkRenderTexture* renderTexture;
-        if(posteffectCount)
-            renderTexture = getPostEffectRenderTexture((posteffectCount - 1)%2);
-        else
-            renderTexture = getRenderTexture(reinterpret_cast<VkRenderTarget*>(renderTarget));
-
+        VkRenderTexture* renderTexture = getRenderTexture(reinterpret_cast<VkRenderTarget*>(renderTarget));
         VkCommandBuffer trnCmdBuf;
         createTransientCmdBuffer(trnCmdBuf);
-
         renderTexture->readVkRenderResult(&oculusTexData,trnCmdBuf,waitSCBFences);
-
         vkFreeCommandBuffers(m_device, m_commandPoolTrans, 1, &trnCmdBuf);
-
     }
 
     void VulkanCore::GetDescriptorPool(VkDescriptorPool& descriptorPool){
@@ -1319,54 +1291,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         LOGI("Vulkan after update descriptor");
         return true;
     }
-
-    bool VulkanCore::InitDescriptorSetForRenderDataPostEffect(VulkanRenderer* renderer, int pass, Shader* shader, VulkanRenderData* vkData, int postEffectIndx, VkRenderTarget* renderTarget) {
-        VkDescriptorPool descriptorPool;
-        GetDescriptorPool(descriptorPool);
-        VkDescriptorSetLayout &descriptorLayout = reinterpret_cast<VulkanShader *>(shader)->getDescriptorLayout();
-        VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
-        descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        descriptorSetAllocateInfo.pNext = nullptr;
-        descriptorSetAllocateInfo.descriptorPool = descriptorPool;
-        descriptorSetAllocateInfo.descriptorSetCount = 1;
-        descriptorSetAllocateInfo.pSetLayouts = &descriptorLayout;
-
-        VkDescriptorSet descriptorSet;
-        VkResult err = vkAllocateDescriptorSets(m_device, &descriptorSetAllocateInfo, &descriptorSet);
-        GVR_VK_CHECK(!err);
-
-        vkData->setDescriptorSet(descriptorSet,pass);
-        VkDescriptorImageInfo descriptorImageInfoPass2[1] = {};
-             descriptorImageInfoPass2[0].sampler = VK_NULL_HANDLE;
-
-        VkRenderTexture* renderTexture = reinterpret_cast<VkRenderTexture*>(renderTarget->getTexture());
-        renderTexture->getRenderPass();
-        if(postEffectIndx == 0) {
-            descriptorImageInfoPass2[0].imageView = renderTexture->getFBO()->getImageView(
-                    COLOR_IMAGE);
-            descriptorImageInfoPass2[0].imageLayout = renderTexture->getFBO()->getImageLayout(
-                    COLOR_IMAGE);
-        }else{
-            descriptorImageInfoPass2[0].imageView = mPostEffectTexture[(postEffectIndx - 1) % 2]->getFBO()->getImageView(
-                    COLOR_IMAGE);
-            descriptorImageInfoPass2[0].imageLayout = mPostEffectTexture[(postEffectIndx - 1) % 2]->getFBO()->getImageLayout(
-                    COLOR_IMAGE);
-        }
-
-        VkWriteDescriptorSet writes[1] = {};
-        writes[0].sType             = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        writes[0].dstBinding        = TEXTURE_BIND_START;
-        writes[0].dstSet            = descriptorSet;
-        writes[0].descriptorCount   = 1;
-        writes[0].descriptorType    = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        writes[0].pImageInfo        = &descriptorImageInfoPass2[0];
-
-        vkUpdateDescriptorSets(m_device, 1, &writes[0], 0, nullptr);
-        vkData->setDescriptorSetNull(false,pass);
-        LOGI("Vulkan after update descriptor");
-        return true;
-    }
-
     void VulkanCore::createPipelineCache() {
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
         pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
@@ -1601,10 +1525,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
 
         if(postEffectCmdBuffer != nullptr){
             vkFreeCommandBuffers(m_device, m_commandPool, 1, postEffectCmdBuffer);
-            for (int i = 0; i < POSTEFFECT_CHAIN_COUNT; i++) {
-                delete mPostEffectTexture[i];
-            }
-
             vkDestroyFence(m_device, postEffectFence, nullptr);
         }
 

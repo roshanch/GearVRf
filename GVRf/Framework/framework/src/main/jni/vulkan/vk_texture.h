@@ -46,16 +46,18 @@ public:
         mImageInfo.sampler = getVkSampler();
         return  mImageInfo;
     }
+    static void createSampler(TextureParameters&, int maxLod);
 private:
     VkTexture(const VkTexture& gl_texture);
     VkTexture(VkTexture&& gl_texture);
     VkTexture& operator=(const VkTexture& gl_texture);
     VkTexture& operator=(VkTexture&& gl_texture);
-    void createSampler(int maxLod);
+
     void updateSampler();
     bool updateImage();
 
 protected:
+
     VkDescriptorImageInfo mImageInfo;
     static VkSamplerAddressMode MapWrap[];
     static VkFilter MapFilter[];

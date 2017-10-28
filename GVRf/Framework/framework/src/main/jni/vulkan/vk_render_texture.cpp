@@ -17,7 +17,7 @@
 #include "../engine/renderer/renderer.h"
 #include "vk_render_to_texture.h"
 #include "../engine/renderer/vulkan_renderer.h"
-
+#include "vk_texture.h"
 namespace gvr{
 void VkRenderTexture::bind() {
     if(fbo == nullptr){
@@ -30,11 +30,13 @@ void VkRenderTexture::bind() {
 
 }
 const VkDescriptorImageInfo& VkRenderTexture::getDescriptorImage(){
-    LOGE("inside VkRenderTexture::getDescriptorImage");
     mImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
     mImageInfo.imageView = fbo->getImageView(COLOR_IMAGE);
-    uint64_t index = TextureParameters().getHashCode();
+    TextureParameters textureParameters = TextureParameters();
+    uint64_t index = textureParameters.getHashCode();
     index = (index << 32) | 1;
+    if(getSampler(index) == 0)
+        VkTexture::createSampler(textureParameters,1);
     mImageInfo.sampler = getSampler(index);
     return  mImageInfo;
 }
@@ -50,12 +52,17 @@ bool VkRenderTexture::isReady(){
     VkResult err;
     VulkanRenderer* renderer = reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
     VkDevice device = renderer->getDevice();
-    err = vkWaitForFences(device, 1, &mWaitFence , VK_TRUE,
-                          4294967295U);
-    if(err == VK_SUCCESS)
-        return true;
+    if(mWaitFence != 0) {
+        err = vkGetFenceStatus(device,mWaitFence);
+        if (err == VK_SUCCESS)
+            return true;
 
-    return false;
+        if(VK_SUCCESS != vkWaitForFences(device, 1, &mWaitFence, VK_TRUE,
+                              4294967295U))
+            return false;
+
+    }
+    return true;
 }
 void VkRenderTexture::createFenceObject(VkDevice device){
     VkResult ret = VK_SUCCESS;
@@ -110,6 +117,7 @@ bool VkRenderTexture::readVkRenderResult(uint8_t **readback_buffer, VkCommandBuf
 
     if(!fbo)
         return true;
+
     VkResult err;
     VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
     VkDevice device = vk_renderer->getDevice();

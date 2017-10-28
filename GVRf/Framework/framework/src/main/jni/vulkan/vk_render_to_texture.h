@@ -28,7 +28,7 @@ class VkRenderTexture : public RenderTexture
     void createRenderPass();
     int mWidth, mHeight;
     std::vector <VkClearValue> clear_values;
-    VkFence mWaitFence;
+    VkFence mWaitFence = 0;
     VkDescriptorImageInfo mImageInfo;
 public:
     VkFence& getFenceObject(){

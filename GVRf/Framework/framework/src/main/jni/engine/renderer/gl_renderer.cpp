@@ -246,6 +246,11 @@ namespace gvr
         }
         else
         {
+            if (post_effects->isValid(this, rstate) < 0)
+            {
+                LOGE("Renderer::renderPostEffectData is dirty");
+                return;             // no shader available
+            }
             static GLint viewport[4];
             glGetIntegerv(GL_VIEWPORT,viewport);
             GLint drawFboId = 0;

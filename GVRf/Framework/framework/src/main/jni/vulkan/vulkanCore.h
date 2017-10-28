@@ -99,27 +99,24 @@ public:
 
     ~VulkanCore();
 
-    void InitLayoutRenderData(VulkanMaterial& vkMtl, VulkanRenderData* vkdata, Shader*, bool postEffectFlag);
+    void InitLayoutRenderData(VulkanMaterial& vkMtl, VulkanRenderData* vkdata, Shader*);
 
     void initCmdBuffer(VkCommandBufferLevel level,VkCommandBuffer& cmdBuffer);
 
     bool InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader*, VulkanRenderData* vkData);
-    bool InitDescriptorSetForRenderDataPostEffect(VulkanRenderer* renderer, int pass, Shader*, VulkanRenderData* vkData, int postEffectIndx, VkRenderTarget*);
 
-
-    void BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector, Camera*, ShaderManager*,RenderTarget*);
-    void BuildCmdBufferForRenderDataPE(Camera*, RenderData* rdata, Shader* shader, int postEffectIndx);
+    void BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector, Camera*, ShaderManager*,RenderTarget*,VkRenderTexture*, bool);
+    void BuildCmdBufferForRenderDataPE(VkCommandBuffer &cmdBuffer, ShaderManager*, Camera*, RenderData* rdata, VkRenderTexture*, int);
 
     VkRenderTexture* getRenderTexture(VkRenderTarget*);
-    int DrawFrameForRenderDataPE();
+    int waitForFence(VkFence fence);
 
     VkCommandBuffer* getCurrentCmdBufferPE(){
         return postEffectCmdBuffer;
     }
-    int AcquireNextImage();
 
     void InitPipelineForRenderData(const GVR_VK_Vertices *m_vertices, VulkanRenderData *rdata, VulkanShader* shader, int, VkRenderPass);
-    void submitCmdBuffer(VkRenderTarget* renderTarget);
+    void submitCmdBuffer(VkFence fence, VkCommandBuffer cmdBuffer);
     bool GetMemoryTypeFromProperties(uint32_t typeBits, VkFlags requirements_mask,
                                      uint32_t *typeIndex);
 
@@ -161,8 +158,9 @@ public:
     VkCommandPool getCommandPool(){
         return m_commandPool;
     }
-    VkRenderTexture* getPostEffectRenderTexture(int index){
-        return mPostEffectTexture[index];
+
+    VkFence getPostEffectFence(){
+        return postEffectFence;
     }
     void renderToOculus(RenderTarget* renderTarget);
 private:
@@ -189,8 +187,6 @@ private:
     bool InitDevice();
 
     void InitSurface();
-
-    void InitSwapchain(uint32_t width, uint32_t height);
 
     void InitSync();
 
@@ -232,8 +228,6 @@ private:
 
     TextureObject * textureObject;
 
-   // VkRenderTexture* mRenderTexture[SWAP_CHAIN_COUNT];
-    VkRenderTexture* mPostEffectTexture[POSTEFFECT_CHAIN_COUNT];
     VkRenderPass mRenderPassMap[2];
 };
 }
