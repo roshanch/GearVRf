@@ -64,6 +64,12 @@ protected:
     }
 
 public:
+    VkFence createFenceObject(){
+        return vulkanCore_->createFenceObject();
+    }
+    VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level){
+        return vulkanCore_->createCommandBuffer(level);
+    }
     void renderToOculus(RenderTarget* renderTarget){
         vulkanCore_->renderToOculus(renderTarget);
     }

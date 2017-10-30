@@ -30,14 +30,18 @@ class VkRenderTexture : public RenderTexture
     std::vector <VkClearValue> clear_values;
     VkFence mWaitFence = 0;
     VkDescriptorImageInfo mImageInfo;
+    VkCommandBuffer mCmdBuffer;
 public:
+    VkCommandBuffer& getCommandBuffer(){
+        return mCmdBuffer;
+    }
     VkFence& getFenceObject(){
         return mWaitFence;
     }
+    void initVkData();
     virtual const VkDescriptorImageInfo& getDescriptorImage();
     // isReady() for renderTexture is blocking call, we will wait till command buffer rendering is complete
     virtual bool isReady();
-    void createFenceObject(VkDevice device);
     VkRenderPassBeginInfo getRenderPassBeginInfo();
     VKFramebuffer* getFBO(){
         return fbo;
@@ -51,7 +55,7 @@ public:
     virtual ~VkRenderTexture(){
         delete fbo;
     }
-    VkRenderTexture(int width, int height, int sample_count = 1):RenderTexture(sample_count), fbo(nullptr),mWidth(width), mHeight(height){}
+    VkRenderTexture(int width, int height, int sample_count = 1);
     virtual unsigned int getFrameBufferId() const {
 
     }
@@ -61,9 +65,9 @@ public:
     }
     virtual void bind();
     virtual void beginRendering(Renderer* renderer);
-    virtual void beginRenderingPE(Renderer* renderer);
-    virtual void endRendering(Renderer*){}
-    virtual void endRenderingPE(Renderer* renderer);
+    virtual void endRendering(Renderer*){
+        vkCmdEndRenderPass(mCmdBuffer);
+    }
     // Start to read back texture in the background. It can be optionally called before
     // readRenderResult() to read pixels asynchronously. This function returns immediately.
     virtual void startReadBack() {
@@ -72,13 +76,12 @@ public:
 
     // Copy data in pixel buffer to client memory. This function is synchronous. When
     // it returns, the pixels have been copied to PBO and then to the client memory.
-    virtual bool readRenderResult(uint8_t *readback_buffer) {}
+    virtual bool readRenderResult(uint8_t **readback_buffer);
     virtual void setLayerIndex(int layer_index) {}
     // Copy data in pixel buffer to client memory. This function is synchronous. When
     // it returns, the pixels have been copied to PBO and then to the client memory.
     virtual bool readRenderResult(uint8_t *readback_buffer, long capacity) {
     }
-    bool readVkRenderResult(uint8_t **readback_buffer, VkCommandBuffer& cmd_buffer,VkFence& fence);
     VkRenderPass getRenderPass(){
         bind();
         return fbo->getRenderPass();

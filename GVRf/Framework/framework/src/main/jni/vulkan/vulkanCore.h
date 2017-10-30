@@ -104,17 +104,15 @@ public:
     void initCmdBuffer(VkCommandBufferLevel level,VkCommandBuffer& cmdBuffer);
 
     bool InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader*, VulkanRenderData* vkData);
-
+    void beginCmdBuffer(VkCommandBuffer cmdBuffer);
     void BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector, Camera*, ShaderManager*,RenderTarget*,VkRenderTexture*, bool);
     void BuildCmdBufferForRenderDataPE(VkCommandBuffer &cmdBuffer, ShaderManager*, Camera*, RenderData* rdata, VkRenderTexture*, int);
 
     VkRenderTexture* getRenderTexture(VkRenderTarget*);
     int waitForFence(VkFence fence);
 
-    VkCommandBuffer* getCurrentCmdBufferPE(){
-        return postEffectCmdBuffer;
-    }
-
+    VkFence createFenceObject();
+    VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level);
     void InitPipelineForRenderData(const GVR_VK_Vertices *m_vertices, VulkanRenderData *rdata, VulkanShader* shader, int, VkRenderPass);
     void submitCmdBuffer(VkFence fence, VkCommandBuffer cmdBuffer);
     bool GetMemoryTypeFromProperties(uint32_t typeBits, VkFlags requirements_mask,
@@ -159,14 +157,9 @@ public:
         return m_commandPool;
     }
 
-    VkFence getPostEffectFence(){
-        return postEffectFence;
-    }
     void renderToOculus(RenderTarget* renderTarget);
 private:
- //   std::vector <VkFence> waitFences;
-    VkFence postEffectFence;
-    VkFence waitSCBFences;
+
     static VulkanCore *theInstance;
     std::unordered_map<std::string, VkPipeline> pipelineHashMap;
 
@@ -191,8 +184,6 @@ private:
     void InitSync();
 
     void createPipelineCache();
-    void InitTexture();
-    VkCommandBuffer textureCmdBuffer;
 
     bool m_Vulkan_Initialised;
 
@@ -201,7 +192,7 @@ private:
                                          const std::string &shaderContents);
     void InitShaders(VkPipelineShaderStageCreateInfo shaderStages[],
                      std::vector<uint32_t>& result_vert, std::vector<uint32_t>& result_frag);
-    void CreateSampler(TextureObject * &textureObject);
+
     void GetDescriptorPool(VkDescriptorPool& descriptorPool);
 
     ANativeWindow *m_androidWindow;
@@ -222,11 +213,7 @@ private:
     VkCommandPool m_commandPool;
     VkCommandPool m_commandPoolTrans;
 
-    int imageIndex = 0;
-
     VkPipelineCache m_pipelineCache;
-
-    TextureObject * textureObject;
 
     VkRenderPass mRenderPassMap[2];
 };

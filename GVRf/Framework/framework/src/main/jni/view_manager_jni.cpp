@@ -79,7 +79,7 @@ JNIEXPORT void JNICALL Java_org_gearvrf_GVRViewManager_readRenderResultNative(JN
     if(useMultiview){
             renderTexture->setLayerIndex(eye);
     }
-    renderTexture->readRenderResult(readback_buffer);
+    renderTexture->readRenderResult(&readback_buffer);
 }
 
 }

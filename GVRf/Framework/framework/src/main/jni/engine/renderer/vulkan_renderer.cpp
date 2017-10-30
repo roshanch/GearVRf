@@ -232,8 +232,8 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, RenderTarget* renderTarget
         VkRenderTexture* input_texture = renderTexture;
         vulkanCore_->BuildCmdBufferForRenderData(render_data_list, camera, shader_manager,
                                                  nullptr, renderTexture, false);
-        vulkanCore_->submitCmdBuffer(vulkanCore_->getPostEffectFence(), *vulkanCore_->getCurrentCmdBufferPE());
-        vulkanCore_->waitForFence(vulkanCore_->getPostEffectFence());
+        vulkanCore_->submitCmdBuffer(renderTexture->getFenceObject(), renderTexture->getCommandBuffer());
+        vulkanCore_->waitForFence(renderTexture->getFenceObject());
 
         postEffectCount = post_effects->pass_count();
         // Call Post Effect
@@ -251,10 +251,10 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, RenderTarget* renderTarget
             if(!renderPostEffectData(rstate,input_texture,post_effects,i))
                 return;
 
-            VkCommandBuffer cmdbuffer = *vulkanCore_->getCurrentCmdBufferPE();
+            VkCommandBuffer cmdbuffer = renderTexture->getCommandBuffer();
             vulkanCore_->BuildCmdBufferForRenderDataPE(cmdbuffer, rstate.shader_manager,camera, post_effects, renderTexture, i);
-            vulkanCore_->submitCmdBuffer(vulkanCore_->getPostEffectFence(),cmdbuffer);
-            vulkanCore_->waitForFence(vulkanCore_->getPostEffectFence());
+            vulkanCore_->submitCmdBuffer(renderTexture->getFenceObject(),cmdbuffer);
+            vulkanCore_->waitForFence(renderTexture->getFenceObject());
             input_texture = renderTexture;
         }
         render_data_list.clear();

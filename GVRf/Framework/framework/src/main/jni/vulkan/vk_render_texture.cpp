@@ -19,6 +19,9 @@
 #include "../engine/renderer/vulkan_renderer.h"
 #include "vk_texture.h"
 namespace gvr{
+VkRenderTexture::VkRenderTexture(int width, int height, int sample_count):RenderTexture(sample_count), fbo(nullptr),mWidth(width), mHeight(height){
+    initVkData();
+}
 void VkRenderTexture::bind() {
     if(fbo == nullptr){
         fbo = new VKFramebuffer(mWidth,mHeight);
@@ -64,15 +67,11 @@ bool VkRenderTexture::isReady(){
     }
     return true;
 }
-void VkRenderTexture::createFenceObject(VkDevice device){
-    VkResult ret = VK_SUCCESS;
-    ret = vkCreateFence(device, gvr::FenceCreateInfo(), nullptr, &mWaitFence);
-    GVR_VK_CHECK(!ret);
+void VkRenderTexture::initVkData(){
+    VulkanRenderer* renderer = reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
+    mCmdBuffer = renderer->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+    mWaitFence = renderer->createFenceObject();
 }
-    void VkRenderTexture::endRenderingPE(Renderer* renderer) {
-        VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(renderer);
-        vkCmdEndRenderPass(*(vk_renderer->getCore()->getCurrentCmdBufferPE()));
-    }
 
 VkRenderPassBeginInfo VkRenderTexture::getRenderPassBeginInfo(){
     clear_values[0].color.float32[0] = mBackColor[0];
@@ -99,32 +98,36 @@ VkRenderPassBeginInfo VkRenderTexture::getRenderPassBeginInfo(){
 }
 
 void VkRenderTexture::beginRendering(Renderer* renderer){
-
-    VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(renderer);
+    bind();
     VkRenderPassBeginInfo rp_begin = getRenderPassBeginInfo();
+    VkViewport viewport = {};
+    viewport.height = (float) height();
+    viewport.width = (float) width();
+    viewport.minDepth = (float) 0.0f;
+    viewport.maxDepth = (float) 1.0f;
 
-   // vkCmdBeginRenderPass(*(vk_renderer->getCore()->getCurrentCmdBuffer()), &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
+    VkRect2D scissor = {};
+    scissor.extent.width =(float) width();
+    scissor.extent.height =(float) height();
+    scissor.offset.x = 0;
+    scissor.offset.y = 0;
+
+    vkCmdSetScissor(mCmdBuffer,0,1, &scissor);
+    vkCmdSetViewport(mCmdBuffer,0,1,&viewport);
+    vkCmdBeginRenderPass(mCmdBuffer, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-    void VkRenderTexture::beginRenderingPE(Renderer* renderer){
-
-        VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(renderer);
-        VkRenderPassBeginInfo rp_begin = getRenderPassBeginInfo();
-
-        vkCmdBeginRenderPass(*(vk_renderer->getCore()->getCurrentCmdBufferPE()), &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
-    }
-bool VkRenderTexture::readVkRenderResult(uint8_t **readback_buffer, VkCommandBuffer& cmd_buffer,VkFence& fence) {
+bool VkRenderTexture::readRenderResult(uint8_t **readback_buffer) {
 
     if(!fbo)
-        return true;
+        return false;
 
     VkResult err;
     VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
     VkDevice device = vk_renderer->getDevice();
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    vkBeginCommandBuffer(cmd_buffer, &beginInfo);
+
+    err = vkResetFences(device, 1, &mWaitFence);
+    vk_renderer->getCore()->beginCmdBuffer(mCmdBuffer);
     VkBufferCopy copyRegion = {};
     copyRegion.srcOffset = 0; // Optional
     copyRegion.dstOffset = 0; // Optional
@@ -137,20 +140,20 @@ bool VkRenderTexture::readVkRenderResult(uint8_t **readback_buffer, VkCommandBuf
     region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     region.imageSubresource.layerCount = 1;
     region.imageExtent = extent3D;
-    vkCmdCopyImageToBuffer(cmd_buffer,  fbo->getImage(COLOR_IMAGE),
+    vkCmdCopyImageToBuffer(mCmdBuffer,  fbo->getImage(COLOR_IMAGE),
                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                            *(fbo->getImageBuffer(COLOR_IMAGE)), 1, &region);
-    vkEndCommandBuffer(cmd_buffer);
+    vkEndCommandBuffer(mCmdBuffer);
 
     VkSubmitInfo ssubmitInfo = {};
     ssubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     ssubmitInfo.commandBufferCount = 1;
-    ssubmitInfo.pCommandBuffers = &cmd_buffer;
+    ssubmitInfo.pCommandBuffers = &mCmdBuffer;
 
-    vkQueueSubmit(vk_renderer->getQueue(), 1, &ssubmitInfo, fence);
+    vkQueueSubmit(vk_renderer->getQueue(), 1, &ssubmitInfo, mWaitFence);
 
     uint8_t *data;
-    err = vkWaitForFences(device, 1, &fence, VK_TRUE, 4294967295U);
+    err = vkWaitForFences(device, 1, &mWaitFence, VK_TRUE, 4294967295U);
 
     VkDeviceMemory mem = fbo->getDeviceMemory(COLOR_IMAGE);
     err = vkMapMemory(device, mem, 0,
@@ -159,8 +162,5 @@ bool VkRenderTexture::readVkRenderResult(uint8_t **readback_buffer, VkCommandBuf
     GVR_VK_CHECK(!err);
 
     vkUnmapMemory(device, mem);
-    // Makes Fence Un-signalled
-    err = vkResetFences(device, 1, &fence);
-
 }
 }

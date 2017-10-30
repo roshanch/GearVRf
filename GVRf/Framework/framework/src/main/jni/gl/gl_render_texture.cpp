@@ -320,13 +320,13 @@ void GLRenderTexture::startReadBack() {
     glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 }
 
-bool GLRenderTexture::readRenderResult(uint8_t* readback_buffer){
+bool GLRenderTexture::readRenderResult(uint8_t** readback_buffer){
     long neededCapacity = mImage->getWidth() * mImage->getHeight();
     if (!readback_buffer) {
         LOGE("GLRenderTexture::readRenderResult: readback_buffer is null");
         return false;
     }
-    readRenderResult(readback_buffer,neededCapacity);
+    readRenderResult(*readback_buffer,neededCapacity);
 }
 
 bool GLRenderTexture::readRenderResult(uint8_t *readback_buffer, long capacity) {
