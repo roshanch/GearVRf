@@ -26,7 +26,7 @@ namespace gvr {
 class VkTexture : public  Texture
 {
 public:
-    explicit VkTexture() : Texture() { }
+    VkTexture() : Texture() { }
 
     explicit VkTexture(int texture_type) :
             Texture(texture_type)
@@ -48,10 +48,10 @@ public:
     }
     static void createSampler(TextureParameters&, int maxLod);
 private:
-    VkTexture(const VkTexture& gl_texture);
-    VkTexture(VkTexture&& gl_texture);
-    VkTexture& operator=(const VkTexture& gl_texture);
-    VkTexture& operator=(VkTexture&& gl_texture);
+    VkTexture(const VkTexture& gl_texture) = delete;
+    VkTexture(VkTexture&& gl_texture) = delete;
+    VkTexture& operator=(const VkTexture& gl_texture) = delete;
+    VkTexture& operator=(VkTexture&& gl_texture) = delete;
 
     void updateSampler();
     bool updateImage();
