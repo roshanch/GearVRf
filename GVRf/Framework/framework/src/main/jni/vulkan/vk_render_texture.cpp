@@ -26,7 +26,7 @@ void VkRenderTexture::bind() {
     if(fbo == nullptr){
         fbo = new VKFramebuffer(mWidth,mHeight);
         createRenderPass();
-        VulkanRenderer* vk_renderer= reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
+        VulkanRenderer* vk_renderer= static_cast<VulkanRenderer*>(Renderer::getInstance());
 
         fbo->createFrameBuffer(vk_renderer->getDevice(), DEPTH_IMAGE | COLOR_IMAGE, mSampleCount);
     }
@@ -45,7 +45,7 @@ const VkDescriptorImageInfo& VkRenderTexture::getDescriptorImage(){
 }
 
 void VkRenderTexture::createRenderPass(){
-    VulkanRenderer* vk_renderer= reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
+    VulkanRenderer* vk_renderer= static_cast<VulkanRenderer*>(Renderer::getInstance());
     VkRenderPass renderPass = vk_renderer->getCore()->createVkRenderPass(NORMAL_RENDERPASS, 1);
 
     clear_values.resize(2);
@@ -53,7 +53,7 @@ void VkRenderTexture::createRenderPass(){
 }
 bool VkRenderTexture::isReady(){
     VkResult err;
-    VulkanRenderer* renderer = reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
+    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Renderer::getInstance());
     VkDevice device = renderer->getDevice();
     if(mWaitFence != 0) {
         err = vkGetFenceStatus(device,mWaitFence);
@@ -68,7 +68,7 @@ bool VkRenderTexture::isReady(){
     return true;
 }
 void VkRenderTexture::initVkData(){
-    VulkanRenderer* renderer = reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
+    VulkanRenderer* renderer = static_cast<VulkanRenderer*>(Renderer::getInstance());
     mCmdBuffer = renderer->createCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
     mWaitFence = renderer->createFenceObject();
 }
@@ -123,7 +123,7 @@ bool VkRenderTexture::readRenderResult(uint8_t **readback_buffer) {
         return false;
 
     VkResult err;
-    VulkanRenderer* vk_renderer = reinterpret_cast<VulkanRenderer*>(Renderer::getInstance());
+    VulkanRenderer* vk_renderer = static_cast<VulkanRenderer*>(Renderer::getInstance());
     VkDevice device = vk_renderer->getDevice();
 
     err = vkResetFences(device, 1, &mWaitFence);

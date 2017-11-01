@@ -212,13 +212,13 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, RenderTarget* renderTarget
         rstate.material_override = NULL;
     }
     renderRenderDataVector(rstate,*render_data_vector,render_data_list);
-    VkRenderTarget *vk_renderTarget = reinterpret_cast<VkRenderTarget *>(renderTarget);
+    VkRenderTarget *vk_renderTarget = static_cast<VkRenderTarget *>(renderTarget);
 
     if ((post_effects != NULL) &&
         (post_effect_render_texture_a != nullptr) &&
         (post_effects->pass_count() >= 0)) {
 
-        VkRenderTexture* renderTexture = reinterpret_cast<VkRenderTexture*>(post_effect_render_texture_a);
+        VkRenderTexture* renderTexture = static_cast<VkRenderTexture*>(post_effect_render_texture_a);
         VkRenderTexture* input_texture = renderTexture;
         vulkanCore_->BuildCmdBufferForRenderData(render_data_list, camera, shader_manager,
                                                  nullptr, renderTexture, false);
@@ -254,14 +254,15 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, RenderTarget* renderTarget
             return;
 
         vulkanCore_->BuildCmdBufferForRenderData(render_data_list, camera, shader_manager, renderTarget, nullptr, true);
-        vulkanCore_->submitCmdBuffer(reinterpret_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(),
+        vulkanCore_->submitCmdBuffer(
+                static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(),
                 vk_renderTarget->getCommandBuffer());
     }
     else {
         vulkanCore_->BuildCmdBufferForRenderData(render_data_list, camera, shader_manager,
                                                  renderTarget, nullptr, false);
         vulkanCore_->submitCmdBuffer(
-                reinterpret_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(),
+                static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(),
                 vk_renderTarget->getCommandBuffer());
     }
 }

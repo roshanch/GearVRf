@@ -442,7 +442,7 @@ void VulkanCore::InitCommandPools(){
         const DataDescriptor& textureDescriptor = shader->getTextureDescriptor();
         DataDescriptor &uniformDescriptor = shader->getUniformDescriptor();
         bool transformUboPresent = shader->usesMatrixUniforms();
-        VulkanShader* vk_shader = reinterpret_cast<VulkanShader*>(shader);
+        VulkanShader* vk_shader = static_cast<VulkanShader*>(shader);
         if (!shader->isShaderDirty()) {
             return;
         }
@@ -457,7 +457,7 @@ void VulkanCore::InitCommandPools(){
 
         vk_shader->makeLayout(vkMtl, uniformAndSamplerBinding,  index, vkdata);
 
-        VkDescriptorSetLayout &descriptorLayout = reinterpret_cast<VulkanShader *>(shader)->getDescriptorLayout();
+        VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(shader)->getDescriptorLayout();
 
         ret = vkCreateDescriptorSetLayout(m_device, gvr::DescriptorSetLayoutCreateInfo(0,
                                                                                        uniformAndSamplerBinding.size(),
@@ -472,7 +472,7 @@ void VulkanCore::InitCommandPools(){
         pushConstantRange.size                          = (uint32_t) vkMtl.uniforms().getTotalSize();
         pushConstantRange.stageFlags                    = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-        VkPipelineLayout &pipelineLayout = reinterpret_cast<VulkanShader *>(shader)->getPipelineLayout();
+        VkPipelineLayout &pipelineLayout = static_cast<VulkanShader *>(shader)->getPipelineLayout();
         ret = vkCreatePipelineLayout(m_device,
                                      gvr::PipelineLayoutCreateInfo(0, 1, &descriptorLayout, 1, &pushConstantRange),
                                      nullptr, &pipelineLayout);
@@ -897,7 +897,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         VkCommandBuffer cmdBuffer;
 
         if(renderTarget != NULL)
-            cmdBuffer= (reinterpret_cast<VkRenderTarget*>(renderTarget))->getCommandBuffer();
+            cmdBuffer= (static_cast<VkRenderTarget*>(renderTarget))->getCommandBuffer();
         else
             cmdBuffer = postEffectRenderTexture->getCommandBuffer();
 
@@ -911,10 +911,10 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         }
         for (int j = 0; j < render_data_vector.size(); j++) {
 
-            VulkanRenderData *rdata = reinterpret_cast<VulkanRenderData *>(render_data_vector[j]);
+            VulkanRenderData *rdata = static_cast<VulkanRenderData *>(render_data_vector[j]);
 
             for(int curr_pass = postEffectFlag ? (rdata->pass_count() - 1) : 0 ;curr_pass < rdata->pass_count(); curr_pass++) {
-                VulkanShader *shader = reinterpret_cast<VulkanShader *>(shader_manager->getShader(
+                VulkanShader *shader = static_cast<VulkanShader *>(shader_manager->getShader(
                         rdata->get_shader(false,curr_pass)));
 
                 rdata->render(shader,cmdBuffer,curr_pass);
@@ -943,7 +943,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
 
         VulkanRenderData *vkRdata = static_cast<VulkanRenderData *>(rdataPE);
 
-        VulkanShader *shader = reinterpret_cast<VulkanShader *>(shader_manager->getShader(rdataPE->get_shader(false,pass)));
+        VulkanShader *shader = static_cast<VulkanShader *>(shader_manager->getShader(rdataPE->get_shader(false,pass)));
         vkRdata->render(shader,cmdBuffer,pass);
 
         renderTexture->endRendering(Renderer::getInstance());
@@ -976,7 +976,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     }
     VkRenderTexture* VulkanCore::getRenderTexture(VkRenderTarget* renderTarget) {
 
-        VkFence fence =  reinterpret_cast<VkRenderTexture*>(renderTarget->getTexture())->getFenceObject();
+        VkFence fence =  static_cast<VkRenderTexture*>(renderTarget->getTexture())->getFenceObject();
         VkRenderTarget* renderTarget1 = renderTarget ;
         VkResult err;
         err = vkGetFenceStatus(m_device, fence);
@@ -985,24 +985,24 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         VkResult status;
         // check the status of current fence, if not ready take the previous one, we are incrementing with 2 for left and right frames.
         if (err != VK_SUCCESS) {
-            renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget());
+            renderTarget1 = static_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget());
             while (renderTarget1!= nullptr && renderTarget1 != renderTarget) {
-                VkFence fence1 = reinterpret_cast<VkRenderTexture*>(renderTarget1->getTexture())->getFenceObject();
+                VkFence fence1 = static_cast<VkRenderTexture*>(renderTarget1->getTexture())->getFenceObject();
                 status = vkGetFenceStatus(m_device, fence1);
                 if (VK_SUCCESS == status) {
                     found = true;
                     break;
                 }
-                renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget1->getNextRenderTarget());
+                renderTarget1 = static_cast<VkRenderTarget*>(renderTarget1->getNextRenderTarget());
             }
              if (!found) {
-                 renderTarget1 = reinterpret_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget());
-                 VkFence fence1 = reinterpret_cast<VkRenderTexture*>(renderTarget1->getTexture())->getFenceObject();
+                 renderTarget1 = static_cast<VkRenderTarget*>(renderTarget->getNextRenderTarget());
+                 VkFence fence1 = static_cast<VkRenderTexture*>(renderTarget1->getTexture())->getFenceObject();
                 err = vkWaitForFences(m_device, 1, &fence1 , VK_TRUE,
                                   4294967295U);
              }
         }
-        return reinterpret_cast<VkRenderTexture*>(renderTarget1->getTexture());
+        return static_cast<VkRenderTexture*>(renderTarget1->getTexture());
     }
 
      int VulkanCore::waitForFence(VkFence fence) {
@@ -1014,7 +1014,7 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
 
     }
     void VulkanCore::renderToOculus(RenderTarget* renderTarget){
-        VkRenderTexture* renderTexture = getRenderTexture(reinterpret_cast<VkRenderTarget*>(renderTarget));
+        VkRenderTexture* renderTexture = getRenderTexture(static_cast<VkRenderTarget*>(renderTarget));
         renderTexture->readRenderResult(&oculusTexData);
     }
 
@@ -1053,13 +1053,13 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         //    vkData->setDescriptorSetNull(true,pass);
             return true;
         }
-        VulkanShader* vkShader = reinterpret_cast<VulkanShader*>(shader);
+        VulkanShader* vkShader = static_cast<VulkanShader*>(shader);
         bool bones_present = shader->hasBones();
 
         std::vector<VkWriteDescriptorSet> writes;
         VkDescriptorPool descriptorPool;
         GetDescriptorPool(descriptorPool);
-        VkDescriptorSetLayout &descriptorLayout = reinterpret_cast<VulkanShader *>(shader)->getDescriptorLayout();
+        VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(shader)->getDescriptorLayout();
         VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
         descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         descriptorSetAllocateInfo.pNext = nullptr;

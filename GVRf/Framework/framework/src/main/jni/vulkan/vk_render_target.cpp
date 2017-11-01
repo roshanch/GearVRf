@@ -20,7 +20,7 @@
 
 namespace gvr{
 VkCommandBuffer& VkRenderTarget::getCommandBuffer(){
-    return reinterpret_cast<VkRenderTexture*>(mRenderTexture)->getCommandBuffer();
+    return static_cast<VkRenderTexture*>(mRenderTexture)->getCommandBuffer();
 }
  void VkRenderTarget::beginRendering(Renderer* renderer){
      mRenderTexture->bind();
@@ -28,13 +28,13 @@ VkCommandBuffer& VkRenderTarget::getCommandBuffer(){
      mRenderTexture->beginRendering(renderer);
  }
 VkRenderTarget::VkRenderTarget(RenderTexture* renderTexture, bool is_multiview): RenderTarget(renderTexture, is_multiview){
-    reinterpret_cast<VkRenderTexture*>(mRenderTexture)->initVkData();
+    static_cast<VkRenderTexture*>(mRenderTexture)->initVkData();
 }
 
 VkRenderTarget::VkRenderTarget(Scene* scene): RenderTarget(scene){
-    reinterpret_cast<VkRenderTexture*>(mRenderTexture)->initVkData();
+    static_cast<VkRenderTexture*>(mRenderTexture)->initVkData();
 }
 VkRenderTarget::VkRenderTarget(RenderTexture* renderTexture, const RenderTarget* source): RenderTarget(renderTexture, source){
-    reinterpret_cast<VkRenderTexture*>(mRenderTexture)->initVkData();
+    static_cast<VkRenderTexture*>(mRenderTexture)->initVkData();
 }
 }
