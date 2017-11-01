@@ -386,7 +386,11 @@ bool Renderer::renderPostEffectData(RenderState& rstate, RenderTexture* input_te
     material->setTexture("u_texture", input_texture);
     int nativeShader = rpass->get_shader(rstate.is_multiview);
     Shader* shader = rstate.shader_manager->getShader(nativeShader);
-
+    if(post_effect->isValid(this, rstate) < 0)
+    {
+        LOGE("Renderer::renderPostEffectData is dirty");
+        return false;             // no shader available
+    }
     if(shader == NULL){
         post_effect->bindShader(rstate.scene,rstate.is_multiview);
         return false;

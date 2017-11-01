@@ -377,19 +377,6 @@ namespace gvr {
         return true;
     }
 
-    void VulkanCore::InitPostEffectChain(){
-        if(postEffectCmdBuffer != nullptr)
-            return;
-
-        postEffectCmdBuffer = new VkCommandBuffer();
-        VkResult ret = vkAllocateCommandBuffers(
-                m_device,
-                gvr::CmdBufferCreateInfo(VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_commandPool),
-                postEffectCmdBuffer
-        );
-        GVR_VK_CHECK(!ret);
-    }
-
     bool VulkanCore::GetMemoryTypeFromProperties(uint32_t typeBits, VkFlags requirements_mask,
                                                  uint32_t *typeIndex) {
         GVR_VK_CHECK(typeIndex != nullptr);
@@ -989,7 +976,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     }
     VkRenderTexture* VulkanCore::getRenderTexture(VkRenderTarget* renderTarget) {
 
-
         VkFence fence =  reinterpret_cast<VkRenderTexture*>(renderTarget->getTexture())->getFenceObject();
         VkRenderTarget* renderTarget1 = renderTarget ;
         VkResult err;
@@ -1016,7 +1002,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
                                   4294967295U);
              }
         }
-
         return reinterpret_cast<VkRenderTexture*>(renderTarget1->getTexture());
     }
 
@@ -1029,7 +1014,6 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
 
     }
     void VulkanCore::renderToOculus(RenderTarget* renderTarget){
-
         VkRenderTexture* renderTexture = getRenderTexture(reinterpret_cast<VkRenderTarget*>(renderTarget));
         renderTexture->readRenderResult(&oculusTexData);
     }

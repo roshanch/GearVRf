@@ -144,8 +144,6 @@ bool VulkanRenderer::renderWithShader(RenderState& rstate, Shader* shader, Rende
     }
     return true;
 }
-
-
 void VulkanRenderer::updatePostEffectMesh(Mesh* copy_mesh)
 {
     float positions[] = { -1.0f, 1.0f,  1.0f,
@@ -170,9 +168,7 @@ void VulkanRenderer::updatePostEffectMesh(Mesh* copy_mesh)
 
 }
 void VulkanRenderer::renderRenderDataVector(RenderState& rstate,std::vector<RenderData*>& render_data_vector, std::vector<RenderData*>& render_data_list){
-    for (auto rdata = render_data_vector.begin();
-         rdata != render_data_vector.end();
-         ++rdata)
+    for (auto rdata = render_data_vector.begin(); rdata != render_data_vector.end(); ++rdata)
     {
         if (!(rstate.render_mask & (*rdata)->render_mask()))
             continue;
@@ -222,12 +218,6 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, RenderTarget* renderTarget
         (post_effect_render_texture_a != nullptr) &&
         (post_effects->pass_count() >= 0)) {
 
-        if (post_effects->isValid(this, rstate) < 0)
-        {
-            LOGE("Renderer::renderPostEffectData not ready");
-            return;             // no shader available
-        }
-        vulkanCore_->InitPostEffectChain();
         VkRenderTexture* renderTexture = reinterpret_cast<VkRenderTexture*>(post_effect_render_texture_a);
         VkRenderTexture* input_texture = renderTexture;
         vulkanCore_->BuildCmdBufferForRenderData(render_data_list, camera, shader_manager,

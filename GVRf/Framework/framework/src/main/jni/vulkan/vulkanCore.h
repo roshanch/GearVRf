@@ -28,8 +28,6 @@
 #define GVR_VK_VERTEX_BUFFER_BIND_ID 0
 #define GVR_VK_SAMPLE_NAME "GVR Vulkan"
 #define VK_KHR_ANDROID_SURFACE_EXTENSION_NAME "VK_KHR_android_surface"
-#define SWAP_CHAIN_COUNT 4
-#define POSTEFFECT_CHAIN_COUNT 2
 
 namespace gvr {
 class VulkanUniformBlock;
@@ -140,7 +138,6 @@ public:
     void initVulkanCore();
 
     VkRenderPass createVkRenderPass(RenderPassType render_pass_type, int sample_count = 1);
-    void InitPostEffectChain();
 
     VkPipeline getPipeline(std::string key){
         std::unordered_map<std::string, VkPipeline >::const_iterator got = pipelineHashMap.find(key);
@@ -165,8 +162,7 @@ private:
     std::unordered_map<std::string, VkPipeline> pipelineHashMap;
 
 
-    explicit VulkanCore(ANativeWindow *newNativeWindow) : m_pPhysicalDevices(NULL), postEffectCmdBuffer(
-            nullptr),mRenderPassMap{0,0} {
+    explicit VulkanCore(ANativeWindow *newNativeWindow) : m_pPhysicalDevices(NULL), mRenderPassMap{0,0} {
         m_Vulkan_Initialised = false;
         initVulkanDevice(newNativeWindow);
 
@@ -208,9 +204,6 @@ private:
     uint32_t m_queueFamilyIndex;
     VkQueue m_queue;
     VkSurfaceKHR m_surface;
-
-    VkCommandBuffer * postEffectCmdBuffer;
-
     VkCommandPool m_commandPool;
     VkCommandPool m_commandPoolTrans;
 

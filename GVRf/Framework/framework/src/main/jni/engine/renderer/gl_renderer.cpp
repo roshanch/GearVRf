@@ -246,11 +246,13 @@ namespace gvr
         }
         else
         {
+   /*        bool isdirty = false;
             if (post_effects->isValid(this, rstate) < 0)
             {
                 LOGE("Renderer::renderPostEffectData is dirty");
-                return;             // no shader available
+                isdirty = true;             // no shader available
             }
+*/
             static GLint viewport[4];
             glGetIntegerv(GL_VIEWPORT,viewport);
             GLint drawFboId = 0;
@@ -292,7 +294,8 @@ namespace gvr
             GL(glBindFramebuffer(GL_FRAMEBUFFER, drawFboId));
             GL(glViewport(viewport[0], viewport[1], viewport[2], viewport[3]));
             GL(glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT));
-            renderPostEffectData(rstate, input_texture, post_effects, npost);
+           // if(!isdirty)
+                renderPostEffectData(rstate, input_texture, post_effects, npost);
         }
         GL(glDisable(GL_BLEND));
 
