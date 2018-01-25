@@ -21,7 +21,6 @@
 #include "VrApi_SystemUtils.h"
 #include <cstring>
 #include <unistd.h>
-#include <objects/textures/render_texture.h>
 #include "engine/renderer/renderer.h"
 #include <VrApi_Types.h>
 #include <engine/renderer/vulkan_renderer.h>
@@ -112,19 +111,19 @@ namespace gvr {
                                                          mResolveDepthConfiguration, mDepthTextureFormatConfiguration);
     }
 
-RenderTextureInfo  GVRActivity::getRenderTextureInfo(int eye, int index){
+    dummy::RenderTextureInfo*  GVRActivity::getRenderTextureInfo(int eye, int index){
     // for multiview, eye index would be 2
     eye = eye % 2;
     FrameBufferObject fbo = frameBuffer_[eye];
 
-    RenderTextureInfo renderTextureInfo;
-    renderTextureInfo.fboId = fbo.getRenderBufferFBOId(index);
-    renderTextureInfo.fboHeight = fbo.getHeight();
-    renderTextureInfo.fdboWidth = fbo.getWidth();
-    renderTextureInfo.multisamples = mMultisamplesConfiguration;
-    renderTextureInfo.useMultiview = use_multiview;
-    renderTextureInfo.views = use_multiview ? 2 : 1;
-    renderTextureInfo.texId = fbo.getColorTexId(index);
+    dummy::RenderTextureInfo* renderTextureInfo = new dummy::RenderTextureInfo();
+    renderTextureInfo->fboId = fbo.getRenderBufferFBOId(index);
+    renderTextureInfo->fboHeight = fbo.getHeight();
+    renderTextureInfo->fdboWidth = fbo.getWidth();
+    renderTextureInfo->multisamples = mMultisamplesConfiguration;
+    renderTextureInfo->useMultiview = use_multiview;
+    renderTextureInfo->views = use_multiview ? 2 : 1;
+    renderTextureInfo->texId = fbo.getColorTexId(index);
 
     return renderTextureInfo;
 

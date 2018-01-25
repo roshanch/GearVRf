@@ -23,11 +23,19 @@
 #include "objects/components/camera_rig.h"
 #include "util/ovr_configuration_helper.h"
 #include "VrApi_Types.h"
-
+namespace dummy {
+    struct RenderTextureInfo{
+        int fdboWidth;
+        int fboHeight;
+        int multisamples;
+        int views;
+        GLuint fboId;
+        GLuint texId;
+        bool useMultiview;
+    };
+}
 namespace gvr {
-    struct RenderTextureInfo;
     class CameraRig;
-
     class GVRActivity
     {
     public:
@@ -39,7 +47,7 @@ namespace gvr {
 
         CameraRig* cameraRig_ = nullptr;   // this needs a global ref on the java object; todo
         bool sensoredSceneUpdated_ = false;
-        RenderTextureInfo getRenderTextureInfo(int eye, int index);
+
     private:
         JNIEnv* envMainThread_ = nullptr;           // for use by the Java UI thread
 
@@ -85,7 +93,7 @@ namespace gvr {
         int initializeVrApi();
         static void uninitializeVrApi();
         void leaveVrMode();
-
+        dummy::RenderTextureInfo* getRenderTextureInfo(int eye, int index);
         void showConfirmQuit();
 
         bool isHmtConnected() const;

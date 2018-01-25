@@ -335,7 +335,24 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
                     new OvrControllerReader(mActivity.getActivityNative().getNative()));
         }
     }
+    void createSwapChain(){
+        boolean isMultiview = mActivity.getAppSettings().isMultiviewSet();
+        for(int i=0;i < 3; i++){
 
+            if(isMultiview){
+                long renderTextureInfo = getRenderTextureInfo(mActivity.getActivityNative().getNative(), i, EYE.MULTIVIEW.ordinal());
+                mRenderBundle.createRenderTarget(i, EYE.MULTIVIEW, renderTextureInfo);
+            }
+            else {
+                long renderTextureInfo = getRenderTextureInfo(mActivity.getActivityNative().getNative(), i, EYE.LEFT.ordinal());
+                mRenderBundle.createRenderTarget(i, EYE.LEFT, renderTextureInfo);
+                renderTextureInfo = getRenderTextureInfo(mActivity.getActivityNative().getNative(), i, EYE.RIGHT.ordinal());
+                mRenderBundle.createRenderTarget(i, EYE.RIGHT, renderTextureInfo);
+            }
+        }
+
+        mRenderBundle.createRenderTargetChain(isMultiview);
+    }
     /*
      * GVRF APIs
      */
@@ -373,6 +390,6 @@ class OvrViewManager extends GVRViewManager implements OvrRotationSensorListener
             updateSensoredScene();
         }
     }
-
+    private native long getRenderTextureInfo(long ptr, int index, int eye );
     private native void drawEyes(long ptr);
 }

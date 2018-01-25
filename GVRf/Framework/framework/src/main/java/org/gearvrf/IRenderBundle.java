@@ -27,4 +27,6 @@ interface IRenderBundle {
     GVRRenderTarget getEyeCaptureRenderTarget();
 
     GVRRenderTarget getRenderTarget(GVRViewManager.EYE eye, int index);
+    void createRenderTargetChain(boolean use_multiview);
+    void createRenderTarget(int index, GVRViewManager.EYE eye, long renderTextureInfo);
 }
