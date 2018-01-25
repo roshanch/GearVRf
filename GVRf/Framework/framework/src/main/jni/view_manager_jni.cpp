@@ -67,9 +67,12 @@ extern "C" {
         RenderTarget* renderTarget = reinterpret_cast<RenderTarget*>(jrenderTarget);
          Renderer::getInstance()->addRenderTarget(renderTarget, EYE(eye), index);
     }
-    long Java_org_gearvrf_GVRRenderBundle_getRenderTexture(JNIEnv *jni, jclass clazz, jlong renderTextureInfo)
+    long Java_org_gearvrf_GVRRenderBundle_getRenderTexture(JNIEnv *jni, jclass clazz, jlong jrenderTextureInfo)
     {
-        return reinterpret_cast<long>(Renderer::getInstance()->createRenderTexture(reinterpret_cast<RenderTextureInfo *>(renderTextureInfo)));
+        RenderTextureInfo* renderTextureInfo = reinterpret_cast<RenderTextureInfo*>(jrenderTextureInfo);
+        RenderTexture* renderTexture = (Renderer::getInstance()->createRenderTexture(renderTextureInfo));
+        delete renderTextureInfo; // free up the resource as it is no longer needed
+        return reinterpret_cast<long>(renderTexture);
     }
 
     JNIEXPORT void JNICALL
