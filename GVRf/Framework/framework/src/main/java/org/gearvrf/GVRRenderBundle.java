@@ -16,27 +16,28 @@ package org.gearvrf;
 
 import android.transition.Scene;
 
+import org.gearvrf.utility.Log;
 import org.gearvrf.utility.VrAppSettings;
 
 /** A container for various services and pieces of data required for rendering. */
-final class GVRRenderBundle implements IRenderBundle {
-    private  GVRContext mGVRContext;
+class GVRRenderBundle{
+    protected GVRContext mGVRContext;
     private  GVRMaterialShaderManager mMaterialShaderManager;
     private  GVRRenderTexture mPostEffectRenderTextureA = null;
     private  GVRRenderTexture mPostEffectRenderTextureB = null;
     private  GVRRenderTarget mEyeCaptureRenderTarget = null;
 
-    private int  mSampleCount;
-    private int mWidth, mHeight;
-    private GVRRenderTarget[] mLeftEyeRenderTarget = new GVRRenderTarget[3];
-    private GVRRenderTarget [] mRightEyeRenderTarget = new GVRRenderTarget[3];
-    private GVRRenderTarget [] mMultiviewRenderTarget = new GVRRenderTarget[3];
+    protected int  mSampleCount;
+    protected int mWidth, mHeight;
+    protected GVRRenderTarget[] mLeftEyeRenderTarget = new GVRRenderTarget[3];
+    protected GVRRenderTarget [] mRightEyeRenderTarget = new GVRRenderTarget[3];
+    protected GVRRenderTarget [] mMultiviewRenderTarget = new GVRRenderTarget[3];
 
 
     private GVRRenderTexture mEyeCapturePostEffectRenderTextureA = null;
     private GVRRenderTexture mEyeCapturePostEffectRenderTextureB = null;
 
-    GVRRenderBundle(GVRContext gvrContext, final int width, final int height) {
+    GVRRenderBundle(GVRContext gvrContext) {
         mGVRContext = gvrContext;
         mMaterialShaderManager = new GVRMaterialShaderManager(gvrContext);
 
@@ -52,19 +53,15 @@ final class GVRRenderBundle implements IRenderBundle {
         mWidth = mGVRContext.getActivity().getAppSettings().getEyeBufferParams().getResolutionWidth();
         mHeight = mGVRContext.getActivity().getAppSettings().getEyeBufferParams().getResolutionHeight();
     }
-    public void createRenderTarget(int index, GVRViewManager.EYE eye, long renderTextureInfo){
+    public void createRenderTarget(int index, GVRViewManager.EYE eye, GVRRenderTexture renderTexture){
 
         if(eye == GVRViewManager.EYE.MULTIVIEW)
-            mMultiviewRenderTarget[index] = new GVRRenderTarget(new GVRRenderTexture(mGVRContext,  mWidth, mHeight,
-                getRenderTexture(renderTextureInfo)), mGVRContext.getMainScene(), true);
+            mMultiviewRenderTarget[index] = new GVRRenderTarget(renderTexture, mGVRContext.getMainScene(), true);
 
         else if(eye == GVRViewManager.EYE.LEFT)
-            mLeftEyeRenderTarget[index] = new GVRRenderTarget(new GVRRenderTexture(mGVRContext, mWidth, mHeight,
-                    getRenderTexture(renderTextureInfo)), mGVRContext.getMainScene());
+            mLeftEyeRenderTarget[index] = new GVRRenderTarget(renderTexture, mGVRContext.getMainScene());
         else
-            mRightEyeRenderTarget[index] = new GVRRenderTarget(new GVRRenderTexture(mGVRContext, mWidth, mHeight,
-                    getRenderTexture(renderTextureInfo)), mGVRContext.getMainScene(),mLeftEyeRenderTarget[index]);
-
+            mRightEyeRenderTarget[index] = new GVRRenderTarget(renderTexture, mGVRContext.getMainScene(),mLeftEyeRenderTarget[index]);
     }
 
 
@@ -97,26 +94,32 @@ final class GVRRenderBundle implements IRenderBundle {
         }
         return  mEyeCaptureRenderTarget;
     }
-
-    public GVRRenderTarget getLeftEyeRenderTarget(int index){
-        return mLeftEyeRenderTarget[index];
+    void beginRendering(int bufferIdx, GVRViewManager.EYE eye) {
+        getRenderTexture(bufferIdx,eye).beginRendering();
     }
+    public GVRRenderTexture getRenderTexture(int bufferIdx, GVRViewManager.EYE eye){
 
-    public GVRRenderTarget getRightEyeRenderTarget(int index){
-       return mRightEyeRenderTarget[index];
+        if (eye == GVRViewManager.EYE.LEFT)
+            return mLeftEyeRenderTarget[bufferIdx].getTexture();
+        if (eye == GVRViewManager.EYE.RIGHT)
+            return mRightEyeRenderTarget[bufferIdx].getTexture();
+        if (eye == GVRViewManager.EYE.MULTIVIEW)
+            return mMultiviewRenderTarget[bufferIdx].getTexture();
+
+        Log.e("GVRRendleBundle", "incorrect Eye type");
+        return null;
     }
-
-    public GVRRenderTarget getMultiviewRenderTarget(int index){
-        return mMultiviewRenderTarget[index];
+    void endRendering(int bufferIdx, GVRViewManager.EYE eye) {
+        getRenderTexture(bufferIdx,eye).endRendering();
     }
 
     public GVRRenderTarget getRenderTarget(GVRViewManager.EYE eye, int index){
         if(eye == GVRViewManager.EYE.LEFT)
-            return getLeftEyeRenderTarget(index);
+            return mLeftEyeRenderTarget[index];
         if(eye == GVRViewManager.EYE.RIGHT)
-            return getRightEyeRenderTarget(index);
+            return mRightEyeRenderTarget[index];
 
-        return getMultiviewRenderTarget(index);
+        return mMultiviewRenderTarget[index];
     }
     public GVRRenderTexture getEyeCapturePostEffectRenderTextureA(){
         if(mEyeCapturePostEffectRenderTextureA == null)
@@ -150,6 +153,6 @@ final class GVRRenderBundle implements IRenderBundle {
 
         return mPostEffectRenderTextureB;
     }
-    protected native long getRenderTexture(long ptr);
-    protected native void addRenderTarget(long renderTarget, int eye, int index);
+    protected static native long getRenderTextureNative(long ptr);
+    protected static native void addRenderTarget(long renderTarget, int eye, int index);
 }

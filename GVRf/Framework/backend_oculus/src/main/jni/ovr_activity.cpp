@@ -24,7 +24,7 @@
 #include "engine/renderer/renderer.h"
 #include <VrApi_Types.h>
 #include <engine/renderer/vulkan_renderer.h>
-
+#include <objects/textures/render_texture.h>
 static const char* activityClassName = "org/gearvrf/GVRActivity";
 static const char* viewManagerClassName = "org/gearvrf/OvrViewManager";
 
@@ -111,12 +111,12 @@ namespace gvr {
                                                          mResolveDepthConfiguration, mDepthTextureFormatConfiguration);
     }
 
-    dummy::RenderTextureInfo*  GVRActivity::getRenderTextureInfo(int eye, int index){
+    RenderTextureInfo*  GVRActivity::getRenderTextureInfo(int eye, int index){
     // for multiview, eye index would be 2
     eye = eye % 2;
     FrameBufferObject fbo = frameBuffer_[eye];
 
-    dummy::RenderTextureInfo* renderTextureInfo = new dummy::RenderTextureInfo();
+    RenderTextureInfo* renderTextureInfo = new RenderTextureInfo();
     renderTextureInfo->fboId = fbo.getRenderBufferFBOId(index);
     renderTextureInfo->fboHeight = fbo.getHeight();
     renderTextureInfo->fdboWidth = fbo.getWidth();
