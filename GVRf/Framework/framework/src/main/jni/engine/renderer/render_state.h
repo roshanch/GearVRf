@@ -22,9 +22,19 @@
 
 #include "glm/glm.hpp"
 #include "util/gvr_jni.h"
-
+#include <sstream>
 namespace gvr
 {
+//<<<<<<< HEAD
+//=======
+    template<typename T> std::string to_string(const T& val)
+    {
+        std::ostringstream os;
+        os << val;
+        return os.str();
+    }
+
+//>>>>>>> d8c3a866... adding to_string() for render_modes
     class Scene;
     class ShaderManager;
     class UniformBlock;
@@ -293,9 +303,20 @@ namespace gvr
         float offset_factor;
         float offset_units;
         float sample_coverage;
+        std::string hash_code;
 
     public:
+        std::string to_string(){
+            if(!isDirty())
+                return hash_code;
 
+            uint64_t hashcode = *(reinterpret_cast<const uint64_t*>(this));
+            hash_code += gvr::to_string(hashcode);
+            hash_code += gvr::to_string(offset_factor);
+            hash_code += gvr::to_string(offset_units);
+            hash_code += gvr::to_string(sample_coverage);
+            return hash_code;
+        }
         void init()
         {
             render_flags.init();

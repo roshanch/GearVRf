@@ -196,8 +196,16 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
         vulkanCore_->InitDescriptorSetForRenderData(r, lights);
         VkRenderPass render_pass = vulkanCore_->createVkRenderPass(NORMAL_RENDERPASS, rstate.sampleCount);
 
-        std::string vkPipelineHashCode = std::to_string(r.shader) + std::to_string(r.renderModes) +
-                                std::to_string(rstate.sampleCount) + r.mesh->getVertexBuffer()->getDescriptor();
+//<<<<<<< HEAD
+//        std::string vkPipelineHashCode = std::to_string(r.shader) + std::to_string(r.renderModes) +
+//                                std::to_string(rstate.sampleCount) + r.mesh->getVertexBuffer()->getDescriptor();
+//=======
+        std::string vkPipelineHashCode;
+        vkPipelineHashCode += std::to_string(r.shader);
+        vkPipelineHashCode += r.renderModes.to_string();
+        vkPipelineHashCode += std::to_string(rstate.sampleCount);
+        vkPipelineHashCode += r.mesh->getVertexBuffer()->getDescriptor();
+//>>>>>>> d8c3a866... adding to_string() for render_modes
 
         VkPipeline pipeline = vulkanCore_->getPipeline(vkPipelineHashCode);
         VulkanRenderPass* vk_renderPass = static_cast<VulkanRenderPass*>(r.renderPass);

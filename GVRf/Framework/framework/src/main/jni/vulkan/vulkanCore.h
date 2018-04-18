@@ -171,12 +171,12 @@ public:
 
     VkRenderPass createVkRenderPass(RenderPassType render_pass_type, int sample_count = 1);
 
-    VkPipeline getPipeline(std::string key){
-        std::unordered_map<std::string, VkPipeline >::const_iterator got = pipelineHashMap.find(key);
-        if(got == pipelineHashMap.end())
-            return 0;
-        else
-            return got->second;
+    VkPipeline getPipeline(const std::string& key){
+        auto it = pipelineHashMap.find(key);
+        if(it != pipelineHashMap.end())
+            return it->second;
+
+        return 0;
     }
 
     void addPipeline(std::string key, VkPipeline pipeline){
