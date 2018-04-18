@@ -59,7 +59,7 @@ struct VulkanRenderPass : public RenderPass
 
         virtual ~VulkanRenderData() {}
 
-        void createPipeline(Shader* shader, VulkanRenderer* renderer, int pass, VkRenderPass, int sampleCount);
+        void createPipeline(VulkanRenderer* renderer, RenderSorter::Renderable& r, RenderState& rstate, VkRenderPass);
 
         VulkanUniformBlock& getTransformUbo(){
             return ubo;
@@ -125,7 +125,7 @@ struct VulkanRenderPass : public RenderPass
 
         void bindToShader(Shader* shader, Renderer* renderer);
         bool isDirty(int pass){
-            return isHashCodeDirty() || RenderData::isDirty() || isDescriptorSetNull(pass);
+            return isHashCodeDirty() || RenderData::isDirty();
         }
         void render(Shader* shader, VkCommandBuffer cmdBuffer, int curr_pass);
     private:

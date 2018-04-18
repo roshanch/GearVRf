@@ -263,7 +263,7 @@ namespace gvr
         return transBlock;
     }
 
-    void GLRenderer::validate(RenderSorter::Renderable& r)
+    void GLRenderer::validate(RenderSorter::Renderable& r,RenderState& rstate)
     {
         r.material->updateGPU(this);
         r.renderData->updateGPU(this, r.shader);

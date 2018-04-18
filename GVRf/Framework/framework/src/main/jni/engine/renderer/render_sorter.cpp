@@ -323,7 +323,7 @@ void RenderSorter::validate(RenderState& rstate)
                 {
                     updateTransform(rstate, r);
                 }
-                mRenderer.validate(r);
+                mRenderer.validate(r,rstate);
                 merge(cur);
             }
             ++cur;

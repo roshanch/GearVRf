@@ -34,7 +34,7 @@
 #include "vulkan/vulkan_render_data.h"
 #include "vulkan/vk_texture.h"
 #include "vulkan/vk_bitmap_image.h"
-
+#include <bits/stdc++.h>
 #include <glslang/Include/Common.h>
 
 namespace gvr {
@@ -182,11 +182,40 @@ void VulkanRenderer::updatePostEffectMesh(Mesh* copy_mesh)
     copy_mesh->setVertices(positions, position_size);
     copy_mesh->setFloatVec("a_texcoord", uvs, uv_size);
 }
+void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState& rstate){
 
-void VulkanRenderer::validate(RenderSorter::Renderable& r)
+    VulkanRenderData* vkRdata = static_cast<VulkanRenderData*>(r.renderData);
+    UniformBlock& transformUBO = vkRdata->getTransformUbo();
+
+    vkRdata->updateGPU(this, r.shader);
+    LightList& lights = rstate.scene->getLights();
+    vulkanCore_->InitLayoutRenderData(r, lights);
+
+    int dirty_bits = ShaderData::DIRTY_BITS::NEW_TEXTURE | ShaderData::DIRTY_BITS::MAT_DATA;
+    if(r.renderModes.isDirty() || r.material->isDirty(dirty_bits)) {
+        vulkanCore_->InitDescriptorSetForRenderData(r, lights);
+        VkRenderPass render_pass = vulkanCore_->createVkRenderPass(NORMAL_RENDERPASS, rstate.sampleCount);
+
+        std::string vkPipelineHashCode = std::to_string(r.shader) + std::to_string(r.renderModes) +
+                                std::to_string(rstate.sampleCount) + r.mesh->getVertexBuffer()->getDescriptor();
+
+        VkPipeline pipeline = vulkanCore_->getPipeline(vkPipelineHashCode);
+        VulkanRenderPass* vk_renderPass = static_cast<VulkanRenderPass*>(r.renderPass);
+        if(pipeline == 0) {
+            vkRdata->createPipeline(this,r,rstate,render_pass);
+            vulkanCore_->addPipeline(vkPipelineHashCode, vk_renderPass->m_pipeline);
+        }
+        else{
+            vk_renderPass->m_pipeline = pipeline;
+            vkRdata->clearDirty();
+        }
+    }
+}
+void VulkanRenderer::validate(RenderSorter::Renderable& r, RenderState& rstate)
 {
+    LightList& lightList = rstate.scene->getLights();
     r.material->updateGPU(this);
-    r.renderData->updateGPU(this, r.shader);
+    createVkResources(r,rstate);
 }
 
 

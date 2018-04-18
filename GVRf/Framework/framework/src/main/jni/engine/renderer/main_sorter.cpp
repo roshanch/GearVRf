@@ -65,7 +65,6 @@ void MainSceneSorter::cull(RenderState& rstate)
         RenderSorter::cull(rstate);
     }
 }
-
 void MainSceneSorter::add(RenderState& rstate, SceneObject* object)
 {
     RenderData* rdata = object->render_data();
@@ -176,6 +175,7 @@ void MainSceneSorter::mergeByOrder(Renderable* prev, Renderable* item, int level
 #endif
         return;
     }
+
     /*
      * Scan the list to see where it fits
      */

@@ -94,7 +94,7 @@ public:
                                  const char* fragmentShader, const char* matrixCalc);
     virtual UniformBlock* createTransformBlock(int numMatrices);
 
-    virtual void validate(RenderSorter::Renderable& r);
+    virtual void validate(RenderSorter::Renderable& r, RenderState& rstate);
     virtual Light* createLight(const char* uniformDescriptor, const char* textureDescriptor);
     virtual void updatePostEffectMesh(Mesh*);
     virtual void render(const RenderState&, const RenderSorter::Renderable&);

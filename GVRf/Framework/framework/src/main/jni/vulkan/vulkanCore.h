@@ -24,6 +24,10 @@
 #include "objects/components/camera.h"
 #include "vk_texture.h"
 #include "vulkan_flags.h"
+//<<<<<<< HEAD
+//=======
+#include "engine/renderer/render_sorter.h"
+//>>>>>>> 68dd0213... validate all vulkan resources
 
 #define GVR_VK_CHECK(X) if (!(X)) { FAIL("VK_CHECK Failure"); }
 #define GVR_VK_VERTEX_BUFFER_BIND_ID 0
@@ -118,11 +122,19 @@ public:
 
     ~VulkanCore();
 
-    void InitLayoutRenderData(VulkanMaterial * vkMtl, VulkanRenderData* vkdata, Shader*, LightList& lights);
+//<<<<<<< HEAD
+//    void InitLayoutRenderData(VulkanMaterial * vkMtl, VulkanRenderData* vkdata, Shader*, LightList& lights);
+//
+//    void initCmdBuffer(VkCommandBufferLevel level,VkCommandBuffer& cmdBuffer);
+//
+//    bool InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader*, VulkanRenderData* vkData, LightList *lights, VulkanMaterial* vkmtl);
+//=======
+    void InitLayoutRenderData(RenderSorter::Renderable& r, LightList& lights);
 
     void initCmdBuffer(VkCommandBufferLevel level,VkCommandBuffer& cmdBuffer);
 
-    bool InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader*, VulkanRenderData* vkData, LightList *lights, VulkanMaterial* vkmtl);
+    bool InitDescriptorSetForRenderData(RenderSorter::Renderable&r, LightList& lights);
+//>>>>>>> 68dd0213... validate all vulkan resources
     void beginCmdBuffer(VkCommandBuffer cmdBuffer);
     void BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector, Camera*, ShaderManager*,RenderTarget*,VkRenderTexture*, bool, bool);
     void BuildCmdBufferForRenderDataPE(VkCommandBuffer &cmdBuffer, ShaderManager*, Camera*, RenderData* rdata, VkRenderTexture*, int);
@@ -131,7 +143,7 @@ public:
 
     VkFence createFenceObject();
     VkCommandBuffer createCommandBuffer(VkCommandBufferLevel level);
-    void InitPipelineForRenderData(const GVR_VK_Vertices *m_vertices, VulkanRenderData *rdata, VulkanShader* shader, int, VkRenderPass, int sampleCount);
+    void InitPipelineForRenderData(RenderSorter::Renderable&r,RenderState& rstate, VkRenderPass renderpass);
     void submitCmdBuffer(VkFence fence, VkCommandBuffer cmdBuffer);
 
     bool GetMemoryTypeFromProperties(uint32_t typeBits, VkFlags requirements_mask,

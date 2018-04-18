@@ -158,7 +158,7 @@ public:
         }
         return nullptr;
     }
-    virtual void validate(RenderSorter::Renderable& r) = 0;
+    virtual void validate(RenderSorter::Renderable& r, RenderState& rstate) = 0;
     virtual void render(const RenderState&, const RenderSorter::Renderable&) = 0;
 private:
     RenderTarget* mLeftRenderTarget[3];

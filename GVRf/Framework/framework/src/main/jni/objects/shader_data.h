@@ -269,7 +269,7 @@ public:
      * @param bits dirty flags to check
      * @return true if material is dirty, else false
      */
-    bool    isDirty(DIRTY_BITS bits) const;
+    bool    isDirty(int bits) const;
 
     /**
      * Determines whether this material is transparent.

@@ -41,70 +41,76 @@ void VulkanShader::initialize()
 {
 }
 
-int VulkanShader::makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetLayoutBinding>& samplerBinding, int index, VulkanRenderData* vkdata, LightList& lights)
+int VulkanShader::makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetLayoutBinding>& layoutBinding, int index, VulkanRenderData* vkdata, LightList& lights)
 {
+
     VkDescriptorSetLayoutBinding dummy_binding ={} ;
     if (usesMatrixUniforms()) {
         VkDescriptorSetLayoutBinding &transform_uniformBinding = vkdata->getTransformUbo().getVulkanDescriptor()->getLayoutBinding();
-        samplerBinding.push_back(transform_uniformBinding);
+        layoutBinding.push_back(transform_uniformBinding);
     }
     else {
         dummy_binding.binding = TRANSFORM_UBO_INDEX;
-        samplerBinding.push_back(dummy_binding);
+        layoutBinding.push_back(dummy_binding);
     }
 
     if (getUniformDescriptor().getNumEntries()){
         VkDescriptorSetLayoutBinding &material_uniformBinding = reinterpret_cast<VulkanUniformBlock&>(vkMtl.uniforms()).getVulkanDescriptor()->getLayoutBinding();
-        samplerBinding.push_back(material_uniformBinding);
+        layoutBinding.push_back(material_uniformBinding);
     }
     else {
         // Dummy binding for Material UBO, since now a push Constant
         dummy_binding.binding = MATERIAL_UBO_INDEX;
-        samplerBinding.push_back(dummy_binding);
+        layoutBinding.push_back(dummy_binding);
     }
 
     if(vkdata->mesh()->hasBones() && hasBones()){
        VkDescriptorSetLayoutBinding &bones_uniformBinding = static_cast<VulkanUniformBlock*>(vkdata->getBonesUbo())->getVulkanDescriptor()->getLayoutBinding();
-       samplerBinding.push_back(bones_uniformBinding);
+        layoutBinding.push_back(bones_uniformBinding);
    }
     else{
         dummy_binding.binding = BONES_UBO_INDEX;
-        samplerBinding.push_back(dummy_binding);
+        layoutBinding.push_back(dummy_binding);
     }
 
     if(lights.getUBO() != nullptr){
         VkDescriptorSetLayoutBinding &lights_uniformBinding = static_cast<VulkanUniformBlock*>(lights.getUBO())->getVulkanDescriptor()->getLayoutBinding();
-        samplerBinding.push_back(lights_uniformBinding);
+        layoutBinding.push_back(lights_uniformBinding);
     }
     else {
+//<<<<<<< HEAD
         dummy_binding.binding = LIGHT_UBO_INDEX;
-        samplerBinding.push_back(dummy_binding);
+        layoutBinding.push_back(dummy_binding);
+//=======
+//        dummy_binding.binding = 3;
+//        layoutBinding.push_back(dummy_binding);
+//>>>>>>> 68dd0213... validate all vulkan resources
     }
 
     // Dummy shadowmap binding
-    VkDescriptorSetLayoutBinding layoutBinding;
-    layoutBinding.binding = SHADOW_UBO_INDEX;
-    layoutBinding.descriptorCount = 1;
-    layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-    layoutBinding.pImmutableSamplers = nullptr;
-    (samplerBinding).push_back(layoutBinding);
+    VkDescriptorSetLayoutBinding shadowMapBinding;
+    shadowMapBinding.binding = SHADOW_UBO_INDEX;
+    shadowMapBinding.descriptorCount = 1;
+    shadowMapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    shadowMapBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    shadowMapBinding.pImmutableSamplers = nullptr;
+    (layoutBinding).push_back(shadowMapBinding);
 
     index = TEXTURE_BIND_START;
-    vkMtl.forEachTexture([this, &samplerBinding](const char* texname, Texture* t) mutable
+    vkMtl.forEachTexture([this, &layoutBinding](const char* texname, Texture* t) mutable
     {
         const DataDescriptor::DataEntry* entry = mTextureDesc.find(texname);
         if ((entry == NULL) || entry->NotUsed)
         {
             return;
         }
-        VkDescriptorSetLayoutBinding layoutBinding;
-        layoutBinding.binding = entry->Index + TEXTURE_BIND_START;
-        layoutBinding.descriptorCount = 1;
-        layoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        layoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layoutBinding.pImmutableSamplers = nullptr;
-        (samplerBinding).push_back(layoutBinding);
+        VkDescriptorSetLayoutBinding layout_binding;
+        layout_binding.binding = entry->Index + TEXTURE_BIND_START;
+        layout_binding.descriptorCount = 1;
+        layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        layout_binding.pImmutableSamplers = nullptr;
+        (layoutBinding).push_back(layout_binding);
     });
 
     return index;

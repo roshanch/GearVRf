@@ -570,41 +570,50 @@ void VulkanCore::InitCommandPools(){
         GVR_VK_CHECK(!ret);
     }
 
-    void VulkanCore::InitLayoutRenderData(VulkanMaterial * vkMtl, VulkanRenderData* vkdata, Shader *shader, LightList& lights) {
+//<<<<<<< HEAD
+//    void VulkanCore::InitLayoutRenderData(VulkanMaterial * vkMtl, VulkanRenderData* vkdata, Shader *shader, LightList& lights) {
+//=======
+    void VulkanCore::InitLayoutRenderData(RenderSorter::Renderable& r, LightList& lights) {
+//>>>>>>> 68dd0213... validate all vulkan resources
 
-        const DataDescriptor& textureDescriptor = shader->getTextureDescriptor();
-        DataDescriptor &uniformDescriptor = shader->getUniformDescriptor();
-        bool transformUboPresent = shader->usesMatrixUniforms();
-        VulkanShader* vk_shader = static_cast<VulkanShader*>(shader);
-        if (!shader->isShaderDirty()) {
+        if (!r.shader->isShaderDirty())
             return;
-        }
 
-        if ((textureDescriptor.getNumEntries() == 0) && uniformDescriptor.getNumEntries() == 0 && !transformUboPresent) {
+        const DataDescriptor& textureDescriptor = r.shader->getTextureDescriptor();
+        DataDescriptor &uniformDescriptor = r.shader->getUniformDescriptor();
+        bool transformUboPresent = r.shader->usesMatrixUniforms();
+        VulkanMaterial* vkmtl = static_cast<VulkanMaterial*>(r.renderPass->material());
+
+        if (textureDescriptor.getNumEntries() == 0 && uniformDescriptor.getNumEntries() == 0 && !transformUboPresent && !lights.getLightCount())
             return;
-        }
+
+        VulkanShader* vk_shader = static_cast<VulkanShader*>(r.shader);
+
+//<<<<<<< HEAD
+//        vk_shader->makeLayout(*vkMtl, uniformAndSamplerBinding,  index, vkdata, lights);
+//=======
 
         VkResult ret = VK_SUCCESS;
         uint32_t index = 0;
-        std::vector<VkDescriptorSetLayoutBinding> uniformAndSamplerBinding;
+        std::vector<VkDescriptorSetLayoutBinding> layoutBinding;
+        vk_shader->makeLayout(*vkmtl, layoutBinding,  index, static_cast<VulkanRenderData*>(r.renderData), lights);
+//>>>>>>> 68dd0213... validate all vulkan resources
 
-        vk_shader->makeLayout(*vkMtl, uniformAndSamplerBinding,  index, vkdata, lights);
-
-        VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(shader)->getDescriptorLayout();
+        VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(r.shader)->getDescriptorLayout();
 
         ret = vkCreateDescriptorSetLayout(m_device, gvr::DescriptorSetLayoutCreateInfo(0,
-                                                                                       uniformAndSamplerBinding.size(),
-                                                                                       uniformAndSamplerBinding.data()),
+                                                                                       layoutBinding.size(),
+                                                                                       layoutBinding.data()),
                                           nullptr,
                                           &descriptorLayout);
         GVR_VK_CHECK(!ret);
 
-        VkPipelineLayout &pipelineLayout = static_cast<VulkanShader *>(shader)->getPipelineLayout();
+        VkPipelineLayout &pipelineLayout = static_cast<VulkanShader *>(r.shader)->getPipelineLayout();
         ret = vkCreatePipelineLayout(m_device,
                                      gvr::PipelineLayoutCreateInfo(0, 1, &descriptorLayout, 0, 0),
                                      nullptr, &pipelineLayout);
         GVR_VK_CHECK(!ret);
-        shader->setShaderDirty(false);
+        r.shader->setShaderDirty(false);
     }
 
     VkRenderPass VulkanCore::createVkRenderPass(RenderPassType render_pass_type, int sample_count){
@@ -817,33 +826,51 @@ VkCullModeFlagBits VulkanCore::getVulkanCullFace(int cull_type){
 }
 
 
-void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, VulkanRenderData *rdata, VulkanShader* shader, int pass, VkRenderPass renderPass, int sampleCount) {
+void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderState& renderState, VkRenderPass renderpass) {
     VkResult err;
 
     // The pipeline contains all major state for rendering.
 
     // Our vertex input is a single vertex buffer, and its layout is defined
     // in our m_vertices object already. Use this when creating the pipeline.
+
+    VulkanVertexBuffer* vbuf = static_cast<VulkanVertexBuffer*>(r.mesh->getVertexBuffer());
+    const GVR_VK_Vertices* vertices = vbuf->getVKVertices(r.shader);
+    VulkanShader* vk_shader = static_cast<VulkanShader*>(r.shader);
+
     VkPipelineVertexInputStateCreateInfo vi = {};
-    vi = m_vertices->vi;
+    vi = vertices->vi;
 
     // For this example we do not do blending, so it is disabled.
     VkPipelineColorBlendAttachmentState att_state[1] = {};
-    bool disable_color_depth_write = rdata->stencil_test() && (RenderData::Queue::Stencil == rdata->rendering_order());
+//<<<<<<< HEAD
+    bool disable_color_depth_write = r.renderData->stencil_test() && (RenderData::Queue::Stencil == r.renderData->rendering_order());
     att_state[0].colorWriteMask = disable_color_depth_write ? 0x0 : (VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);    att_state[0].blendEnable = VK_FALSE;
 
-    if(rdata->alpha_blend()  && !shader->isDepthShader()) {
+    if(r.renderData->alpha_blend()  && !vk_shader->isDepthShader()) {
+//=======
+//    bool disable_color_depth_write = r.renderModes.isStencilTestEnabled() && (RenderData::Queue::Stencil == r.renderModes.getRenderOrder());
+//    att_state[0].colorWriteMask = disable_color_depth_write ? 0x0 : (VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
+//    att_state[0].blendEnable = VK_FALSE;
+//
+//    if(r.renderModes.isAlphaBlendEnabled()) {
+//>>>>>>> 68dd0213... validate all vulkan resources
         att_state[0].blendEnable = VK_TRUE;
-        att_state[0].srcColorBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[rdata->source_alpha_blend_func()]);
-        att_state[0].dstColorBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[rdata->dest_alpha_blend_func()]);
+        att_state[0].srcColorBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[r.renderModes.getSourceBlendFunc()]);
+        att_state[0].dstColorBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[r.renderModes.getDestBlendFunc()]);
         att_state[0].colorBlendOp = VK_BLEND_OP_ADD;
-        att_state[0].srcAlphaBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[rdata->source_alpha_blend_func()]);
-        att_state[0].dstAlphaBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[rdata->dest_alpha_blend_func()]);
+        att_state[0].srcAlphaBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[r.renderModes.getSourceBlendFunc()]);
+        att_state[0].dstAlphaBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[r.renderModes.getDestBlendFunc()]);
         att_state[0].alphaBlendOp = VK_BLEND_OP_ADD;
     }
-    std::vector<uint32_t> result_vert = shader->getVkVertexShader();
-    std::vector<uint32_t> result_frag = shader->getVkFragmentShader();
-
+//<<<<<<< HEAD
+//    std::vector<uint32_t> result_vert = shader->getVkVertexShader();
+//    std::vector<uint32_t> result_frag = shader->getVkFragmentShader();
+//
+//=======
+    std::vector<uint32_t> result_vert = vk_shader->getVkVertexShader();
+    std::vector<uint32_t> result_frag = vk_shader->getVkFragmentShader();
+//>>>>>>> 68dd0213... validate all vulkan resources
     // We define two shader stages: our vertex and fragment shader.
     // they are embedded as SPIR-V into a header file for ease of deployment.
     VkPipelineShaderStageCreateInfo shaderStages[2] = {};
@@ -854,11 +881,11 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
     pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 
-    pipelineCreateInfo.layout = shader->getPipelineLayout();
+    pipelineCreateInfo.layout = vk_shader->getPipelineLayout();
     pipelineCreateInfo.pVertexInputState = &vi;
     pipelineCreateInfo.pInputAssemblyState = gvr::PipelineInputAssemblyStateCreateInfo(
-            getTopology(rdata->draw_mode()));
-    VkCullModeFlagBits cull_face = getVulkanCullFace(rdata->cull_face(pass));
+            getTopology(r.renderModes.getDrawMode()));
+    VkCullModeFlagBits cull_face = getVulkanCullFace(r.renderModes.getCullFace());
     pipelineCreateInfo.pRasterizationState = gvr::PipelineRasterizationStateCreateInfo(VK_FALSE,
                                                                                        VK_FALSE,
                                                                                        VK_POLYGON_MODE_FILL,
@@ -871,30 +898,45 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     pipelineCreateInfo.pColorBlendState = gvr::PipelineColorBlendStateCreateInfo(1,&att_state[0]);
 
     pipelineCreateInfo.pMultisampleState = gvr::PipelineMultisampleStateCreateInfo(
-            getVKSampleBit(sampleCount), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE,
+            getVKSampleBit(renderState.sampleCount), VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE,
             VK_NULL_HANDLE, VK_NULL_HANDLE);
 
 
-    bool depthWrite = (rdata->rendering_order() == RenderData::Queue::Stencil) ? false : true;
+    bool depthWrite = (r.renderModes.getRenderOrder() == RenderData::Queue::Stencil) ? false : true;
 
     pipelineCreateInfo.pDepthStencilState =
-            gvr::PipelineDepthStencilStateCreateInfo(rdata->depth_test() ? VK_TRUE : VK_FALSE,
-                                                     (rdata->depth_mask()  && depthWrite)? VK_TRUE : VK_FALSE,
-                                                     VK_COMPARE_OP_LESS_OR_EQUAL,
-                                                     VK_FALSE,
-                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_sfail()]),  //stencil pass
-                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_dppass()]), //depth pass, stencil pass
-                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_dpfail()]), //depth fail, stencil pass
-                                                     static_cast<VkCompareOp>(vkflags::glToVulkan[rdata->stencil_func_func()]), //compare function
-                                                     rdata->stencil_func_mask(), //compare mask
-                                                     rdata->getStencilMask(), //stencil mask
-                                                     rdata->stencil_func_ref(),  //reference value
-                                                     rdata->stencil_test());
+//<<<<<<< HEAD
+//            gvr::PipelineDepthStencilStateCreateInfo(rdata->depth_test() ? VK_TRUE : VK_FALSE,
+//                                                     (rdata->depth_mask()  && depthWrite)? VK_TRUE : VK_FALSE,
+//                                                     VK_COMPARE_OP_LESS_OR_EQUAL,
+//                                                     VK_FALSE,
+//                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_sfail()]),  //stencil pass
+//                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_dppass()]), //depth pass, stencil pass
+//                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_dpfail()]), //depth fail, stencil pass
+//                                                     static_cast<VkCompareOp>(vkflags::glToVulkan[rdata->stencil_func_func()]), //compare function
+//                                                     rdata->stencil_func_mask(), //compare mask
+//                                                     rdata->getStencilMask(), //stencil mask
+//                                                     rdata->stencil_func_ref(),  //reference value
+//                                                     rdata->stencil_test());
+//=======
+            gvr::PipelineDepthStencilStateCreateInfo(r.renderModes.isDepthTestEnabled() ? VK_TRUE : VK_FALSE,
+                                     (r.renderModes.isDepthMaskEnabled()  && depthWrite)? VK_TRUE : VK_FALSE,
+                                     VK_COMPARE_OP_LESS_OR_EQUAL,
+                                     VK_FALSE,
+                                     static_cast<VkStencilOp>(vkflags::glToVulkan[r.renderModes.getStencilFail()]),  //stencil pass
+                                     static_cast<VkStencilOp>(vkflags::glToVulkan[r.renderModes.getDepthFail()]), //depth pass, stencil pass
+                                     VK_STENCIL_OP_KEEP , //depth fail, stencil pass
+                                     VK_COMPARE_OP_NEVER , //compare function
+                                     r.renderModes.getStencilFuncMask(), //compare mask
+                                     r.renderModes.getStencilMask(), //stencil mask
+                                     r.renderModes.getStencilRef(),  //reference value
+                                     r.renderModes.isStencilTestEnabled());
+//>>>>>>> 68dd0213... validate all vulkan resources
 
 
     pipelineCreateInfo.pStages = &shaderStages[0];
 
-    pipelineCreateInfo.renderPass = renderPass;
+    pipelineCreateInfo.renderPass = renderpass;
 
     pipelineCreateInfo.pDynamicState = nullptr;
     pipelineCreateInfo.stageCount = 2; //vertex and fragment
@@ -918,14 +960,14 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
     err = vkCreateGraphicsPipelines(m_device, 0, 1, &pipelineCreateInfo, nullptr,
                                     &pipeline);
     GVR_VK_CHECK(!err);
-    VulkanRenderPass * rp ;
-    if(shader->isDepthShader()){
-        rp = rdata->getShadowRenderPass();
-        rp->m_pipeline = pipeline;
-    }else{
-        rdata->setPipeline(pipeline,pass);
-    }
+//<<<<<<< HEAD
+    VulkanRenderPass * rp = static_cast<VulkanRenderPass*>(r.renderPass) ;
+    if(vk_shader->isDepthShader())
+        rp = static_cast<VulkanRenderData*>(r.renderData)->getShadowRenderPass();
 
+//=======
+    rp->m_pipeline = pipeline;
+//>>>>>>> 68dd0213... validate all vulkan resources
     LOGI("Vulkan graphics call after");
 
 }
@@ -1200,23 +1242,33 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         err = vkCreateDescriptorPool(m_device, &descriptorPoolCreateInfo, NULL, &descriptorPool);
         GVR_VK_CHECK(!err);
     }
+//
+//<<<<<<< HEAD
+//    bool VulkanCore::InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader* shader, VulkanRenderData* vkData, LightList* lights, VulkanMaterial* vkmtl) {
+//        const DataDescriptor& textureDescriptor = shader->getTextureDescriptor();
+//        DataDescriptor &uniformDescriptor = shader->getUniformDescriptor();
+//        bool transformUboPresent = shader->usesMatrixUniforms();
+//=======
+    bool VulkanCore::InitDescriptorSetForRenderData(RenderSorter::Renderable& r, LightList& lights) {
 
-    bool VulkanCore::InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader* shader, VulkanRenderData* vkData, LightList* lights, VulkanMaterial* vkmtl) {
-        const DataDescriptor& textureDescriptor = shader->getTextureDescriptor();
-        DataDescriptor &uniformDescriptor = shader->getUniformDescriptor();
-        bool transformUboPresent = shader->usesMatrixUniforms();
+        const DataDescriptor& textureDescriptor = r.shader->getTextureDescriptor();
+        DataDescriptor &uniformDescriptor = r.shader->getUniformDescriptor();
+        bool transformUboPresent = r.shader->usesMatrixUniforms();
+        VulkanMaterial* vkmtl = static_cast<VulkanMaterial*>(r.renderPass->material());
+        VulkanRenderPass* vk_renderPass = static_cast<VulkanRenderPass*>(r.renderPass);
+        VulkanRenderData* render_data = static_cast<VulkanRenderData*>(r.renderData);
+//>>>>>>> 68dd0213... validate all vulkan resources
 
-        if ((textureDescriptor.getNumEntries() == 0) && uniformDescriptor.getNumEntries() == 0 && !transformUboPresent) {
-        //    vkData->setDescriptorSetNull(true,pass);
+        if (textureDescriptor.getNumEntries() == 0 && uniformDescriptor.getNumEntries() == 0 && !transformUboPresent && !lights.getLightCount())
             return true;
-        }
-        VulkanShader* vkShader = static_cast<VulkanShader*>(shader);
-        bool bones_present = shader->hasBones();
+
+        VulkanShader* vkShader = static_cast<VulkanShader*>(r.shader);
+        bool bones_present = r.shader->hasBones();
 
         std::vector<VkWriteDescriptorSet> writes;
         VkDescriptorPool descriptorPool;
         GetDescriptorPool(descriptorPool);
-        VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(shader)->getDescriptorLayout();
+        VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(r.shader)->getDescriptorLayout();
         VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
         descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         descriptorSetAllocateInfo.pNext = nullptr;
@@ -1228,18 +1280,18 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
         VkResult err = vkAllocateDescriptorSets(m_device, &descriptorSetAllocateInfo, &descriptorSet);
         GVR_VK_CHECK(!err);
 
-        VulkanRenderPass * rp;
-        if(vkShader->isDepthShader()){
-            rp = vkData->getShadowRenderPass();
-        }
-        else {
-            rp = vkData->getRenderPass(pass);
-        }
+//<<<<<<< HEAD
+        VulkanRenderPass * rp = static_cast<VulkanRenderPass*>(r.renderPass);
+        if(vkShader->isDepthShader())
+            rp = render_data->getShadowRenderPass();
         rp->m_descriptorSet = descriptorSet;
+//=======
+//        vk_renderPass->m_descriptorSet = descriptorSet;
+//>>>>>>> 68dd0213... validate all vulkan resources
 
         if (transformUboPresent) {
-            vkData->getTransformUbo().setDescriptorSet(descriptorSet);
-            writes.push_back(vkData->getTransformUbo().getDescriptorSet());
+            render_data->getTransformUbo().setDescriptorSet(descriptorSet);
+            writes.push_back(render_data->getTransformUbo().getDescriptorSet());
         }
 
         if (uniformDescriptor.getNumEntries()) {
@@ -1247,19 +1299,19 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
             writes.push_back(static_cast<VulkanUniformBlock&>(vkmtl->uniforms()).getDescriptorSet());
         }
 
-        if(vkData->mesh()->hasBones() && bones_present){
-            static_cast<VulkanUniformBlock*>(vkData->getBonesUbo())->setDescriptorSet(descriptorSet);
-            writes.push_back(static_cast<VulkanUniformBlock*>(vkData->getBonesUbo())->getDescriptorSet());
+        if(render_data->mesh()->hasBones() && bones_present){
+            static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->setDescriptorSet(descriptorSet);
+            writes.push_back(static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->getDescriptorSet());
         }
 
-        if(lights != NULL && lights->getUBO() != nullptr){
-            static_cast<VulkanUniformBlock*>(lights->getUBO())->setDescriptorSet(descriptorSet);
-            writes.push_back(static_cast<VulkanUniformBlock*>(lights->getUBO())->getDescriptorSet());
+        if( lights.getUBO() != nullptr){
+            static_cast<VulkanUniformBlock*>(lights.getUBO())->setDescriptorSet(descriptorSet);
+            writes.push_back(static_cast<VulkanUniformBlock*>(lights.getUBO())->getDescriptorSet());
         }
 
         ShadowMap* shadowMap = NULL;
-        if(lights != NULL)
-        shadowMap= lights->getShadowMap();
+        //if(lights != NULL)
+        shadowMap= lights.getShadowMap();
 
         if(shadowMap && !vkShader->isDepthShader()){
 
@@ -1285,7 +1337,13 @@ void VulkanCore::InitPipelineForRenderData(const GVR_VK_Vertices* m_vertices, Vu
             return false;
 
         vkUpdateDescriptorSets(m_device, writes.size(), writes.data(), 0, nullptr);
-        rp->descriptorSetNull = false;
+//<<<<<<< HEAD
+//        rp->descriptorSetNull = false;
+//=======
+
+        vk_renderPass->descriptorSetNull = false;
+
+//>>>>>>> 68dd0213... validate all vulkan resources
         LOGI("Vulkan after update descriptor");
         return true;
     }

@@ -216,7 +216,7 @@ void ShaderData::makeDirty(DIRTY_BITS bits)
     mDirty = static_cast<DIRTY_BITS>(temp);
 }
 
-bool ShaderData::isDirty(DIRTY_BITS bits) const
+bool ShaderData::isDirty(int bits) const
 {
     return (bits & mDirty) != 0;
 }

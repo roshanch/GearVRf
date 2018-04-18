@@ -120,11 +120,19 @@ public:
                                  const char* uniformDescriptor, const char* textureDescriptor,
                                  const char* vertexDescriptor, const char* vertexShader,
                                  const char* fragmentShader, const char* matrixCalc);
-    virtual void renderRenderTarget(Scene*, jobject javaSceneObject, RenderTarget* renderTarget, ShaderManager* shader_manager,
+    void createVkResources(RenderSorter::Renderable& r, RenderState& rstate);
+        virtual void renderRenderTarget(Scene*, jobject javaSceneObject, RenderTarget* renderTarget, ShaderManager* shader_manager,
                                     RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b);
     virtual Light* createLight(const char* uniformDescriptor, const char* textureDescriptor);
     virtual void updatePostEffectMesh(Mesh*);
-    virtual void validate(RenderSorter::Renderable& r);
+//<<<<<<< HEAD
+//    virtual void validate(RenderSorter::Renderable& r);
+//=======
+    virtual void validate(RenderSorter::Renderable& , RenderState& rstate);
+    virtual bool selectMesh(RenderState& rstate, const RenderSorter::Renderable& r) { };
+    virtual bool selectMaterial(RenderState& rstate, ShaderData* material, Shader* shader) { };
+    virtual bool selectShader(RenderState& rstate, Shader* shader) { };
+//>>>>>>> 68dd0213... validate all vulkan resources
     virtual void render(const RenderState&, const RenderSorter::Renderable&);
     virtual UniformBlock* createTransformBlock(int numMatrices);
 
