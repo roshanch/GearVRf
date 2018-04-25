@@ -50,26 +50,26 @@ namespace gvr {
         }
         throw std::runtime_error("getVKSampleBit: unknown sampleCount value");
     }
-    void VulkanDescriptor::createDescriptor(VulkanCore *vk, int index,
-                                            VkShaderStageFlagBits shaderStageFlagBits) {
-        //createBuffer(device, vk, ubo, index);
-        createLayoutBinding(index, shaderStageFlagBits);
-    }
+//<<<<<<< HEAD
+//    void VulkanDescriptor::createDescriptor(VulkanCore *vk, int index,
+//                                            VkShaderStageFlagBits shaderStageFlagBits) {
+//        //createBuffer(device, vk, ubo, index);
+//        createLayoutBinding(index, shaderStageFlagBits);
+//    }
+//
+//    void VulkanDescriptor::createLayoutBinding(int binding_index, int stageFlags, bool sampler) {
+//=======
 
-    void VulkanDescriptor::createLayoutBinding(int binding_index, int stageFlags, bool sampler) {
+    VkDescriptorSetLayoutBinding createLayoutBinding(int binding_index, int stageFlags, bool sampler) {
+//>>>>>>> bba42476... validate function for vulkan
         VkDescriptorType descriptorType = (sampler ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
                                                    : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
 
         gvr::DescriptorLayout layout(binding_index, 1, descriptorType,
                                      stageFlags, 0);
-        layout_binding = *layout;
+        return *layout;
     }
-
-    VkDescriptorSetLayoutBinding &VulkanDescriptor::getLayoutBinding() {
-        return layout_binding;
-    }
-
-    void setImageLayout(VkImageMemoryBarrier imageMemoryBarrier, VkCommandBuffer cmdBuffer,
+     void setImageLayout(VkImageMemoryBarrier imageMemoryBarrier, VkCommandBuffer cmdBuffer,
                         VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout,
                         VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange,
                         VkPipelineStageFlags srcStageFlags, VkPipelineStageFlags destStageFlags) {
@@ -594,10 +594,14 @@ void VulkanCore::InitCommandPools(){
 //=======
 
         VkResult ret = VK_SUCCESS;
-        uint32_t index = 0;
+
         std::vector<VkDescriptorSetLayoutBinding> layoutBinding;
-        vk_shader->makeLayout(*vkmtl, layoutBinding,  index, static_cast<VulkanRenderData*>(r.renderData), lights);
+//<<<<<<< HEAD
+//        vk_shader->makeLayout(*vkmtl, layoutBinding,  index, static_cast<VulkanRenderData*>(r.renderData), lights);
 //>>>>>>> 68dd0213... validate all vulkan resources
+//=======
+        vk_shader->makeLayout(layoutBinding, r, lights);
+//>>>>>>> bba42476... validate function for vulkan
 
         VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(r.shader)->getDescriptorLayout();
 
@@ -702,7 +706,7 @@ void VulkanCore::InitCommandPools(){
                                                                     1, &subpassDescription, (uint32_t) 0,
                                                                     nullptr), nullptr, &renderPass);
         GVR_VK_CHECK(!ret);
-        mRenderPassMap.insert(std::make_pair(NORMAL_RENDERPASS + sample_count, renderPass));
+        mRenderPassMap.insert(std::make_pair(static_cast<int>(NORMAL_RENDERPASS) + sample_count, renderPass));
         return renderPass;
     }
 /*
@@ -1226,7 +1230,7 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         poolSize[0].descriptorCount = 5;
 
         poolSize[1].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSize[1].descriptorCount = 12;
+        poolSize[1].descriptorCount = 8;
 
         poolSize[2].type            = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
         poolSize[2].descriptorCount = 5;
@@ -1289,9 +1293,18 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
 //        vk_renderPass->m_descriptorSet = descriptorSet;
 //>>>>>>> 68dd0213... validate all vulkan resources
 
+        // transform ubo is common for multiple sceneobjects, just update offset and range
         if (transformUboPresent) {
-            render_data->getTransformUbo().setDescriptorSet(descriptorSet);
-            writes.push_back(render_data->getTransformUbo().getDescriptorSet());
+            VulkanUniformBlock* ubo =  static_cast<VulkanUniformBlock*>(r.transformBlock);
+            GVR_Uniform bufferInfo = ubo->getBuffer();
+            bufferInfo.bufferInfo.offset = r.matrixOffset* sizeof(glm::mat4);
+            bufferInfo.bufferInfo.range  = vkShader->getOutputBufferSize() * sizeof(glm::mat4);
+
+            VkWriteDescriptorSet writeDescriptorSet = static_cast<VulkanUniformBlock*>(r.transformBlock)->getDescriptorSet();
+            const VkDescriptorBufferInfo* info = new VkDescriptorBufferInfo(bufferInfo.bufferInfo);
+            writeDescriptorSet.pBufferInfo = info;
+            writeDescriptorSet.dstSet = descriptorSet;
+            writes.emplace_back(std::move(writeDescriptorSet));
         }
 
         if (uniformDescriptor.getNumEntries()) {
@@ -1309,6 +1322,7 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
             writes.push_back(static_cast<VulkanUniformBlock*>(lights.getUBO())->getDescriptorSet());
         }
 
+//<<<<<<< HEAD
         ShadowMap* shadowMap = NULL;
         //if(lights != NULL)
         shadowMap= lights.getShadowMap();
@@ -1333,6 +1347,8 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
             }
         }
 
+//=======
+//>>>>>>> bba42476... validate function for vulkan
         if(vkShader->bindTextures(vkmtl, writes,  descriptorSet) == false)
             return false;
 

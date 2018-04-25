@@ -62,6 +62,10 @@ Shader::Shader(int id,
         mMatrixCalc = new MatrixCalc(matrixCalc);
         mOutputBufferSize = mMatrixCalc->getNumOutputs();
     }
+    else if (mUseMatrixUniforms)
+    {
+        mOutputBufferSize = 2;
+    }
 }
 
 int Shader::calcMatrix(const glm::mat4* inputMatrices, glm::mat4* outputMatrices)

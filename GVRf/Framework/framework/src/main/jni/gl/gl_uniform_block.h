@@ -50,7 +50,7 @@ namespace gvr
          * Bind the uniform buffer to the OpenGL shader
          */
         virtual bool bindBuffer(Shader *, Renderer *, int locationOffset = 0);
-
+        virtual void createBuffer(Renderer* renderer);
         virtual std::string makeShaderLayout();
 
         /**
@@ -61,7 +61,7 @@ namespace gvr
         static void dump(GLuint programID, int blockIndex);
 
     protected:
-        GLuint GLBuffer;
+        GLuint GLBuffer = 0;
     };
 
 }

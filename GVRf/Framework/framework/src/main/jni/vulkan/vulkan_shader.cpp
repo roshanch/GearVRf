@@ -41,13 +41,15 @@ void VulkanShader::initialize()
 {
 }
 
-int VulkanShader::makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetLayoutBinding>& layoutBinding, int index, VulkanRenderData* vkdata, LightList& lights)
+int VulkanShader::makeLayout(std::vector<VkDescriptorSetLayoutBinding>& layoutBinding, RenderSorter::Renderable& r, LightList& lights)
 {
+    VulkanMaterial* vkmtl = static_cast<VulkanMaterial*>(r.renderPass->material());
+    VulkanRenderData* vkdata = static_cast<VulkanRenderData*>(r.renderData);
 
     VkDescriptorSetLayoutBinding dummy_binding ={} ;
     if (usesMatrixUniforms()) {
-        VkDescriptorSetLayoutBinding &transform_uniformBinding = vkdata->getTransformUbo().getVulkanDescriptor()->getLayoutBinding();
-        layoutBinding.push_back(transform_uniformBinding);
+        VulkanUniformBlock* ubo = static_cast<VulkanUniformBlock*>(r.transformBlock);
+        layoutBinding.emplace_back(ubo->getLayoutBinding());
     }
     else {
         dummy_binding.binding = TRANSFORM_UBO_INDEX;
@@ -55,8 +57,7 @@ int VulkanShader::makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetL
     }
 
     if (getUniformDescriptor().getNumEntries()){
-        VkDescriptorSetLayoutBinding &material_uniformBinding = reinterpret_cast<VulkanUniformBlock&>(vkMtl.uniforms()).getVulkanDescriptor()->getLayoutBinding();
-        layoutBinding.push_back(material_uniformBinding);
+        layoutBinding.emplace_back(vkmtl->uniforms().getLayoutBinding());
     }
     else {
         // Dummy binding for Material UBO, since now a push Constant
@@ -65,8 +66,7 @@ int VulkanShader::makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetL
     }
 
     if(vkdata->mesh()->hasBones() && hasBones()){
-       VkDescriptorSetLayoutBinding &bones_uniformBinding = static_cast<VulkanUniformBlock*>(vkdata->getBonesUbo())->getVulkanDescriptor()->getLayoutBinding();
-        layoutBinding.push_back(bones_uniformBinding);
+        layoutBinding.emplace_back(static_cast<VulkanUniformBlock*>(vkdata->getBonesUbo())->getLayoutBinding());
    }
     else{
         dummy_binding.binding = BONES_UBO_INDEX;
@@ -74,8 +74,7 @@ int VulkanShader::makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetL
     }
 
     if(lights.getUBO() != nullptr){
-        VkDescriptorSetLayoutBinding &lights_uniformBinding = static_cast<VulkanUniformBlock*>(lights.getUBO())->getVulkanDescriptor()->getLayoutBinding();
-        layoutBinding.push_back(lights_uniformBinding);
+        layoutBinding.emplace_back(static_cast<VulkanUniformBlock*>(lights.getUBO())->getLayoutBinding());
     }
     else {
 //<<<<<<< HEAD
@@ -87,6 +86,7 @@ int VulkanShader::makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetL
 //>>>>>>> 68dd0213... validate all vulkan resources
     }
 
+//<<<<<<< HEAD
     // Dummy shadowmap binding
     VkDescriptorSetLayoutBinding shadowMapBinding;
     shadowMapBinding.binding = SHADOW_UBO_INDEX;
@@ -96,8 +96,15 @@ int VulkanShader::makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetL
     shadowMapBinding.pImmutableSamplers = nullptr;
     (layoutBinding).push_back(shadowMapBinding);
 
-    index = TEXTURE_BIND_START;
-    vkMtl.forEachTexture([this, &layoutBinding](const char* texname, Texture* t) mutable
+    int index = TEXTURE_BIND_START;
+    vkmtl->forEachTexture([this, &layoutBinding](const char* texname, Texture* t) mutable
+//=======
+//    /*
+//     * TODO :: if has shadowmap, create binding for it
+//     */
+//    int index = TEXTURE_BIND_START;
+//    vkmtl->forEachTexture([this, &layoutBinding](const char* texname, Texture* t) mutable
+//>>>>>>> bba42476... validate function for vulkan
     {
         const DataDescriptor::DataEntry* entry = mTextureDesc.find(texname);
         if ((entry == NULL) || entry->NotUsed)

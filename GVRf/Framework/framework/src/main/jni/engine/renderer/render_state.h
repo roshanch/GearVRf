@@ -309,8 +309,8 @@ namespace gvr
         std::string to_string(){
             if(!isDirty())
                 return hash_code;
-
-            uint64_t hashcode = *(reinterpret_cast<const uint64_t*>(this));
+            hash_code.clear();
+            uint64_t hashcode = getRenderFlags();
             hash_code += gvr::to_string(hashcode);
             hash_code += gvr::to_string(offset_factor);
             hash_code += gvr::to_string(offset_units);
@@ -333,6 +333,7 @@ namespace gvr
             offset_units = src.offset_units;
             render_order = src.render_order;
             sample_coverage = src.sample_coverage;
+            hash_code = src.hash_code;
             return *this;
         }
 
@@ -354,6 +355,9 @@ namespace gvr
             {
                 return false;
             }
+            if(hash_code != src.hash_code)
+                return  false;
+
             return true;
         }
 

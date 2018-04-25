@@ -47,13 +47,11 @@ struct VulkanRenderPass : public RenderPass
     class VulkanRenderData : public RenderData
     {
     public:
-        VulkanRenderData() : RenderData(), ubo(
-        "mat4 u_view; mat4 u_mvp; mat4 u_mv; mat4 u_mv_it; mat4 u_model; mat4 u_view_i; float u_right;", TRANSFORM_UBO_INDEX, "Transform_ubo")
+        VulkanRenderData() : RenderData()
         {
         }
 
-        explicit VulkanRenderData(const RenderData &rdata) : RenderData(rdata), ubo(
-        "mat4 u_view; mat4 u_mvp; mat4 u_mv; mat4 u_mv_it; mat4 u_model; mat4 u_view_i; float u_right;", TRANSFORM_UBO_INDEX, "Transform_ubo")
+        explicit VulkanRenderData(const RenderData &rdata) : RenderData(rdata)
         {
         }
 
@@ -61,9 +59,6 @@ struct VulkanRenderPass : public RenderPass
 
         void createPipeline(VulkanRenderer* renderer, RenderSorter::Renderable& r, RenderState& rstate, VkRenderPass);
 
-        VulkanUniformBlock& getTransformUbo(){
-            return ubo;
-        }
         VkPipeline getVKPipeline(int pass)
         {
             VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
@@ -137,8 +132,12 @@ struct VulkanRenderPass : public RenderPass
         VulkanRenderData &operator=(VulkanRenderData&&);
 
     private:
-        VulkanUniformBlock ubo;
+//<<<<<<< HEAD
+        //VulkanUniformBlock ubo  = nullptr;
         VulkanRenderPass * shadowPass = nullptr;
+//=======
+//        VulkanUniformBlock* ubo = nullptr;
+//>>>>>>> bba42476... validate function for vulkan
 
     };
 

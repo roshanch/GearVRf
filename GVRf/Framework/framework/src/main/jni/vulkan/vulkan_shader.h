@@ -99,12 +99,12 @@ public:
     void  convertToVkShaders();
     virtual void bindLights(LightList&, Renderer* r) { }
 
-    int makeLayout(VulkanMaterial& vkMtl, std::vector<VkDescriptorSetLayoutBinding>& samplerBinding, int index, VulkanRenderData* vkdata, LightList& lights);
+    int makeLayout(std::vector<VkDescriptorSetLayoutBinding>& layoutBinding, RenderSorter::Renderable& r, LightList& lights);
     bool bindTextures(VulkanMaterial* material, std::vector<VkWriteDescriptorSet>& writes, VkDescriptorSet& descriptorSet);
     static std::string makeLayout(const DataDescriptor& desc, const char* blockName, bool useGPUBuffer);
 private:
-    VkPipelineLayout m_pipelineLayout;
-    VkDescriptorSetLayout m_descriptorLayout;
+    VkPipelineLayout m_pipelineLayout = 0;
+    VkDescriptorSetLayout m_descriptorLayout = 0;
 
     VulkanShader(const VulkanShader& shader) = delete;
     VulkanShader(VulkanShader&& shader) = delete;

@@ -21,28 +21,6 @@
 namespace gvr {
     class VulkanUniformBlock;
     class VulkanCore;
-
-    class VulkanDescriptor final
-    {
-    public:
-        VulkanDescriptor();
-       // VulkanDescriptor(const std::string& ubo_descriptor);
-        ~VulkanDescriptor();
-        void createDescriptor(VulkanCore*, int, VkShaderStageFlagBits);
-
-        void createLayoutBinding(int binding_index,int stageFlags, bool sampler=false);
-        //void createDescriptorWriteInfo(int binding_index,int stageFlags, VkDescriptorSet& descriptor, bool sampler=false);
-       // VulkanUniformBlock* getUBO();
-        VkDescriptorSetLayoutBinding& getLayoutBinding();
-      //  VkWriteDescriptorSet& getDescriptorSet();
-
-    private:
-      //  void createBuffer(VkDevice &device, VulkanCore* vk,VulkanUniformBlock*);
-        //VulkanUniformBlock* ubo;
-        VkDescriptorSetLayoutBinding layout_binding;
-    //    VkWriteDescriptorSet writeDescriptorSet;
-    };
-
     /**
      * Manages a Uniform Block containing data parameters to pass to
      * Vulkan vertex and fragment shaders.
@@ -55,13 +33,13 @@ namespace gvr {
         int getPaddingSize(short &totaSize, int padSize);
         void uboPadding();
     public:
+        void createBuffer(Renderer* renderer);
         explicit VulkanUniformBlock(const char* descriptor, int bindingPoint,const char* blockName);
         explicit VulkanUniformBlock(const char* descriptor, int bindingPoint,const char* blockName, int maxelems);
         virtual ~VulkanUniformBlock() {}
         bool bindBuffer(Shader*, Renderer*, int locationOffset = 0) { return true; }
         virtual bool updateGPU(Renderer*, int start = 0, int len = 0);
         virtual std::string makeShaderLayout();
-        VulkanDescriptor* getVulkanDescriptor();
         void createDescriptorWriteInfo(int binding_index,int stageFlags, bool sampler=false);
         GVR_Uniform& getBuffer() { return m_bufferInfo; }
 
@@ -70,25 +48,17 @@ namespace gvr {
         void setDescriptorSet(VkDescriptorSet descriptorSet){
             writeDescriptorSet.dstSet = descriptorSet;
         }
-
+        VkDescriptorSetLayoutBinding getLayoutBinding(){
+            return  layout_binding;
+        }
         char * getUniformData() { return mUniformData; }
         virtual bool setFloatVec(const char *name, const float *val, int n);
         virtual bool setIntVec(const char *name, const int *val, int n);
     protected:
-        void createBuffer(VulkanCore*);
+
         void updateBuffer(VulkanCore* vk, int start, int len);
-
-        bool buffer_init_ = false;
         VkWriteDescriptorSet writeDescriptorSet;
-        VulkanDescriptor* vk_descriptor;
+        VkDescriptorSetLayoutBinding layout_binding;
     };
-
-
-    inline VulkanDescriptor::VulkanDescriptor() {  }
-   // inline VulkanDescriptor::VulkanDescriptor(const std::string& ubo_descriptor){ }
-  //  inline VulkanDescriptor::VulkanDescriptor( VulkanUniformBlock* ubo) { }
-    inline VulkanDescriptor::~VulkanDescriptor() { }
-
-    inline VulkanDescriptor* VulkanUniformBlock::getVulkanDescriptor() { return vk_descriptor; }
 }
 #endif

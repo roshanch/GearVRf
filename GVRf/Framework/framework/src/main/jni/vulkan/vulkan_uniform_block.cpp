@@ -20,16 +20,16 @@
 namespace gvr {
 
     VulkanUniformBlock::VulkanUniformBlock(const char* descriptor, int bindingPoint, const char* blockName)
-            : UniformBlock(descriptor, bindingPoint, blockName), vk_descriptor(nullptr)
+            : UniformBlock(descriptor, bindingPoint, blockName)
     {
-        vk_descriptor = new VulkanDescriptor();
+        layout_binding = createLayoutBinding(bindingPoint,VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT);
         uboPadding();
     }
 
     VulkanUniformBlock::VulkanUniformBlock(const char* descriptor, int bindingPoint, const char* blockName, int maxelems)
-            : UniformBlock(descriptor, bindingPoint, blockName, maxelems), vk_descriptor(nullptr)
+            : UniformBlock(descriptor, bindingPoint, blockName, maxelems)
     {
-        vk_descriptor = new VulkanDescriptor();
+        layout_binding = createLayoutBinding(bindingPoint,VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT);
         uboPadding();
     }
 
@@ -59,7 +59,7 @@ namespace gvr {
         }
         if (!buffer_init_)
         {
-            createBuffer(vk);
+            createBuffer(renderer);
         }
         updateBuffer(vk, start, len);
         mIsDirty = false;
@@ -109,10 +109,11 @@ namespace gvr {
         vkUnmapMemory(device, m_bufferInfo.mem);
     }
 
-    void VulkanUniformBlock::createBuffer(VulkanCore* vk)
+    void VulkanUniformBlock::createBuffer(Renderer* renderer)
     {
+        VulkanRenderer* vulkanRenderer = static_cast<VulkanRenderer*>(renderer);
+        VulkanCore* vk = vulkanRenderer->getCore();
         VkDevice& device = vk->getDevice();
-
         VkResult err = VK_SUCCESS;
         memset(&m_bufferInfo, 0, sizeof(m_bufferInfo));
         err = vkCreateBuffer(device, gvr::BufferCreateInfo(mTotalSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT), NULL, &m_bufferInfo.buf);
@@ -149,7 +150,6 @@ namespace gvr {
         // TODO: we should select a descriptor based on the uniform descriptor string
         // we should not create new descriptors for each buffer!
         createDescriptorWriteInfo(getBindingPoint(), VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT);
-        vk_descriptor->createDescriptor(vk, getBindingPoint(),  VkShaderStageFlagBits(VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT ));
         buffer_init_ = true;
     }
 

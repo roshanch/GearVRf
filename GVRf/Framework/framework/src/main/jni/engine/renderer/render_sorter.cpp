@@ -93,10 +93,15 @@ RenderSorter::Renderable* RenderSorter::alloc()
         newBlock->numElems = n = 0;
         mCurBlock = newBlock;
     }
-    Renderable* item = (Renderable*) (mCurBlock + 1);
+    Renderable* item =  (Renderable*) (mCurBlock + 1);
     ++(mCurBlock->numElems);
     item += n;
-    item->reset();
+//<<<<<<< HEAD
+//    item->reset();
+//=======
+    // use placement new to call constructor of an object
+    item = new (item) Renderable();
+//>>>>>>> bba42476... validate function for vulkan
     return item;
 }
 
@@ -286,6 +291,10 @@ UniformBlock* RenderSorter::updateTransformBlock(Renderable& r, int numMatrices,
     mNumMatricesInBlock += numMatrices;
     r.transformBlock = transformBlock;
     transformBlock->setRange(r.matrixOffset, matrixData, numMatrices);
+
+    if(!transformBlock->isUboCreated())
+        transformBlock->createBuffer(Renderer::getInstance());
+
 #ifdef DEBUG_TRANSFORM
     LOGV("TRANSFORM: using transform block #%d matrix offset = %d", mTransBlockIndex, r.matrixOffset);
 #endif

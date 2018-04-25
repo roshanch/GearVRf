@@ -35,7 +35,6 @@
 namespace gvr
 {
     class SceneObject;
-
     class Shader;
 
     class Renderer;
@@ -310,6 +309,10 @@ namespace gvr
          */
         virtual bool bindBuffer(Shader *, Renderer *, int locationOffset = 0) = 0;
 
+        /*
+         * create gpu buffer
+         */
+        virtual void createBuffer(Renderer* renderer) = 0;
         virtual ~UniformBlock()
         {
             if ((mUniformData != NULL) && mOwnData)
@@ -430,6 +433,9 @@ namespace gvr
          * @returns string with uniform declarations for GPU shader.
          */
         virtual std::string makeShaderLayout();
+        bool isUboCreated(){
+            return buffer_init_;
+        }
 
     protected:
         UniformBlock(const char *descriptor);
@@ -446,7 +452,7 @@ namespace gvr
                 mOwnData = true;
             }
         }
-
+        bool buffer_init_ = false;
         int mBindingPoint;           // shader binding point
         unsigned int mOwnData : 1;   // true if this uniform block owns its data
         unsigned int mUseBuffer : 1; // true if this uniform block uses a GPU buffer

@@ -50,7 +50,7 @@ enum RenderPassType{
 };
 extern std::vector<uint64_t> samplers;
 extern VkSampler getSampler(uint64_t index);
-
+VkDescriptorSetLayoutBinding createLayoutBinding(int binding_index, int stageFlags, bool sampler = false);
 extern VkSampleCountFlagBits getVKSampleBit(int sampleCount);
 extern VkRenderPass* createVkRenderPass(RenderPassType);
 struct TextureObject{

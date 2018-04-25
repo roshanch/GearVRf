@@ -34,7 +34,7 @@
 #include "vulkan/vulkan_render_data.h"
 #include "vulkan/vk_texture.h"
 #include "vulkan/vk_bitmap_image.h"
-#include <bits/stdc++.h>
+//#include <bits/stdc++.h>
 #include <glslang/Include/Common.h>
 
 namespace gvr {
@@ -68,11 +68,7 @@ RenderData* VulkanRenderer::createRenderData(RenderData* data)
 
 UniformBlock* VulkanRenderer::createTransformBlock(int numMatrices)
 {
-    std::ostringstream stream;
-    stream <<  " uint u_right; uint u_render_mask; uint u_matrix_offset; uint u_pad; mat4 u_matrices[";
-    stream << numMatrices;
-    stream << ']';
-    return VulkanRenderer::createUniformBlock(stream.str().c_str(), TRANSFORM_UBO_INDEX, "Transform_ubo", 0);
+    return VulkanRenderer::createUniformBlock("mat4 u_matrices", TRANSFORM_UBO_INDEX, "Transform_ubo", numMatrices);
 }
 
 RenderTarget* VulkanRenderer::createRenderTarget(Scene* scene, bool stereo)
@@ -135,7 +131,13 @@ RenderTexture* VulkanRenderer::createRenderTexture(int width, int height, int sa
                                                    int jcolor_format, int jdepth_format, bool resolve_depth,
                                                    const TextureParameters* texture_parameters, int number_views)
 {
+//<<<<<<< HEAD
     return new VkRenderTexture(width, height, DEPTH_IMAGE | COLOR_IMAGE, 1, sample_count);
+//=======
+//    if (monoscopic)
+//        return new VkRenderTextureOnScreen(width, height, sample_count);
+//    return new VkRenderTextureOffScreen(width, height, sample_count);
+//>>>>>>> bba42476... validate function for vulkan
 }
 
 Shader* VulkanRenderer::createShader(int id, const char* signature,
@@ -185,7 +187,6 @@ void VulkanRenderer::updatePostEffectMesh(Mesh* copy_mesh)
 void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState& rstate){
 
     VulkanRenderData* vkRdata = static_cast<VulkanRenderData*>(r.renderData);
-    UniformBlock& transformUBO = vkRdata->getTransformUbo();
 
     vkRdata->updateGPU(this, r.shader);
     LightList& lights = rstate.scene->getLights();
@@ -209,7 +210,12 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
 
         VkPipeline pipeline = vulkanCore_->getPipeline(vkPipelineHashCode);
         VulkanRenderPass* vk_renderPass = static_cast<VulkanRenderPass*>(r.renderPass);
-        if(pipeline == 0) {
+//<<<<<<< HEAD
+//        if(pipeline == 0) {
+//=======
+
+        if(!pipeline) {
+//>>>>>>> bba42476... validate function for vulkan
             vkRdata->createPipeline(this,r,rstate,render_pass);
             vulkanCore_->addPipeline(vkPipelineHashCode, vk_renderPass->m_pipeline);
         }

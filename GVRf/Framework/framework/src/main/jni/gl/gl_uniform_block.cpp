@@ -30,7 +30,15 @@ namespace gvr {
     {
         glDeleteBuffers(1,&GLBuffer);
     }
+    void GLUniformBlock::createBuffer(Renderer* renderer){
+        int maxbytes = mElemSize * mMaxElems;
 
+        glGenBuffers(1, &GLBuffer);
+        glBindBuffer(GL_UNIFORM_BUFFER, GLBuffer);
+        glBufferData(GL_UNIFORM_BUFFER, maxbytes, NULL, GL_DYNAMIC_DRAW);
+        mIsDirty = true;
+        buffer_init_ = true;
+    }
     bool GLUniformBlock::updateGPU(Renderer* renderer, int start, int len)
     {
         if (mUseBuffer)             // use a uniform buffer?
@@ -47,6 +55,7 @@ namespace gvr {
                 glBindBuffer(GL_UNIFORM_BUFFER, GLBuffer);
                 glBufferData(GL_UNIFORM_BUFFER, maxbytes, NULL, GL_DYNAMIC_DRAW);
                 mIsDirty = true;
+                buffer_init_ = true;
             }
             if (mIsDirty)
             {
