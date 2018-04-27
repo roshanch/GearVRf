@@ -145,12 +145,21 @@ Shader* VulkanRenderer::createShader(int id, const char* signature,
                                      const char* vertexDescriptor, const char* vertexShader,
                                      const char* fragmentShader, const char* matrixCalc)
 {
-    return new VulkanShader(id, signature, uniformDescriptor, textureDescriptor, vertexDescriptor, vertexShader, fragmentShader, matrixCalc);
+    Shader* shader = new VulkanShader(id, signature, uniformDescriptor, textureDescriptor, vertexDescriptor, vertexShader, fragmentShader, matrixCalc);
+    int shader_id = shader->getShaderID();
+    PipelineHashing& pipelineHashing = vulkanCore_->getPipelineHash();
+    shader->setShaderIndex(pipelineHashing.getShaderIndex(shader_id));
+    return shader;
 }
 
 VertexBuffer* VulkanRenderer::createVertexBuffer(const char* desc, int vcount)
 {
-    return new VulkanVertexBuffer(desc, vcount);
+    VertexBuffer* vertexBuffer = new VulkanVertexBuffer(desc, vcount);
+    std::string descriptor = vertexBuffer->getTinyDescriptor();
+    PipelineHashing& pipelineHashing = vulkanCore_->getPipelineHash();
+    int index = pipelineHashing.addDescriptor(descriptor);
+    vertexBuffer->setDescriptorIndex(index);
+    return vertexBuffer;
 }
 
 IndexBuffer* VulkanRenderer::createIndexBuffer(int bytesPerIndex, int icount)
@@ -198,31 +207,39 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
         VkRenderPass render_pass = vulkanCore_->createVkRenderPass(NORMAL_RENDERPASS, rstate.sampleCount);
 
 //<<<<<<< HEAD
+//<<<<<<< HEAD
 //        std::string vkPipelineHashCode = std::to_string(r.shader) + std::to_string(r.renderModes) +
 //                                std::to_string(rstate.sampleCount) + r.mesh->getVertexBuffer()->getDescriptor();
 //=======
-        std::string vkPipelineHashCode;
-        vkPipelineHashCode += std::to_string(r.shader);
-        vkPipelineHashCode += r.renderModes.to_string();
-        vkPipelineHashCode += std::to_string(rstate.sampleCount);
-        vkPipelineHashCode += r.mesh->getVertexBuffer()->getDescriptor();
+//        std::string vkPipelineHashCode;
+//        vkPipelineHashCode += std::to_string(r.shader);
+//        vkPipelineHashCode += r.renderModes.to_string();
+//        vkPipelineHashCode += std::to_string(rstate.sampleCount);
+//        vkPipelineHashCode += r.mesh->getVertexBuffer()->getDescriptor();
 //>>>>>>> d8c3a866... adding to_string() for render_modes
+//=======
+        PipelineHashing& pipelineHashing = vulkanCore_->getPipelineHash();
+        pipelineHashing.createPipeline(this,r,rstate,render_pass);
+//>>>>>>> 4ee0e2c6... pipeline hashing for vulkan
 
-        VkPipeline pipeline = vulkanCore_->getPipeline(vkPipelineHashCode);
         VulkanRenderPass* vk_renderPass = static_cast<VulkanRenderPass*>(r.renderPass);
 //<<<<<<< HEAD
 //        if(pipeline == 0) {
 //=======
 
-        if(!pipeline) {
-//>>>>>>> bba42476... validate function for vulkan
-            vkRdata->createPipeline(this,r,rstate,render_pass);
-            vulkanCore_->addPipeline(vkPipelineHashCode, vk_renderPass->m_pipeline);
-        }
-        else{
-            vk_renderPass->m_pipeline = pipeline;
-            vkRdata->clearDirty();
-        }
+//<<<<<<< HEAD
+//        if(!pipeline) {
+////>>>>>>> bba42476... validate function for vulkan
+//            vkRdata->createPipeline(this,r,rstate,render_pass);
+//            vulkanCore_->addPipeline(vkPipelineHashCode, vk_renderPass->m_pipeline);
+//        }
+//        else{
+//            vk_renderPass->m_pipeline = pipeline;
+//            vkRdata->clearDirty();
+//        }
+//=======
+        vk_renderPass->render_modes().clearDirty();
+//>>>>>>> 4ee0e2c6... pipeline hashing for vulkan
     }
 }
 void VulkanRenderer::validate(RenderSorter::Renderable& r, RenderState& rstate)

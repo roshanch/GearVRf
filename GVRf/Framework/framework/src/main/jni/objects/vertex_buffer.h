@@ -160,11 +160,21 @@ namespace gvr {
          */
         virtual bool    updateGPU(Renderer*, IndexBuffer*, Shader*) = 0;
 
-
+        void createDescriptor();
         void            dump() const;
         void            dump(const char* attrName) const;
-
+        std::string     getTinyDescriptor(){
+            return mTinyDesc;
+        }
+        void setDescriptorIndex(short index){
+            mDescIndex = index;
+        }
+        int getDescIndex(){
+            return mDescIndex;
+        }
     protected:
+        short mDescIndex = -1;
+        std::string            mTinyDesc;
         bool            setVertexCount(int vertexCount);
         const void*     getData(const char* attributeName, int& size) const;
         const void*     getData(int index, int& size) const;

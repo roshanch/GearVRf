@@ -137,6 +137,7 @@ public:
     virtual UniformBlock* createTransformBlock(int numMatrices);
 
 private:
+
     VulkanCore* vulkanCore_;
 };
 }

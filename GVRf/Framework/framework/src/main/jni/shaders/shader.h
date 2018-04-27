@@ -149,6 +149,13 @@ public:
         return mUseMaterialGPUBuffer;
     }
 
+    void setShaderIndex(int index){
+        mShaderIndex = index;
+    }
+    int getShaderIndex(){
+        return mShaderIndex;
+    }
+
     int calcMatrix(const glm::mat4* inputMatrices, glm::mat4* outputMatrices);
     virtual bool useShader(bool) = 0;
     virtual void bindLights(LightList& lights, Renderer* r) = 0;
@@ -161,6 +168,7 @@ private:
     Shader& operator=(Shader&& shader) = delete;
 
 protected:
+    int mShaderIndex = -1;
     MatrixCalc* mMatrixCalc;
     bool shaderDirty = true;
     DataDescriptor mUniformDesc;

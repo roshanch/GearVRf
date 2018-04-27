@@ -33,7 +33,66 @@
 #define QUEUE_INDEX_MAX 99999
 #define VERTEX_BUFFER_BIND_ID 0
 namespace gvr {
+    int PipelineHashing::addDescriptor(const std::string& desc){
+        for(int i=0; i<mesh_descriptors.size(); i++)
+            if(mesh_descriptors[i] == desc)
+                return  i;
+        mesh_descriptors.emplace_back(desc);
+        return mesh_descriptors.size()-1;
+    }
+    int PipelineHashing::getShaderIndex(int shader_id) {
+        for(int i=0; i<shader_ids.size();i++)
+            if(shader_ids[i] == shader_id)
+                return i;
 
+        shader_ids.push_back(shader_id);
+        return shader_ids.size()-1;
+
+    }
+    VkPipeline PipelineHashing::createPipeline(VulkanRenderer* renderer, RenderSorter::Renderable& r, RenderState& rstate, VkRenderPass renderPass) {
+        short desc_index = r.mesh->getVertexBuffer()->getDescIndex();
+        short shader_index = r.shader->getShaderIndex();
+        VulkanRenderData* vkRdata = static_cast<VulkanRenderData*>(r.renderData);
+        VulkanRenderPass* vk_renderPass = static_cast<VulkanRenderPass*>(r.renderPass);
+
+        int key = (desc_index << 16 | shader_index);
+        int hash_index = -1;
+        for(int i=0; i<hash_keys.size();i++){
+            if(hash_keys[i] == key){
+                hash_index = i;
+                break;
+            }
+        }
+        if(-1 == hash_index) {
+            hash_keys.push_back(key);
+            hash_index = hash_keys.size() - 1;
+        }
+        VkPipeline  pipeline = 0;
+        if(hash_index >= pipelineHash.size()){
+            vkRdata->createPipeline(renderer,r,rstate,renderPass);
+            pipelineHash.emplace_back(r.renderModes, vk_renderPass->m_pipeline, -1);
+        }
+        else {
+            auto i = pipelineHash[hash_index];
+            while (i.mNextindex != -1) {
+                if (i.mRenderMode == r.renderModes) {
+                    vk_renderPass->m_pipeline = i.mPipeline;
+                    return i.mPipeline;
+                }
+
+                i = pipelineHash[i.mNextindex];
+            }
+            if (i.mRenderMode == r.renderModes) {
+                vk_renderPass->m_pipeline = i.mPipeline;
+                return i.mPipeline;
+            }
+
+            vkRdata->createPipeline(renderer,r,rstate,renderPass);
+            pipelineHash.emplace_back(r.renderModes, vk_renderPass->m_pipeline, -1);
+            i.mNextindex = pipelineHash.size() - 1;
+            return pipeline;
+        }
+    }
     std::vector<uint64_t> samplers;
     VulkanCore *VulkanCore::theInstance = NULL;
     uint8_t *oculusTexData;

@@ -53,19 +53,7 @@ extern VkSampler getSampler(uint64_t index);
 VkDescriptorSetLayoutBinding createLayoutBinding(int binding_index, int stageFlags, bool sampler = false);
 extern VkSampleCountFlagBits getVKSampleBit(int sampleCount);
 extern VkRenderPass* createVkRenderPass(RenderPassType);
-struct TextureObject{
-    VkSampler m_sampler;
-    VkImage m_image;
-    VkImageView m_view;
-    VkDeviceMemory m_mem;
-    VkFormat m_format;
-    VkImageLayout m_imageLayout;
-    uint32_t m_width;
-    uint32_t m_height;
-    VkImageType m_textureType;
-    VkImageViewType m_textureViewType;
-    uint8_t *m_data;
-};
+
 
 class Scene;
 class ShaderManager;
@@ -84,8 +72,29 @@ class VulkanShader;
 class VkRenderTarget;
 class RenderTarget;
 class LightList;
+//<<<<<<< HEAD
 class VKDeviceComponent;
+//=======
+class PipelineHashing{
+public:
+    int addDescriptor(const std::string& desc);
+    int getShaderIndex(int shader_id);
+    VkPipeline createPipeline(VulkanRenderer* renderer, RenderSorter::Renderable& r, RenderState& rstate, VkRenderPass renderPass);
+//>>>>>>> 4ee0e2c6... pipeline hashing for vulkan
 
+private:
+    std::vector<int> shader_ids;
+    std::vector<std::string> mesh_descriptors;
+    std::vector<int> hash_keys;
+    struct renderModePipelineHash{
+        renderModePipelineHash(RenderModes render_mode, VkPipeline pipeline,
+                               int next_index): mRenderMode(render_mode), mPipeline(pipeline), mNextindex(next_index){}
+        RenderModes mRenderMode;
+        VkPipeline  mPipeline;
+        int         mNextindex;
+    };
+    std::vector<renderModePipelineHash> pipelineHash;
+};
 class VulkanCore final {
 
 public:
@@ -212,12 +221,19 @@ public:
     }
     void SetNextBackBuffer();
     void PresentBackBuffer();
+//<<<<<<< HEAD
 
     void addDeviceComponent(VKDeviceComponent*);
     void removeDeviceComponent(VKDeviceComponent *);
 
 
+//=======
+     PipelineHashing& getPipelineHash(){
+        return mPipelineHash;
+    }
+//>>>>>>> 4ee0e2c6... pipeline hashing for vulkan
 private:
+    PipelineHashing mPipelineHash;
 
     static VulkanCore *theInstance;
     std::unordered_map<std::string, VkPipeline> pipelineHashMap;

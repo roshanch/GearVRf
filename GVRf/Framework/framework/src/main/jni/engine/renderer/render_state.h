@@ -150,7 +150,7 @@ namespace gvr
         /**
          * Contains information about how to render meshes
          * (blending, depth testing, lighting).
-         * The render flags into one 32 bit integer.
+         * The render flags into one 64 bit integer.
          * THERE ARE ONLY SIX BITS LEFT.
          * DO NOT ADD MORE THAN SIX BITS TO THIS STRUCTURE!
          */
@@ -298,25 +298,17 @@ namespace gvr
             }
         };
 
+
         RenderFlags render_flags;
-        int render_order;
         float offset_factor;
         float offset_units;
         float sample_coverage;
-        std::string hash_code;
 
+
+
+        int render_order;
     public:
-        std::string to_string(){
-            if(!isDirty())
-                return hash_code;
-            hash_code.clear();
-            uint64_t hashcode = getRenderFlags();
-            hash_code += gvr::to_string(hashcode);
-            hash_code += gvr::to_string(offset_factor);
-            hash_code += gvr::to_string(offset_units);
-            hash_code += gvr::to_string(sample_coverage);
-            return hash_code;
-        }
+
         void init()
         {
             render_flags.init();
@@ -333,7 +325,6 @@ namespace gvr
             offset_units = src.offset_units;
             render_order = src.render_order;
             sample_coverage = src.sample_coverage;
-            hash_code = src.hash_code;
             return *this;
         }
 
@@ -355,8 +346,6 @@ namespace gvr
             {
                 return false;
             }
-            if(hash_code != src.hash_code)
-                return  false;
 
             return true;
         }

@@ -168,7 +168,6 @@ namespace gvr {
         const char* addName(const char* name, int len, DataEntry& entry);
         int findName(const char* name) const;
         void removePunctuations(const char*);
-
         mutable bool mIsDirty;          // true if data in block has changed since last render
         std::string mDescriptor;        // descriptor with name, type and size of uniforms
         int         mTotalSize;         // number of bytes in data block or vertex

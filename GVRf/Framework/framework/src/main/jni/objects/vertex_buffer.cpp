@@ -7,9 +7,12 @@
 #include "vertex_buffer.h"
 #include "util/gvr_log.h"
 #include <sstream>
+#include <unordered_set>
 
 namespace gvr {
-
+    __inline bool isSpecialChar(char ch){
+        return ch == ' ' || ch == ',' || ch == ';';
+    }
     VertexBuffer::VertexBuffer(const char* layout_desc, int vertexCount)
     : DataDescriptor(layout_desc),
       mVertexCount(0),
@@ -18,8 +21,45 @@ namespace gvr {
         mVertexData = NULL;
         setVertexCount(vertexCount);
         removePunctuations(layout_desc);
+        createDescriptor();
     }
+    void VertexBuffer::createDescriptor(){
 
+        std::vector<std::string> tokens;
+        int start = 0;
+        int len = mDescriptor.length();
+        for (int i = 0; i  < len; i++)
+        {
+            if (isSpecialChar(mDescriptor[i]))
+            {
+                if ((i - start) > 0)
+                    tokens.emplace_back(mDescriptor.substr(start, i - start));
+
+                start = i + 1;
+            }
+        }
+        for(auto token : tokens){
+
+            if(token.find("uvec") == 0 || token.find("uint") == 0 )
+            {
+                mTinyDesc+= 'U';
+                mTinyDesc+=  (isdigit(token[token.length()-1])? token[token.length()-1]: 1);
+                continue;
+            }
+             if(token.find("ivec") == 0 || token.find("int") == 0 )
+            {
+                mTinyDesc+=  'I';
+                mTinyDesc+=  (isdigit(token[token.length()-1])? token[token.length()-1]: 1);
+                continue;
+            }
+             if(token.find("float") == 0 || token.find("vec") == 0 )
+            {
+                mTinyDesc+=  'F';
+                mTinyDesc+=  (isdigit(token[token.length()-1])? token[token.length()-1]: 1);
+                continue;
+            }
+        }
+    }
     VertexBuffer::~VertexBuffer()
     {
         if (mVertexData != NULL)

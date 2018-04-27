@@ -308,6 +308,7 @@ private:
     Mesh& operator=(const Mesh& mesh) = delete;
 
 protected:
+    char         mTinyDesc[17];
     IndexBuffer* mIndices;
     VertexBuffer* mVertices;
     bool have_bounding_volume_;
