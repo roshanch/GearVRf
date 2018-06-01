@@ -108,15 +108,29 @@ public class GVRShader
             + "   #define u_mvp u_matrices[u_matrix_offset + u_right]\n"
             + "#endif\n"
             + "#define u_model u_matrices[u_matrix_offset]\n"
-            + "layout (std140, set = 0, binding = 0) uniform MatrixUniforms {\n "
-            + "     uint u_matrix_offset;\n"
-            + "     uint u_right;\n"
-            + "     uint u_render_mask;\n"
-            + "     float u_proj_offset;\n"
-            + "};\n"
+//<<<<<<< HEAD
+//            + "layout (std140, set = 0, binding = 0) uniform MatrixUniforms {\n "
+//            + "     uint u_matrix_offset;\n"
+//            + "     uint u_right;\n"
+//            + "     uint u_render_mask;\n"
+//            + "     float u_proj_offset;\n"
+//            + "};\n"
+//            + "layout (std140, set = 0, binding = 0) uniform Transform_ubo {\n "
+//            + "     mat4 u_matrices[64];\n"
+//            + "};\n";
+//=======
+            + "layout (push_constant) uniform MatrixUniforms {\n "
+            + "     uint u_right_;\n"
+            + "     uint u_render_mask_;\n"
+            + "     uint u_matrix_offset_;\n"
+            + "}pushConsts;\n"
             + "layout (std140, set = 0, binding = 0) uniform Transform_ubo {\n "
-            + "     mat4 u_matrices[64];\n"
-            + "};\n";
+            + "     mat4 u_matrices[45];\n"
+            + "};\n"
+            + "#define u_right pushConsts.u_right_\n"
+            + "#define u_render_mask pushConsts.u_render_mask_\n"
+            + "#define u_matrix_offset pushConsts.u_matrix_offset_\n";
+//>>>>>>> 9a1c2d25... cleanup
 
 
     /**

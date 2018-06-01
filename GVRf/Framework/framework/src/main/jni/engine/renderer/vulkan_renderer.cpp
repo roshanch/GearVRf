@@ -36,7 +36,7 @@
 #include "vulkan/vk_bitmap_image.h"
 //#include <bits/stdc++.h>
 #include <glslang/Include/Common.h>
-
+#define VERTEX_BUFFER_BIND_ID 0
 namespace gvr {
 ShaderData* VulkanRenderer::createMaterial(const char* uniform_desc, const char* texture_desc)
 {
@@ -75,6 +75,8 @@ RenderTarget* VulkanRenderer::createRenderTarget(Scene* scene, bool stereo)
 {
     VkRenderTarget* renderTarget = new VkRenderTarget(scene, stereo);
     RenderSorter* sorter = new MainSceneSorter(*this, 0, true);
+    static_cast<MainSceneSorter*>(sorter)->setSortOptions({ MainSceneSorter::SortOption::RENDER_ORDER, MainSceneSorter::SortOption::DISTANCE,
+                                                            MainSceneSorter::SortOption::PIPELINE, MainSceneSorter::SortOption::MESH });
     renderTarget->setRenderSorter(sorter);
     return renderTarget;
 }
@@ -83,6 +85,8 @@ RenderTarget* VulkanRenderer::createRenderTarget(RenderTexture* renderTexture, b
 {
     VkRenderTarget* renderTarget = new VkRenderTarget(renderTexture, isMultiview, isStereo);
     RenderSorter* sorter = new MainSceneSorter(*this, 0, true);
+    static_cast<MainSceneSorter*>(sorter)->setSortOptions({ MainSceneSorter::SortOption::RENDER_ORDER, MainSceneSorter::SortOption::DISTANCE,
+                                                            MainSceneSorter::SortOption::PIPELINE, MainSceneSorter::SortOption::MESH });
     renderTarget->setRenderSorter(sorter);
     return renderTarget;
 }
@@ -193,6 +197,26 @@ void VulkanRenderer::updatePostEffectMesh(Mesh* copy_mesh)
     copy_mesh->setVertices(positions, position_size);
     copy_mesh->setFloatVec("a_texcoord", uvs, uv_size);
 }
+//<<<<<<< HEAD
+//=======
+inline bool isLayoutNeeded(RenderSorter::Renderable& r, LightList& lights) {
+    const DataDescriptor &textureDescriptor = r.shader->getTextureDescriptor();
+    DataDescriptor &uniformDescriptor = r.shader->getUniformDescriptor();
+    bool transformUboPresent = r.shader->usesMatrixUniforms();
+    VulkanMaterial *vkmtl = static_cast<VulkanMaterial *>(r.renderPass->material());
+
+    if (textureDescriptor.getNumEntries() == 0 && uniformDescriptor.getNumEntries() == 0 &&
+        !transformUboPresent && !lights.getLightCount())
+        return false;
+
+    return true;
+}
+
+inline bool isDescriptorSetDirty(RenderSorter::Renderable& r){
+    return r.renderModes.isDirty() || r.material->isDirty(ShaderData::DIRTY_BITS::NEW_TEXTURE | ShaderData::DIRTY_BITS::MAT_DATA) ||
+            static_cast<VulkanRenderPass*>(r.renderPass)->m_descriptorSet == 0;
+}
+//>>>>>>> 9a1c2d25... cleanup
 void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState& rstate){
 
     VulkanRenderData* vkRdata = static_cast<VulkanRenderData*>(r.renderData);
@@ -252,11 +276,60 @@ void VulkanRenderer::validate(RenderSorter::Renderable& r, RenderState& rstate)
 
 void VulkanRenderer::render(const RenderState& rstate, const RenderSorter::Renderable& r)
 {
+    VulkanRenderPass* vkRenderPass = static_cast<VulkanRenderPass*>(r.renderPass);
+    VkPipeline item_pipeline = vkRenderPass->m_pipeline;
+    VkPipeline curr_pipeline = mCurrentState.renderPass ? static_cast<VulkanRenderPass*>(r.renderPass) ->m_pipeline : VK_NULL_HANDLE;
+    VkCommandBuffer cmdBuffer = rstate.cmd_buffer;
+
+    if(item_pipeline != curr_pipeline){
+        vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                          item_pipeline);
+        mCurrentState.renderPass = r.renderPass;
+    }
+
+    VulkanShader *Vkshader = reinterpret_cast<VulkanShader *>(r.shader);
+
+    //bind out descriptor set, which handles our uniforms and samplers
+    if (vkRenderPass->m_descriptorSet)
+    {
+        vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                Vkshader->getPipelineLayout(), 0, 1,
+                                &vkRenderPass->m_descriptorSet, 0, NULL);
+    }
+    const VulkanIndexBuffer *ibuf = reinterpret_cast<const VulkanIndexBuffer *>(r.mesh->getIndexBuffer());
+
+    if(mCurrentState.mesh != r.mesh) {
+        mCurrentState.mesh = r.mesh;
+        // Bind our vertex buffer, with a 0 offset.
+        VkDeviceSize offsets[1] = {0};
+        VulkanVertexBuffer *vbuf = reinterpret_cast< VulkanVertexBuffer *>(r.mesh->getVertexBuffer());
+        const GVR_VK_Vertices *vert = (vbuf->getVKVertices(r.shader));
+
+        vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &(vert->buf), offsets);
+
+        if (ibuf && ibuf->getIndexCount()) {
+            const GVR_VK_Indices &ind = ibuf->getVKIndices();
+            VkIndexType indexType = (ibuf->getIndexSize() == 2) ? VK_INDEX_TYPE_UINT16
+                                                                : VK_INDEX_TYPE_UINT32;
+            vkCmdBindIndexBuffer(cmdBuffer, ind.buffer, 0, indexType);
+        }
+
+    }
+    if (ibuf && ibuf->getIndexCount())
+        vkCmdDrawIndexed(cmdBuffer, ibuf->getVKIndices().count, 1, 0, 0, 1);
+    else
+       vkCmdDraw(cmdBuffer, r.mesh->getVertexCount(), 1, 0, 1);
 
 }
 
 void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, RenderTarget* renderTarget, ShaderManager* shader_manager,
-                                        RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b){
+//<<<<<<< HEAD
+//                                        RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b){
+//=======
+                                RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b){
+#if 0
+
+//>>>>>>> 9a1c2d25... cleanup
     std::vector<RenderData*> render_data_list;
     Camera* camera = renderTarget->getCamera();
     RenderState rstate = renderTarget->getRenderState();
@@ -345,7 +418,31 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
         vulkanCore_->waitForFence(static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject());
         vulkanCore_->PresentBackBuffer();
     }
-
+#endif
+    mCurrentState.reset();
+    Camera* camera = renderTarget->getCamera();
+    RenderState rstate = renderTarget->getRenderState();
+    rstate.javaSceneObject = javaSceneObject;
+    rstate.scene = scene;
+    rstate.shader_manager = shader_manager;
+    if (rstate.is_multiview)
+    {
+        rstate.u_render_mask = RenderData::RenderMaskBit::Right | RenderData::RenderMaskBit::Left;
+        rstate.u_right = 1;
+    }
+    else
+    {
+        rstate.u_render_mask = camera->render_mask();
+        rstate.u_right = 0;
+        if (((rstate.u_render_mask & RenderData::RenderMaskBit::Right) != 0) && rstate.is_stereo)
+        {
+            rstate.u_right = 1;
+        }
+    }
+    renderTarget->beginRendering();
+    renderTarget->render();
+    vulkanCore_->submitCmdBuffer(static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(), rstate.cmd_buffer);
+    renderTarget->endRendering();
 }
 
     /**

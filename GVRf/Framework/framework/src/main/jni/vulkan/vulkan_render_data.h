@@ -33,10 +33,15 @@ namespace gvr
 struct VulkanRenderPass : public RenderPass
 {
     virtual ~VulkanRenderPass() {}
+//<<<<<<< HEAD
     bool descriptorSetNull = true;
     VkDescriptorPool m_descriptorPool;
     VkPipeline m_pipeline;
     VkDescriptorSet m_descriptorSet;
+//=======
+//    VkPipeline m_pipeline = 0;
+//    VkDescriptorSet m_descriptorSet = 0;
+//>>>>>>> 9a1c2d25... cleanup
 };
 
 
@@ -77,16 +82,6 @@ struct VulkanRenderPass : public RenderPass
         void setPipeline(VkPipeline pipeline, int pass){
             VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
             renderPass->m_pipeline = pipeline;
-
-        }
-        void setDescriptorPool(VkDescriptorPool descriptorPool, int pass){
-            VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
-            renderPass->m_descriptorPool= descriptorPool;
-
-        }
-        VkDescriptorPool& getDescriptorPool(int pass){
-            VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
-            return renderPass->m_descriptorPool;
 
         }
         void setDescriptorSet(VkDescriptorSet descriptorSet, int pass){

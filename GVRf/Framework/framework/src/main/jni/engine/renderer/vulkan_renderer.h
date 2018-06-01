@@ -137,7 +137,7 @@ public:
     virtual UniformBlock* createTransformBlock(int numMatrices);
 
 private:
-
+    RenderSorter::Renderable mCurrentState;
     VulkanCore* vulkanCore_;
 };
 }

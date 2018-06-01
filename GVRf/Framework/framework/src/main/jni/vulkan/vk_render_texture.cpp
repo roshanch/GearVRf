@@ -145,7 +145,29 @@ void VkRenderTexture::beginRendering(Renderer* renderer){
     scissor.extent.height =(float) height();
     scissor.offset.x = 0;
     scissor.offset.y = 0;
+    VkResult err;
+    err = vkResetCommandBuffer(mCmdBuffer, 0);
+    GVR_VK_CHECK(!err);
 
+    VkCommandBufferInheritanceInfo cmd_buf_hinfo = {};
+    cmd_buf_hinfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
+    cmd_buf_hinfo.pNext = nullptr;
+    cmd_buf_hinfo.renderPass = VK_NULL_HANDLE;
+    cmd_buf_hinfo.subpass = 0;
+    cmd_buf_hinfo.framebuffer = VK_NULL_HANDLE;
+    cmd_buf_hinfo.occlusionQueryEnable = VK_FALSE;
+    cmd_buf_hinfo.queryFlags = 0;
+    cmd_buf_hinfo.pipelineStatistics = 0;
+
+    VkCommandBufferBeginInfo cmd_buf_info = {};
+    cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    cmd_buf_info.pNext = nullptr;
+    cmd_buf_info.flags = 0;//VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    cmd_buf_info.pInheritanceInfo = &cmd_buf_hinfo;
+
+    // By calling vkBeginCommandBuffer, cmdBuffer is put into the recording state.
+    vkBeginCommandBuffer(mCmdBuffer, &cmd_buf_info);
+    GVR_VK_CHECK(!err);
     vkCmdSetScissor(mCmdBuffer,0,1, &scissor);
     vkCmdSetViewport(mCmdBuffer,0,1,&viewport);
     vkCmdBeginRenderPass(mCmdBuffer, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);

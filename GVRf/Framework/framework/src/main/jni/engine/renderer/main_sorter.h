@@ -37,7 +37,10 @@ public:
         DISTANCE,
         SHADER,
         MESH,
-        MATERIAL
+        MODE,
+        MATERIAL,
+        PIPELINE,       // needed for vulkan
+        DESCRIPTOR_SET  // needed for vulkan
     };
 
     MainSceneSorter(Renderer& renderer, int numMatrices = 0, bool forceTransformBlock = false);
@@ -62,13 +65,14 @@ protected:
     void mergeByMaterial(Renderable* list, Renderable* item, int level);
     void mergeByDistance(Renderable* list, Renderable* item, int level);
     void mergeByMode(Renderable* list, Renderable* item, int level);
+    void mergeByPipeline(Renderable* list, Renderable* item, int level);
 
 private:
     MainSceneSorter(const MainSceneSorter&) = delete;
     MainSceneSorter(MainSceneSorter&&) = delete;
     MainSceneSorter& operator=(const MainSceneSorter&) = delete;
     MainSceneSorter& operator=(MainSceneSorter&&) = delete;
-    MERGEFUNC mAllMergeFunctions[6];
+    MERGEFUNC mAllMergeFunctions[8];
     MERGEFUNC mMergeFunctions[10]; //  merge functions for each level
  };
 

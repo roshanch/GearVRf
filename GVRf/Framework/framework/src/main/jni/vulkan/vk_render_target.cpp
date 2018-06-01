@@ -16,7 +16,6 @@
 #include "engine/renderer/vulkan_renderer.h"
 #include "vk_render_target.h"
 #include "vk_render_to_texture.h"
-#include "engine/renderer/render_sorter.h"
 
 
 
@@ -24,23 +23,44 @@ namespace gvr{
 VkCommandBuffer& VkRenderTarget::getCommandBuffer(){
     return static_cast<VkRenderTexture*>(mRenderTexture)->getCommandBuffer();
 }
-
+//<<<<<<< HEAD
+//
+//=======
+ void VkRenderTarget::beginRendering()
+ {
+     RenderTarget::beginRendering();
+ }
+//>>>>>>> 9a1c2d25... cleanup
 
 VkRenderTarget::VkRenderTarget(RenderTexture* renderTexture, bool is_multiview, bool is_stereo)
     : RenderTarget(renderTexture, is_multiview, is_stereo)
 {
-    static_cast<VkRenderTexture*>(mRenderTexture)->initVkData();
+    VkRenderTexture* vkRenderTexture =  static_cast<VkRenderTexture*>(mRenderTexture);
+    vkRenderTexture->initVkData();
+    mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
 }
 
 VkRenderTarget::VkRenderTarget(Scene* scene, bool is_stereo)
      : RenderTarget(scene, is_stereo)
 {
+//<<<<<<< HEAD
+//=======
+    VkRenderTexture* vkRenderTexture =  static_cast<VkRenderTexture*>(mRenderTexture);
+    vkRenderTexture->initVkData();
+    mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
+//>>>>>>> 9a1c2d25... cleanup
 }
 
 VkRenderTarget::VkRenderTarget(RenderTexture* renderTexture, const RenderTarget* source)
     : RenderTarget(renderTexture, source)
 {
-
+//<<<<<<< HEAD
+//
+//=======
+    VkRenderTexture* vkRenderTexture =  static_cast<VkRenderTexture*>(mRenderTexture);
+    vkRenderTexture->initVkData();
+    mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
+//>>>>>>> 9a1c2d25... cleanup
 }
 
 

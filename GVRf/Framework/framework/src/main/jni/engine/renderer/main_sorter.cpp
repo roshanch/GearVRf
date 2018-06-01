@@ -17,22 +17,24 @@
  * Renders a scene, a screen.
  ***************************************************************************/
 
+#include <vulkan/vulkan_render_data.h>
 #include "objects/scene.h"
 #include "objects/components/render_data.h"
 #include "shaders/shader.h"
 #include "main_sorter.h"
-
+#include "vulkan/vulkan_headers.h"
 namespace gvr {
 
 MainSceneSorter::MainSceneSorter(Renderer& renderer, int numMatrices, bool forceTransformBlock)
 : RenderSorter(renderer, "MainSorter", numMatrices, forceTransformBlock)
 {
-    mAllMergeFunctions[0] = &MainSceneSorter::mergeByOrder;
-    mAllMergeFunctions[1] = &MainSceneSorter::mergeByDistance;
-    mAllMergeFunctions[2] = &MainSceneSorter::mergeByShader;
-    mAllMergeFunctions[3] = &MainSceneSorter::mergeByMesh;
-    mAllMergeFunctions[4] = &MainSceneSorter::mergeByMaterial;
-    mAllMergeFunctions[5] = &MainSceneSorter::mergeByMode;
+    mAllMergeFunctions[RENDER_ORDER] = &MainSceneSorter::mergeByOrder;
+    mAllMergeFunctions[DISTANCE]     = &MainSceneSorter::mergeByDistance;
+    mAllMergeFunctions[SHADER]       = &MainSceneSorter::mergeByShader;
+    mAllMergeFunctions[MESH]         = &MainSceneSorter::mergeByMesh;
+    mAllMergeFunctions[MATERIAL]     = &MainSceneSorter::mergeByMaterial;
+    mAllMergeFunctions[MODE]         = &MainSceneSorter::mergeByMode;
+    mAllMergeFunctions[PIPELINE]     = &MainSceneSorter::mergeByPipeline;
     setSortOptions({ RENDER_ORDER, DISTANCE, SHADER, MESH, MATERIAL });
 }
 
@@ -42,7 +44,7 @@ void MainSceneSorter::setSortOptions(std::initializer_list<SortOption> list)
     for (SortOption o : list)
     {
         mMergeFunctions[level] = mAllMergeFunctions[o];
-        if (++level >= 8)
+        if (++level >= 10)
         {
             break;
         }
@@ -222,7 +224,88 @@ void MainSceneSorter::mergeByOrder(Renderable* prev, Renderable* item, int level
 #endif
 }
 
+void MainSceneSorter::mergeByPipeline(Renderable* prev, Renderable* item, int level){
 
+    Renderable* cur = prev->nextLevel;
+
+    // is it dummy node ?
+    if(!cur->renderData){
+        MERGEFUNC f = mMergeFunctions[++level];
+        if (f != nullptr)
+        {
+            (this->*f)(cur, item, level);   // add at next level
+            return;
+        }
+    }
+
+    VkPipeline curr_pipeline = static_cast<VulkanRenderPass*>(cur->renderPass) ->m_pipeline;
+    VkPipeline item_pipeline = static_cast<VulkanRenderPass*>(item->renderPass)->m_pipeline;
+
+#ifdef DEBUG_RENDER
+        SceneObject* owner = item->renderData->owner_object();
+    int itemOrder = item->renderModes.getRenderOrder();
+    int itemShader = item->shader->getShaderID();
+    const char* name = (owner ? owner->name().c_str() : "");
+#endif
+
+/*
+* Add this item at the front of the list?
+*/
+    if ((cur == nullptr) || (item_pipeline < curr_pipeline))
+    {
+        item->nextSibling = cur;
+        prev->nextLevel = item;
+#ifdef DEBUG_RENDER
+            LOGV("RENDER: Front mesh: %s dist = %f order = %d shader = %d material = %p",
+             name, itemDist, itemOrder, itemShader, item->material);
+#endif
+        return;
+    }
+    /*
+     * Scan the list to see where it fits
+     */
+    while (1)
+    {
+        if (item_pipeline == static_cast<VulkanRenderPass*>(cur->renderPass)->m_pipeline)              // mesh the same?
+        {
+            MERGEFUNC f = mMergeFunctions[++level];
+
+            if (f != nullptr)
+            {
+                if (cur->nextLevel == nullptr)  // no? add a listhead
+                {
+                    addListhead(cur);
+                }
+                (this->*f)(cur, item, level);   // add at next level
+                return;
+            }
+        }
+        prev = cur;
+        cur = cur->nextSibling;
+        if (cur == nullptr)
+        {
+            break;
+        }
+        if (item_pipeline <= static_cast<VulkanRenderPass*>(cur->renderPass)->m_pipeline)
+        {
+            prev->nextSibling = item;
+            item->nextSibling = cur;
+#ifdef DEBUG_RENDER
+            LOGV("RENDER: Middle mesh: %s dist = %f order = %d shader = %d material = %p",
+                 name, itemDist, itemOrder, itemShader, item->material);
+#endif
+            return;
+        }
+    }
+    prev->nextSibling = item;
+    item->nextSibling = nullptr;
+#ifdef DEBUG_RENDER
+    LOGV("RENDER: End mesh: %s dist = %f order = %d shader = %d material = %p",
+         name, itemDist, itemOrder, itemShader, item->material);
+#endif
+
+
+}
 void MainSceneSorter::mergeByMesh(Renderable* prev, Renderable* item, int level)
 {
     Renderable* cur = prev->nextLevel;

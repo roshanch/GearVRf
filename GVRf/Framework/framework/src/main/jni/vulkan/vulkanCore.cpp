@@ -672,8 +672,14 @@ void VulkanCore::InitCommandPools(){
         GVR_VK_CHECK(!ret);
 
         VkPipelineLayout &pipelineLayout = static_cast<VulkanShader *>(r.shader)->getPipelineLayout();
+
+        VkPushConstantRange pushConstantRange = {};
+        pushConstantRange.offset                        = 0;
+        pushConstantRange.size                          = 3 * sizeof(uint);
+        pushConstantRange.stageFlags                    = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
+
         ret = vkCreatePipelineLayout(m_device,
-                                     gvr::PipelineLayoutCreateInfo(0, 1, &descriptorLayout, 0, 0),
+                                     gvr::PipelineLayoutCreateInfo(0, 1, &descriptorLayout, 1,&pushConstantRange),
                                      nullptr, &pipelineLayout);
         GVR_VK_CHECK(!ret);
         r.shader->setShaderDirty(false);
@@ -1375,10 +1381,17 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
             static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->setDescriptorSet(descriptorSet);
             writes.push_back(static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->getDescriptorSet());
         }
-
-        if( lights.getUBO() != nullptr){
-            static_cast<VulkanUniformBlock*>(lights.getUBO())->setDescriptorSet(descriptorSet);
-            writes.push_back(static_cast<VulkanUniformBlock*>(lights.getUBO())->getDescriptorSet());
+//
+//<<<<<<< HEAD
+//        if( lights.getUBO() != nullptr){
+//            static_cast<VulkanUniformBlock*>(lights.getUBO())->setDescriptorSet(descriptorSet);
+//            writes.push_back(static_cast<VulkanUniformBlock*>(lights.getUBO())->getDescriptorSet());
+//=======
+        if(lights.getUBO() != nullptr){
+            VkWriteDescriptorSet desc =  static_cast<VulkanUniformBlock*>(lights.getUBO())->getDescriptorSet();
+            desc.dstSet = descriptorSet;
+            writes.push_back(desc);
+//>>>>>>> 9a1c2d25... cleanup
         }
 
 //<<<<<<< HEAD
