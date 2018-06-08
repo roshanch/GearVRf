@@ -29,7 +29,7 @@ public:
     explicit VkRenderTarget(Scene* scene, bool is_stereo);
     explicit VkRenderTarget(RenderTexture* renderTexture, const RenderTarget* source);
     virtual ~VkRenderTarget(){}
-
+    virtual void    beginRendering();
     VkRenderTexture* getTexture();
     VkCommandBuffer& getCommandBuffer();
 };

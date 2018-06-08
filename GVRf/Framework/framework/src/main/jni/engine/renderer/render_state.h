@@ -22,7 +22,7 @@
 
 //<<<<<<< HEAD
 //=======
-//#include "vulkan/vulkan_headers.h"
+#include "vulkan/vulkan_wrapper.h"
 //#include "vulkan/vulkan.h"
 //>>>>>>> 9a1c2d25... cleanup
 #include "glm/glm.hpp"
@@ -85,7 +85,7 @@ namespace gvr
         unsigned char           sampleCount;
         unsigned char           u_matrix_offset;      // offset of model matrix
         glm::mat4               u_matrices[MAX_MATRIX];
-        //VkCommandBuffer         cmd_buffer;
+        VkCommandBuffer         cmd_buffer;
     };
 
     /**

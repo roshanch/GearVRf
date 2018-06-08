@@ -13,6 +13,7 @@
  * limitations under the License.
  */
 
+#include "vulkan_headers.h"
 #include <thread>
 #include <iostream>
 #include <shaderc/shaderc.hpp>
@@ -28,6 +29,7 @@
 #include "vulkanCore.h"
 #include <array>
 #include "vk_device_component.h"
+
 
 #define TEXTURE_BIND_START 5
 #define QUEUE_INDEX_MAX 99999
