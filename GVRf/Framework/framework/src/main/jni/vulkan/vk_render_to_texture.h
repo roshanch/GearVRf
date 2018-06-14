@@ -70,6 +70,8 @@ public:
     virtual void beginRendering(Renderer* renderer);
     virtual void endRendering(Renderer*){
         vkCmdEndRenderPass(mCmdBuffer);
+        VkResult err = vkEndCommandBuffer(mCmdBuffer);
+        GVR_VK_CHECK(!err);
     }
     // Start to read back texture in the background. It can be optionally called before
     // readRenderResult() to read pixels asynchronously. This function returns immediately.

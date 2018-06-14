@@ -26,6 +26,7 @@ VkCommandBuffer& VkRenderTarget::getCommandBuffer(){
 //<<<<<<< HEAD
 //
 //=======
+    //todo: is this necessary?
  void VkRenderTarget::beginRendering()
  {
      RenderTarget::beginRendering();

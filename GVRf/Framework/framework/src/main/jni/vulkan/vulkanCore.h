@@ -93,7 +93,7 @@ private:
         VkPipeline  mPipeline;
         int         mNextindex;
     };
-    std::vector<renderModePipelineHash> pipelineHash;
+    std::vector<renderModePipelineHash> pipelineHash={};
 };
 class VulkanCore final {
 

@@ -34,6 +34,7 @@
 #define TEXTURE_BIND_START 5
 #define QUEUE_INDEX_MAX 99999
 #define VERTEX_BUFFER_BIND_ID 0
+
 namespace gvr {
     int PipelineHashing::addDescriptor(const std::string& desc){
         for(int i=0; i<mesh_descriptors.size(); i++)
@@ -51,7 +52,9 @@ namespace gvr {
         return shader_ids.size()-1;
 
     }
-    VkPipeline PipelineHashing::createPipeline(VulkanRenderer* renderer, RenderSorter::Renderable& r, RenderState& rstate, VkRenderPass renderPass) {
+    //todo: pipeline return ty
+    VkPipeline PipelineHashing::createPipeline(VulkanRenderer* renderer, RenderSorter::Renderable& r,
+                                               RenderState& rstate, VkRenderPass renderPass) {
         short desc_index = r.mesh->getVertexBuffer()->getDescIndex();
         short shader_index = r.shader->getShaderIndex();
         VulkanRenderData* vkRdata = static_cast<VulkanRenderData*>(r.renderData);
@@ -70,9 +73,11 @@ namespace gvr {
             hash_index = hash_keys.size() - 1;
         }
         VkPipeline  pipeline = 0;
-        if(hash_index >= pipelineHash.size()){
+        if(hash_index >= pipelineHash.size())
+        {
             vkRdata->createPipeline(renderer,r,rstate,renderPass);
             pipelineHash.emplace_back(r.renderModes, vk_renderPass->m_pipeline, -1);
+            return pipeline;
         }
         else {
             auto i = pipelineHash[hash_index];
@@ -95,9 +100,11 @@ namespace gvr {
             return pipeline;
         }
     }
+
     std::vector<uint64_t> samplers;
     VulkanCore *VulkanCore::theInstance = NULL;
     uint8_t *oculusTexData;
+
     VkSampleCountFlagBits getVKSampleBit(int sampleCount){
         switch (sampleCount){
             case 1:
@@ -423,17 +430,14 @@ namespace gvr {
         GVR_VK_CHECK(!ret);
     }
 
-    void VulkanCore::SetNextBackBuffer()
-    {
+    void VulkanCore::SetNextBackBuffer() {
         VkResult ret = VK_SUCCESS;
 
-        ret  = vkAcquireNextImageKHR(m_device, mSwapchain, UINT64_MAX, mBackBufferSemaphore, VK_NULL_HANDLE, &mSwapchainCurrentIdx);
-        if (ret == VK_ERROR_OUT_OF_DATE_KHR)
-        {
+        ret = vkAcquireNextImageKHR(m_device, mSwapchain, UINT64_MAX, mBackBufferSemaphore,
+                                    VK_NULL_HANDLE, &mSwapchainCurrentIdx);
+        if (ret == VK_ERROR_OUT_OF_DATE_KHR) {
             LOGW("VK_ERROR_OUT_OF_DATE_KHR not handled in sample");
-        }
-        else if (ret == VK_SUBOPTIMAL_KHR)
-        {
+        } else if (ret == VK_SUBOPTIMAL_KHR) {
             LOGW("VK_SUBOPTIMAL_KHR not handled in sample");
         }
         GVR_VK_CHECK(!ret);
@@ -677,7 +681,7 @@ void VulkanCore::InitCommandPools(){
 
         VkPushConstantRange pushConstantRange = {};
         pushConstantRange.offset                        = 0;
-        pushConstantRange.size                          = 3 * sizeof(uint);
+        pushConstantRange.size                          = 3 * sizeof(uint) + sizeof(float);
         pushConstantRange.stageFlags                    = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
         ret = vkCreatePipelineLayout(m_device,

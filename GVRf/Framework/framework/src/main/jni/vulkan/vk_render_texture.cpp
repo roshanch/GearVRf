@@ -162,11 +162,12 @@ void VkRenderTexture::beginRendering(Renderer* renderer){
     VkCommandBufferBeginInfo cmd_buf_info = {};
     cmd_buf_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     cmd_buf_info.pNext = nullptr;
-    cmd_buf_info.flags = 0;//VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+    //todo: look for appropriate flag
+    cmd_buf_info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
     cmd_buf_info.pInheritanceInfo = &cmd_buf_hinfo;
 
     // By calling vkBeginCommandBuffer, cmdBuffer is put into the recording state.
-    vkBeginCommandBuffer(mCmdBuffer, &cmd_buf_info);
+    err = vkBeginCommandBuffer(mCmdBuffer, &cmd_buf_info);
     GVR_VK_CHECK(!err);
     vkCmdSetScissor(mCmdBuffer,0,1, &scissor);
     vkCmdSetViewport(mCmdBuffer,0,1,&viewport);

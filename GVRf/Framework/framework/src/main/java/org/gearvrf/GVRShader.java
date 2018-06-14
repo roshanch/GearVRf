@@ -123,13 +123,15 @@ public class GVRShader
             + "     uint u_right_;\n"
             + "     uint u_render_mask_;\n"
             + "     uint u_matrix_offset_;\n"
+            + "     float u_proj_offset;\n"
             + "}pushConsts;\n"
             + "layout (std140, set = 0, binding = 0) uniform Transform_ubo {\n "
             + "     mat4 u_matrices[45];\n"
             + "};\n"
             + "#define u_right pushConsts.u_right_\n"
             + "#define u_render_mask pushConsts.u_render_mask_\n"
-            + "#define u_matrix_offset pushConsts.u_matrix_offset_\n";
+            + "#define u_matrix_offset pushConsts.u_matrix_offset_\n"
+            + "#define u_proj_offset pushConsts.u_proj_offset\n";
 //>>>>>>> 9a1c2d25... cleanup
 
 

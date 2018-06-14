@@ -137,6 +137,17 @@ public:
     virtual UniformBlock* createTransformBlock(int numMatrices);
 
 private:
+
+
+    struct udata
+    {
+        uint u_matrix_offset;
+        uint u_right;
+        uint u_render_mask;
+        float u_proj_offset;
+    };
+
+
     RenderSorter::Renderable mCurrentState;
     VulkanCore* vulkanCore_;
 };

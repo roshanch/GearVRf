@@ -69,6 +69,7 @@ void main() {
 	Vertex vertex;
 
 	vertex.local_position = vec4(a_position.xyz, 1.0);
+	/*
 	vertex.local_normal = vec4(0.0, 0.0, 1.0, 0.0);
 	@VertexShader
 #ifdef HAS_VertexSkinShader
@@ -83,6 +84,7 @@ void main() {
 #ifdef HAS_TEXCOORDS
 	@TEXCOORDS
 #endif
+*/
     mat4 mvp = u_mvp;
 	viewspace_position = vertex.viewspace_position;
 	viewspace_normal = vertex.viewspace_normal;
@@ -94,7 +96,7 @@ void main() {
     mvp = mvp * float(render_mask);
 #else
 	//generate right eye mvp from left
-    mvp[3][0] = mvp[3][0] - (u_proj_offset * float(u_right));
+    //mvp[3][0] = mvp[3][0] - (u_proj_offset * float(u_right));
 #endif
     gl_Position = mvp * vertex.local_position;
 

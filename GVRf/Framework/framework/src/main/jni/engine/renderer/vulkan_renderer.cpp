@@ -211,9 +211,9 @@ inline bool isLayoutNeeded(RenderSorter::Renderable& r, LightList& lights) {
 
     return true;
 }
-
+ //todo : check matdata dirty
 inline bool isDescriptorSetDirty(RenderSorter::Renderable& r){
-    return r.renderModes.isDirty() || r.material->isDirty(ShaderData::DIRTY_BITS::NEW_TEXTURE | ShaderData::DIRTY_BITS::MAT_DATA) ||
+    return r.renderModes.isDirty() || r.material->isDirty(ShaderData::DIRTY_BITS::NEW_TEXTURE | ShaderData::DIRTY_BITS::MAT_DATA)  ||
             static_cast<VulkanRenderPass*>(r.renderPass)->m_descriptorSet == 0;
 }
 //>>>>>>> 9a1c2d25... cleanup
@@ -223,11 +223,13 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
 
     vkRdata->updateGPU(this, r.shader);
     LightList& lights = rstate.scene->getLights();
-    vulkanCore_->InitLayoutRenderData(r, lights);
+    bool need_layouts = isLayoutNeeded(r, lights);
+    if(r.shader->isShaderDirty() && need_layouts)
+        vulkanCore_->InitLayoutRenderData(r, lights);
 
-    int dirty_bits = ShaderData::DIRTY_BITS::NEW_TEXTURE | ShaderData::DIRTY_BITS::MAT_DATA;
-    if(r.renderModes.isDirty() || r.material->isDirty(dirty_bits)) {
-        vulkanCore_->InitDescriptorSetForRenderData(r, lights);
+   if(isDescriptorSetDirty(r)) {
+       if(isLayoutNeeded(r, lights))
+           vulkanCore_->InitDescriptorSetForRenderData(r, lights);
         VkRenderPass render_pass = vulkanCore_->createVkRenderPass(NORMAL_RENDERPASS, rstate.sampleCount);
 
 //<<<<<<< HEAD
@@ -243,6 +245,8 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
 //>>>>>>> d8c3a866... adding to_string() for render_modes
 //=======
         PipelineHashing& pipelineHashing = vulkanCore_->getPipelineHash();
+
+       //todo: check for pipeline derivatives
         pipelineHashing.createPipeline(this,r,rstate,render_pass);
 //>>>>>>> 4ee0e2c6... pipeline hashing for vulkan
 
@@ -274,6 +278,7 @@ void VulkanRenderer::validate(RenderSorter::Renderable& r, RenderState& rstate)
 }
 
 
+
 void VulkanRenderer::render(const RenderState& rstate, const RenderSorter::Renderable& r)
 {
     VulkanRenderPass* vkRenderPass = static_cast<VulkanRenderPass*>(r.renderPass);
@@ -289,9 +294,19 @@ void VulkanRenderer::render(const RenderState& rstate, const RenderSorter::Rende
 
     VulkanShader *Vkshader = reinterpret_cast<VulkanShader *>(r.shader);
 
+
+
+
     //bind out descriptor set, which handles our uniforms and samplers
     if (vkRenderPass->m_descriptorSet)
     {
+        udata u;
+        u.u_proj_offset = rstate.camera->getProjectionMatrix()[0][0] * CameraRig::default_camera_separation_distance();
+        u.u_matrix_offset = rstate.u_matrix_offset; u.u_right = rstate.u_right; u.u_render_mask = rstate.u_render_mask;
+
+        vkCmdPushConstants (cmdBuffer, Vkshader->getPipelineLayout(), VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                            0, sizeof(udata), &u);
+
         vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                 Vkshader->getPipelineLayout(), 0, 1,
                                 &vkRenderPass->m_descriptorSet, 0, NULL);
@@ -441,8 +456,8 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
     }
     renderTarget->beginRendering();
     renderTarget->render();
-    vulkanCore_->submitCmdBuffer(static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(), rstate.cmd_buffer);
     renderTarget->endRendering();
+    vulkanCore_->submitCmdBuffer(static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(), rstate.cmd_buffer);
 }
 
     /**

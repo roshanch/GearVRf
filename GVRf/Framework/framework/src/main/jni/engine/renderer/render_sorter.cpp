@@ -101,6 +101,8 @@ RenderSorter::Renderable* RenderSorter::alloc()
 //=======
     // use placement new to call constructor of an object
     item = new (item) Renderable();
+    item->renderModes.init();
+
 //>>>>>>> bba42476... validate function for vulkan
     return item;
 }
