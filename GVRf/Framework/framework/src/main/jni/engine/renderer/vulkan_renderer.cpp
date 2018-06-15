@@ -94,8 +94,7 @@ RenderTarget* VulkanRenderer::createRenderTarget(RenderTexture* renderTexture, b
 RenderTarget* VulkanRenderer::createRenderTarget(RenderTexture* renderTexture, const RenderTarget* renderTarget)
 {
     VkRenderTarget* vkTarget = new VkRenderTarget(renderTexture, renderTarget);
-    RenderSorter* sorter = new MainSceneSorter(*this, 0, true);
-    vkTarget->setRenderSorter(sorter);
+    vkTarget->setRenderSorter(renderTarget->getRenderSorter());
     return vkTarget;
 }
 
@@ -224,6 +223,7 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
     vkRdata->updateGPU(this, r.shader);
     LightList& lights = rstate.scene->getLights();
     bool need_layouts = isLayoutNeeded(r, lights);
+        //revert this
     if(r.shader->isShaderDirty() && need_layouts)
         vulkanCore_->InitLayoutRenderData(r, lights);
 
@@ -268,7 +268,8 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
 //=======
         vk_renderPass->render_modes().clearDirty();
 //>>>>>>> 4ee0e2c6... pipeline hashing for vulkan
-    }
+   //revert this
+         }
 }
 void VulkanRenderer::validate(RenderSorter::Renderable& r, RenderState& rstate)
 {

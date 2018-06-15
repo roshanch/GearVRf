@@ -684,9 +684,16 @@ void VulkanCore::InitCommandPools(){
         pushConstantRange.size                          = 3 * sizeof(uint) + sizeof(float);
         pushConstantRange.stageFlags                    = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
+        //revert this
         ret = vkCreatePipelineLayout(m_device,
                                      gvr::PipelineLayoutCreateInfo(0, 1, &descriptorLayout, 1,&pushConstantRange),
                                      nullptr, &pipelineLayout);
+
+
+//        ret = vkCreatePipelineLayout(m_device,
+//                             gvr::PipelineLayoutCreateInfo(0, 0, 0, 0,0),
+//                             nullptr, &pipelineLayout);
+
         GVR_VK_CHECK(!ret);
         r.shader->setShaderDirty(false);
     }
