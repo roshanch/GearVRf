@@ -99,10 +99,10 @@ class VulkanCore final {
 
 public:
     // Return NULL if Vulkan inititialisation failed. NULL denotes no Vulkan support for this device.
-    static VulkanCore *getInstance(ANativeWindow *newNativeWindow = nullptr) {
+    static VulkanCore *getInstance(ANativeWindow *newNativeWindow = nullptr, int vulkanPropValue = 0) {
         if (!theInstance) {
 
-            theInstance = new VulkanCore(newNativeWindow);
+            theInstance = new VulkanCore(newNativeWindow, vulkanPropValue);
             theInstance->initVulkanCore();
         }
         if (theInstance->m_Vulkan_Initialised)
@@ -143,6 +143,8 @@ public:
     void initCmdBuffer(VkCommandBufferLevel level,VkCommandBuffer& cmdBuffer);
 
     bool InitDescriptorSetForRenderData(RenderSorter::Renderable&r, LightList& lights);
+
+    void updateTransformDescriptors(RenderSorter::Renderable&r);
 //>>>>>>> 68dd0213... validate all vulkan resources
     void beginCmdBuffer(VkCommandBuffer cmdBuffer);
     void BuildCmdBufferForRenderData(std::vector<RenderData *> &render_data_vector, Camera*, ShaderManager*,RenderTarget*,VkRenderTexture*, bool, bool);
@@ -238,8 +240,9 @@ private:
     static VulkanCore *theInstance;
     std::unordered_map<std::string, VkPipeline> pipelineHashMap;
 
-    explicit VulkanCore(ANativeWindow *newNativeWindow) : m_pPhysicalDevices(NULL){
+    explicit VulkanCore(ANativeWindow *newNativeWindow,  int vulkanPropValue = 0) : m_pPhysicalDevices(NULL){
         m_Vulkan_Initialised = false;
+        validationLayers = (vulkanPropValue == 2);
         initVulkanDevice(newNativeWindow);
     }
 
@@ -305,6 +308,14 @@ private:
     std::unordered_map<int, VkRenderPass> mRenderPassMap;
 
     std::vector<VKDeviceComponent * > mDeviceComponents;
+
+        bool validationLayers = true;
+            std::vector<const char*> getInstanceLayers();
+            std::vector<const char*> getInstanceExtensions();
+            void CreateValidationCallbacks();
+            PFN_vkCreateDebugReportCallbackEXT  mCreateDebugReportCallbackEXT;
+            PFN_vkDestroyDebugReportCallbackEXT mDestroyDebugReportCallbackEXT;
+            VkDebugReportCallbackEXT            mDebugReportCallback;
 };
 }
 #endif //FRAMEWORK_VULKANCORE_H

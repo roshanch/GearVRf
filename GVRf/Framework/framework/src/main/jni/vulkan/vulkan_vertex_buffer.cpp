@@ -196,8 +196,10 @@ namespace gvr {
         // The vertices need to be defined so that the pipeline understands how the
         // data is laid out. This is done by providing a VkPipelineVertexInputStateCreateInfo
         // structure with the correct information.
+        vertices->vi = {};
         vertices->vi.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         vertices->vi.pNext = nullptr;
+        vertices->vi.flags = 0;
         vertices->vi_bindings.stride = mTotalSize;
         vertices->vi.vertexAttributeDescriptionCount = i;
         vertices->vi.pVertexAttributeDescriptions = vertices->vi_attrs.data();

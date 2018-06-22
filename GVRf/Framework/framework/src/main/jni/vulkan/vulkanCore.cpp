@@ -31,7 +31,7 @@
 #include "vk_device_component.h"
 
 
-#define TEXTURE_BIND_START 5
+#define TEXTURE_BIND_START 6
 #define QUEUE_INDEX_MAX 99999
 #define VERTEX_BUFFER_BIND_ID 0
 
@@ -73,6 +73,7 @@ namespace gvr {
             hash_index = hash_keys.size() - 1;
         }
         VkPipeline  pipeline = 0;
+
         if(hash_index >= pipelineHash.size())
         {
             vkRdata->createPipeline(renderer,r,rstate,renderPass);
@@ -118,26 +119,73 @@ namespace gvr {
         }
         throw std::runtime_error("getVKSampleBit: unknown sampleCount value");
     }
-//<<<<<<< HEAD
-//    void VulkanDescriptor::createDescriptor(VulkanCore *vk, int index,
-//                                            VkShaderStageFlagBits shaderStageFlagBits) {
-//        //createBuffer(device, vk, ubo, index);
-//        createLayoutBinding(index, shaderStageFlagBits);
-//    }
-//
-//    void VulkanDescriptor::createLayoutBinding(int binding_index, int stageFlags, bool sampler) {
-//=======
 
     VkDescriptorSetLayoutBinding createLayoutBinding(int binding_index, int stageFlags, bool sampler) {
-//>>>>>>> bba42476... validate function for vulkan
         VkDescriptorType descriptorType = (sampler ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                                                   : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
+                                                   : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 
         gvr::DescriptorLayout layout(binding_index, 1, descriptorType,
                                      stageFlags, 0);
         return *layout;
     }
-     void setImageLayout(VkImageMemoryBarrier imageMemoryBarrier, VkCommandBuffer cmdBuffer,
+
+//     void setImageLayout(VkImageMemoryBarrier imageMemoryBarrier, VkCommandBuffer cmdBuffer,
+//                        VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout,
+//                        VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange,
+//                        VkPipelineStageFlags srcStageFlags, VkPipelineStageFlags destStageFlags) {
+//        // update image barrier for image layouts
+//        imageMemoryBarrier.oldLayout = oldImageLayout;
+//        imageMemoryBarrier.newLayout = newImageLayout;
+//        imageMemoryBarrier.image = image;
+//        imageMemoryBarrier.subresourceRange = subresourceRange;
+//
+//        switch (oldImageLayout) {
+//            //revert this
+//            default:
+//                //imageMemoryBarrier.srcAccessMask = 0;
+//                break;
+//            case VK_IMAGE_LAYOUT_PREINITIALIZED:
+//                imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+//                break;
+//            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+//                imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+//                break;
+//            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+//                imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+//                break;
+//            case VK_IMAGE_LAYOUT_UNDEFINED:
+//                imageMemoryBarrier.srcAccessMask = 0;
+//                break;
+//        }
+//
+//        switch (newImageLayout) {
+//            //revert this
+//            default:
+//                //imageMemoryBarrier.dstAccessMask = 0;
+//                break;
+//            case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+//                imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+//                break;
+//            case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+//                imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+//                break;
+//            case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+//                imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+//                break;
+//        }
+//
+//        vkCmdPipelineBarrier(
+//                cmdBuffer,
+//                srcStageFlags,
+//                destStageFlags,
+//                0,
+//                0, nullptr,
+//                0, nullptr,
+//                1, &imageMemoryBarrier);
+//    }
+
+
+    void setImageLayout(VkImageMemoryBarrier imageMemoryBarrier, VkCommandBuffer cmdBuffer,
                         VkImage image, VkImageAspectFlags aspectMask, VkImageLayout oldImageLayout,
                         VkImageLayout newImageLayout, VkImageSubresourceRange subresourceRange,
                         VkPipelineStageFlags srcStageFlags, VkPipelineStageFlags destStageFlags) {
@@ -148,7 +196,7 @@ namespace gvr {
         imageMemoryBarrier.subresourceRange = subresourceRange;
 
         switch (oldImageLayout) {
-            default:
+            case VK_IMAGE_LAYOUT_UNDEFINED:
                 imageMemoryBarrier.srcAccessMask = 0;
                 break;
             case VK_IMAGE_LAYOUT_PREINITIALIZED:
@@ -160,12 +208,12 @@ namespace gvr {
             case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
                 imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
                 break;
+            default:
+                //other source layouts not yet handled
+                break;
         }
 
         switch (newImageLayout) {
-            default:
-                imageMemoryBarrier.dstAccessMask = 0;
-                break;
             case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
                 break;
@@ -174,6 +222,9 @@ namespace gvr {
                 break;
             case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
                 imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                break;
+            default:
+                //other source layouts not yet handled
                 break;
         }
 
@@ -187,54 +238,156 @@ namespace gvr {
                 1, &imageMemoryBarrier);
     }
 
+
+    std::vector<const char*> VulkanCore::getInstanceLayers()
+    {
+        std::vector<const char*>  instanceLayers
+                {
+                        "VK_LAYER_GOOGLE_threading",
+                        "VK_LAYER_LUNARG_parameter_validation",
+                        "VK_LAYER_LUNARG_object_tracker",
+                        // Enable this extension if required
+                        "VK_LAYER_LUNARG_core_validation",
+                        //"VK_LAYER_LUNARG_image",
+                        //"VK_LAYER_LUNARG_swapchain",
+                        "VK_LAYER_GOOGLE_unique_objects",
+                };
+
+        // Determine the number of instance layers that Vulkan reports
+        uint32_t numInstanceLayers = 0;
+        vkEnumerateInstanceLayerProperties(&numInstanceLayers, nullptr);
+
+        // Enumerate instance layers with valid pointer in last parameter
+        VkLayerProperties* layerProperties = (VkLayerProperties*)malloc(numInstanceLayers * sizeof(VkLayerProperties));
+        vkEnumerateInstanceLayerProperties(&numInstanceLayers, layerProperties);
+
+        LOGE("sushant: layer prop size = %d", numInstanceLayers);
+
+        for (uint32_t i = 0; i < instanceLayers.size(); i++)
+        {
+            bool found = false;
+            for (uint32_t j = 0; j < numInstanceLayers; j++)
+            {
+                if (strcmp(instanceLayers[i], layerProperties[j].layerName) == 0)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                LOGE("Instance Layer not found: %s", instanceLayers[i]);
+                GVR_VK_CHECK(found);
+            }
+        }
+
+        return instanceLayers;
+    }
+
+    std::vector<const char*> VulkanCore::getInstanceExtensions()
+    {
+        std::vector<const char*>  instanceExtensions
+                {
+                        "VK_KHR_surface",
+                        "VK_KHR_android_surface",
+                        "VK_EXT_debug_report"
+                };
+
+        uint32_t instanceExtensionCount = 0;
+        vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtensionCount, nullptr);
+
+        VkExtensionProperties *extensionProperties = nullptr;
+        extensionProperties = new VkExtensionProperties[instanceExtensionCount];
+
+        vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtensionCount, extensionProperties);
+
+        for (uint32_t i = 0; i < instanceExtensions.size(); i++)
+        {
+            bool found = false;
+            for (uint32_t j = 0; j < instanceExtensionCount; j++)
+            {
+                if (strcmp(instanceExtensions[i], extensionProperties[j].extensionName) == 0)
+                {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+            {
+                LOGE("Instance Layer not found: %s", instanceExtensions[i]);
+                GVR_VK_CHECK(found);
+            }
+        }
+
+        return instanceExtensions;
+    }
+
+    static VKAPI_ATTR VkBool32 VKAPI_CALL DebugReportCallback(
+            VkDebugReportFlagsEXT msgFlags,
+            VkDebugReportObjectTypeEXT objType,
+            uint64_t srcObject, size_t location,
+            int32_t msgCode, const char * pLayerPrefix,
+            const char * pMsg, void * pUserData )
+    {
+        if (msgFlags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+        {
+            LOGI("GVR INFORMATION: [%s] Code %d : %s\n", pLayerPrefix, msgCode, pMsg);
+        }
+        else if (msgFlags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
+        {
+            LOGW("GVR WARNING: [%s] Code %d : %s\n", pLayerPrefix, msgCode, pMsg);
+        }
+        else if (msgFlags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+        {
+            LOGW("GVR PERFORMANCE WARNING: [%s] Code %d : %s\n", pLayerPrefix, msgCode, pMsg);
+        }
+        else if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+        {
+            LOGE("GVR ERROR: [%s] Code %d : %s\n", pLayerPrefix, msgCode, pMsg);
+        }
+        else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+        {
+            LOGD("GVR DEBUG: [%s] Code %d : %s\n", pLayerPrefix, msgCode, pMsg);
+        }
+
+        return false;
+    }
+
+    void VulkanCore::CreateValidationCallbacks()
+    {
+        mCreateDebugReportCallbackEXT   = (PFN_vkCreateDebugReportCallbackEXT)  vkGetInstanceProcAddr( m_instance, "vkCreateDebugReportCallbackEXT");
+        mDestroyDebugReportCallbackEXT  = (PFN_vkDestroyDebugReportCallbackEXT) vkGetInstanceProcAddr( m_instance, "vkDestroyDebugReportCallbackEXT");
+
+        GVR_VK_CHECK(mCreateDebugReportCallbackEXT);
+        GVR_VK_CHECK(mDestroyDebugReportCallbackEXT);
+
+        // Create the debug report callback..
+        VkDebugReportCallbackCreateInfoEXT dbgCreateInfo;
+        dbgCreateInfo.sType         = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+        dbgCreateInfo.pNext         = NULL;
+        dbgCreateInfo.pfnCallback   = DebugReportCallback;
+        dbgCreateInfo.pUserData     = NULL;
+        dbgCreateInfo.flags         =   VK_DEBUG_REPORT_ERROR_BIT_EXT               |
+                                        VK_DEBUG_REPORT_WARNING_BIT_EXT             |
+                                        VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
+                                        // Uncomment this flag for verbose information logging
+                                        //VK_DEBUG_REPORT_INFORMATION_BIT_EXT         |
+                                        VK_DEBUG_REPORT_DEBUG_BIT_EXT;
+
+        VkResult ret = mCreateDebugReportCallbackEXT(m_instance, &dbgCreateInfo, NULL, &mDebugReportCallback);
+        GVR_VK_CHECK(!ret);
+    }
+
     bool VulkanCore::CreateInstance() {
         VkResult ret = VK_SUCCESS;
 
-        // Discover the number of extensions listed in the instance properties in order to allocate
-        // a buffer large enough to hold them.
-        uint32_t instanceExtensionCount = 0;
-        ret = vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtensionCount, nullptr);
-        GVR_VK_CHECK(!ret);
+        std::vector<const char*>  instanceLayers;
+        validationLayers = true;
+        if(validationLayers)
+            instanceLayers = getInstanceLayers();
 
-        VkBool32 surfaceExtFound = 0;
-        VkBool32 platformSurfaceExtFound = 0;
-        VkExtensionProperties *instanceExtensions = nullptr;
-        instanceExtensions = new VkExtensionProperties[instanceExtensionCount];
-
-        // Now request instanceExtensionCount VkExtensionProperties elements be read into out buffer
-        ret = vkEnumerateInstanceExtensionProperties(nullptr, &instanceExtensionCount,
-                                                     instanceExtensions);
-        GVR_VK_CHECK(!ret);
-
-        // We require two extensions, VK_KHR_surface and VK_KHR_android_surface. If they are found,
-        // add them to the extensionNames list that we'll use to initialize our instance with later.
-        uint32_t enabledExtensionCount = 0;
-        const char *extensionNames[16];
-        for (uint32_t i = 0; i < instanceExtensionCount; i++) {
-            if (!strcmp(VK_KHR_SURFACE_EXTENSION_NAME, instanceExtensions[i].extensionName)) {
-                surfaceExtFound = 1;
-                extensionNames[enabledExtensionCount++] = VK_KHR_SURFACE_EXTENSION_NAME;
-            }
-
-            if (!strcmp(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
-                        instanceExtensions[i].extensionName)) {
-                platformSurfaceExtFound = 1;
-                extensionNames[enabledExtensionCount++] = VK_KHR_ANDROID_SURFACE_EXTENSION_NAME;
-            }
-            GVR_VK_CHECK(enabledExtensionCount < 16);
-        }
-        if (!surfaceExtFound) {
-            LOGE("vkEnumerateInstanceExtensionProperties failed to find the "
-                         VK_KHR_SURFACE_EXTENSION_NAME
-                         " extension.");
-            return false;
-        }
-        if (!platformSurfaceExtFound) {
-            LOGE("vkEnumerateInstanceExtensionProperties failed to find the "
-                         VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
-                         " extension.");
-            return false;
-        }
+        LOGE("sushant: num of instance layers = %d", instanceLayers.size());
+        std::vector<const char*>  instanceExtensions = getInstanceExtensions();
 
         // We specify the Vulkan version our application was built with,
         // as well as names and versions for our application and engine,
@@ -255,18 +408,16 @@ namespace gvr {
         instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         instanceCreateInfo.pNext = nullptr;
         instanceCreateInfo.pApplicationInfo = &applicationInfo;
-        instanceCreateInfo.enabledLayerCount = 0;
-        instanceCreateInfo.ppEnabledLayerNames = nullptr;
-        instanceCreateInfo.enabledExtensionCount = enabledExtensionCount;
-        instanceCreateInfo.ppEnabledExtensionNames = extensionNames;
+        instanceCreateInfo.enabledLayerCount = instanceLayers.size();
+        instanceCreateInfo.ppEnabledLayerNames = instanceLayers.data();
+        instanceCreateInfo.enabledExtensionCount = instanceExtensions.size();
+        instanceCreateInfo.ppEnabledExtensionNames = instanceExtensions.data();
 
 
         // The main Vulkan instance is created with the creation infos above.
         // We do not specify a custom memory allocator for instance creation.
         ret = vkCreateInstance(&instanceCreateInfo, nullptr, &(m_instance));
 
-        // we can delete the list of extensions after calling vkCreateInstance
-        delete[] instanceExtensions;
 
         // Vulkan API return values can expose further information on a failure.
         // For instance, INCOMPATIBLE_DRIVER may be returned if the API level
@@ -282,6 +433,8 @@ namespace gvr {
             GVR_VK_CHECK(!ret);
         }
 
+        if(validationLayers)
+            CreateValidationCallbacks();
         return true;
 }
 
@@ -512,9 +665,14 @@ namespace gvr {
         // that was created earlier. We need the device to be able to present its images to
         // this surface, so it is important to test for this.
         VkBool32 *supportsPresent = new VkBool32[queueFamilyCount];
-        for (uint32_t i = 0; i < queueFamilyCount; i++) {
-            vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, m_surface,
-                                                 &supportsPresent[i]);
+        for (int i = 0; i < queueFamilyCount; i++)
+            supportsPresent[i] = VK_FALSE;
+
+        if (m_surface){
+            for (uint32_t i = 0; i < queueFamilyCount; i++) {
+                vkGetPhysicalDeviceSurfaceSupportKHR(m_physicalDevice, i, m_surface,
+                                                     &supportsPresent[i]);
+            }
         }
 
 
@@ -523,7 +681,14 @@ namespace gvr {
         uint32_t queueIndex = QUEUE_INDEX_MAX;
         for (uint32_t i = 0; i < queueFamilyCount; i++) {
             if ((queueProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) {
-                if (supportsPresent[i] == VK_TRUE) {
+
+                if(m_surface) {
+                    if (supportsPresent[i] == VK_TRUE) {
+                        queueIndex = i;
+                        break;
+                    }
+                }
+                else{
                     queueIndex = i;
                     break;
                 }
@@ -635,11 +800,7 @@ void VulkanCore::InitCommandPools(){
         GVR_VK_CHECK(!ret);
     }
 
-//<<<<<<< HEAD
-//    void VulkanCore::InitLayoutRenderData(VulkanMaterial * vkMtl, VulkanRenderData* vkdata, Shader *shader, LightList& lights) {
-//=======
     void VulkanCore::InitLayoutRenderData(RenderSorter::Renderable& r, LightList& lights) {
-//>>>>>>> 68dd0213... validate all vulkan resources
 
         if (!r.shader->isShaderDirty())
             return;
@@ -654,19 +815,11 @@ void VulkanCore::InitCommandPools(){
 
         VulkanShader* vk_shader = static_cast<VulkanShader*>(r.shader);
 
-//<<<<<<< HEAD
-//        vk_shader->makeLayout(*vkMtl, uniformAndSamplerBinding,  index, vkdata, lights);
-//=======
 
         VkResult ret = VK_SUCCESS;
 
         std::vector<VkDescriptorSetLayoutBinding> layoutBinding;
-//<<<<<<< HEAD
-//        vk_shader->makeLayout(*vkmtl, layoutBinding,  index, static_cast<VulkanRenderData*>(r.renderData), lights);
-//>>>>>>> 68dd0213... validate all vulkan resources
-//=======
         vk_shader->makeLayout(layoutBinding, r, lights);
-//>>>>>>> bba42476... validate function for vulkan
 
         VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(r.shader)->getDescriptorLayout();
 
@@ -684,15 +837,9 @@ void VulkanCore::InitCommandPools(){
         pushConstantRange.size                          = 3 * sizeof(uint) + sizeof(float);
         pushConstantRange.stageFlags                    = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
-        //revert this
         ret = vkCreatePipelineLayout(m_device,
                                      gvr::PipelineLayoutCreateInfo(0, 1, &descriptorLayout, 1,&pushConstantRange),
                                      nullptr, &pipelineLayout);
-
-
-//        ret = vkCreatePipelineLayout(m_device,
-//                             gvr::PipelineLayoutCreateInfo(0, 0, 0, 0,0),
-//                             nullptr, &pipelineLayout);
 
         GVR_VK_CHECK(!ret);
         r.shader->setShaderDirty(false);
@@ -925,18 +1072,11 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
 
     // For this example we do not do blending, so it is disabled.
     VkPipelineColorBlendAttachmentState att_state[1] = {};
-//<<<<<<< HEAD
     bool disable_color_depth_write = r.renderData->stencil_test() && (RenderData::Queue::Stencil == r.renderData->rendering_order());
     att_state[0].colorWriteMask = disable_color_depth_write ? 0x0 : (VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);    att_state[0].blendEnable = VK_FALSE;
 
     if(r.renderData->alpha_blend()  && !vk_shader->isDepthShader()) {
-//=======
-//    bool disable_color_depth_write = r.renderModes.isStencilTestEnabled() && (RenderData::Queue::Stencil == r.renderModes.getRenderOrder());
-//    att_state[0].colorWriteMask = disable_color_depth_write ? 0x0 : (VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT);
-//    att_state[0].blendEnable = VK_FALSE;
-//
-//    if(r.renderModes.isAlphaBlendEnabled()) {
-//>>>>>>> 68dd0213... validate all vulkan resources
+
         att_state[0].blendEnable = VK_TRUE;
         att_state[0].srcColorBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[r.renderModes.getSourceBlendFunc()]);
         att_state[0].dstColorBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[r.renderModes.getDestBlendFunc()]);
@@ -945,14 +1085,9 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         att_state[0].dstAlphaBlendFactor = static_cast<VkBlendFactor>(vkflags::glToVulkan[r.renderModes.getDestBlendFunc()]);
         att_state[0].alphaBlendOp = VK_BLEND_OP_ADD;
     }
-//<<<<<<< HEAD
-//    std::vector<uint32_t> result_vert = shader->getVkVertexShader();
-//    std::vector<uint32_t> result_frag = shader->getVkFragmentShader();
-//
-//=======
+
     std::vector<uint32_t> result_vert = vk_shader->getVkVertexShader();
     std::vector<uint32_t> result_frag = vk_shader->getVkFragmentShader();
-//>>>>>>> 68dd0213... validate all vulkan resources
     // We define two shader stages: our vertex and fragment shader.
     // they are embedded as SPIR-V into a header file for ease of deployment.
     VkPipelineShaderStageCreateInfo shaderStages[2] = {};
@@ -977,6 +1112,18 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
                                                                                        0, 0, 0,
                                                                                        1.0);
 
+    //initialise viewport and scissor, these states are dynamic, they are updated for every render texture
+    //in VkRenderTexture::beginRendering()
+    VkViewport viewport = {};
+    VkRect2D scissor = {};
+    VkPipelineViewportStateCreateInfo viewportState = {};
+    viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount = 1;
+    viewportState.pViewports = &viewport;
+    viewportState.scissorCount = 1;
+    viewportState.pScissors = &scissor;
+   // pipelineCreateInfo.pViewportState = &viewportState;
+
     pipelineCreateInfo.pColorBlendState = gvr::PipelineColorBlendStateCreateInfo(1,&att_state[0]);
 
     pipelineCreateInfo.pMultisampleState = gvr::PipelineMultisampleStateCreateInfo(
@@ -987,20 +1134,6 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
     bool depthWrite = (r.renderModes.getRenderOrder() == RenderData::Queue::Stencil) ? false : true;
 
     pipelineCreateInfo.pDepthStencilState =
-//<<<<<<< HEAD
-//            gvr::PipelineDepthStencilStateCreateInfo(rdata->depth_test() ? VK_TRUE : VK_FALSE,
-//                                                     (rdata->depth_mask()  && depthWrite)? VK_TRUE : VK_FALSE,
-//                                                     VK_COMPARE_OP_LESS_OR_EQUAL,
-//                                                     VK_FALSE,
-//                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_sfail()]),  //stencil pass
-//                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_dppass()]), //depth pass, stencil pass
-//                                                     static_cast<VkStencilOp>(vkflags::glToVulkan[rdata->stencil_op_dpfail()]), //depth fail, stencil pass
-//                                                     static_cast<VkCompareOp>(vkflags::glToVulkan[rdata->stencil_func_func()]), //compare function
-//                                                     rdata->stencil_func_mask(), //compare mask
-//                                                     rdata->getStencilMask(), //stencil mask
-//                                                     rdata->stencil_func_ref(),  //reference value
-//                                                     rdata->stencil_test());
-//=======
             gvr::PipelineDepthStencilStateCreateInfo(r.renderModes.isDepthTestEnabled() ? VK_TRUE : VK_FALSE,
                                      (r.renderModes.isDepthMaskEnabled()  && depthWrite)? VK_TRUE : VK_FALSE,
                                      VK_COMPARE_OP_LESS_OR_EQUAL,
@@ -1013,8 +1146,6 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
                                      r.renderModes.getStencilMask(), //stencil mask
                                      r.renderModes.getStencilRef(),  //reference value
                                      r.renderModes.isStencilTestEnabled());
-//>>>>>>> 68dd0213... validate all vulkan resources
-
 
     pipelineCreateInfo.pStages = &shaderStages[0];
 
@@ -1042,14 +1173,11 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
     err = vkCreateGraphicsPipelines(m_device, 0, 1, &pipelineCreateInfo, nullptr,
                                     &pipeline);
     GVR_VK_CHECK(!err);
-//<<<<<<< HEAD
     VulkanRenderPass * rp = static_cast<VulkanRenderPass*>(r.renderPass) ;
     if(vk_shader->isDepthShader())
         rp = static_cast<VulkanRenderData*>(r.renderData)->getShadowRenderPass();
 
-//=======
     rp->m_pipeline = pipeline;
-//>>>>>>> 68dd0213... validate all vulkan resources
     LOGI("Vulkan graphics call after");
 
 }
@@ -1082,7 +1210,7 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         if(image_type & COLOR_IMAGE && mAttachments[COLOR_IMAGE]== nullptr) {
             vkImageBase *colorImage = new vkImageBase(imageViewType, VK_FORMAT_R8G8B8A8_UNORM, mWidth,
                                                       mHeight, 1, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|
-                                                                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                                                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
                                                       VK_IMAGE_LAYOUT_UNDEFINED, layers, 1);
 
             mAttachments[COLOR_IMAGE] = colorImage;
@@ -1304,14 +1432,15 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
     void VulkanCore::GetDescriptorPool(VkDescriptorPool& descriptorPool){
         VkDescriptorPoolSize poolSize[3] = {};
 
-        poolSize[0].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-        poolSize[0].descriptorCount = 5;
+        //todo: allocate based on resources needed by shader
+        poolSize[0].type            = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        poolSize[0].descriptorCount = 10;
 
         poolSize[1].type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        poolSize[1].descriptorCount = 8;
+        poolSize[1].descriptorCount = 12;
 
         poolSize[2].type            = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
-        poolSize[2].descriptorCount = 5;
+        poolSize[2].descriptorCount = 10;
 
         VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
         descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1324,13 +1453,7 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         err = vkCreateDescriptorPool(m_device, &descriptorPoolCreateInfo, NULL, &descriptorPool);
         GVR_VK_CHECK(!err);
     }
-//
-//<<<<<<< HEAD
-//    bool VulkanCore::InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader* shader, VulkanRenderData* vkData, LightList* lights, VulkanMaterial* vkmtl) {
-//        const DataDescriptor& textureDescriptor = shader->getTextureDescriptor();
-//        DataDescriptor &uniformDescriptor = shader->getUniformDescriptor();
-//        bool transformUboPresent = shader->usesMatrixUniforms();
-//=======
+
     bool VulkanCore::InitDescriptorSetForRenderData(RenderSorter::Renderable& r, LightList& lights) {
 
         const DataDescriptor& textureDescriptor = r.shader->getTextureDescriptor();
@@ -1339,7 +1462,6 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         VulkanMaterial* vkmtl = static_cast<VulkanMaterial*>(r.renderPass->material());
         VulkanRenderPass* vk_renderPass = static_cast<VulkanRenderPass*>(r.renderPass);
         VulkanRenderData* render_data = static_cast<VulkanRenderData*>(r.renderData);
-//>>>>>>> 68dd0213... validate all vulkan resources
 
         if (textureDescriptor.getNumEntries() == 0 && uniformDescriptor.getNumEntries() == 0 && !transformUboPresent && !lights.getLightCount())
             return true;
@@ -1362,28 +1484,24 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         VkResult err = vkAllocateDescriptorSets(m_device, &descriptorSetAllocateInfo, &descriptorSet);
         GVR_VK_CHECK(!err);
 
-//<<<<<<< HEAD
         VulkanRenderPass * rp = static_cast<VulkanRenderPass*>(r.renderPass);
         if(vkShader->isDepthShader())
             rp = render_data->getShadowRenderPass();
         rp->m_descriptorSet = descriptorSet;
-//=======
-//        vk_renderPass->m_descriptorSet = descriptorSet;
-//>>>>>>> 68dd0213... validate all vulkan resources
 
-        // transform ubo is common for multiple sceneobjects, just update offset and range
-        if (transformUboPresent) {
-            VulkanUniformBlock* ubo =  static_cast<VulkanUniformBlock*>(r.transformBlock);
-            GVR_Uniform bufferInfo = ubo->getBuffer();
-            bufferInfo.bufferInfo.offset = r.matrixOffset* sizeof(glm::mat4);
-            bufferInfo.bufferInfo.range  = vkShader->getOutputBufferSize() * sizeof(glm::mat4);
-
-            VkWriteDescriptorSet writeDescriptorSet = static_cast<VulkanUniformBlock*>(r.transformBlock)->getDescriptorSet();
-            const VkDescriptorBufferInfo* info = new VkDescriptorBufferInfo(bufferInfo.bufferInfo);
-            writeDescriptorSet.pBufferInfo = info;
-            writeDescriptorSet.dstSet = descriptorSet;
-            writes.emplace_back(std::move(writeDescriptorSet));
-        }
+//        // transform ubo is common for multiple sceneobjects, just update offset and range
+//        if (transformUboPresent) {
+//            VulkanUniformBlock* ubo =  static_cast<VulkanUniformBlock*>(r.transformBlock);
+//            GVR_Uniform bufferInfo = ubo->getBuffer();
+//            bufferInfo.bufferInfo.offset = r.matrixOffset* sizeof(glm::mat4);
+//            bufferInfo.bufferInfo.range  = vkShader->getOutputBufferSize() * sizeof(glm::mat4);
+//
+//            VkWriteDescriptorSet writeDescriptorSet = static_cast<VulkanUniformBlock*>(r.transformBlock)->getDescriptorSet();
+//            const VkDescriptorBufferInfo* info = new VkDescriptorBufferInfo(bufferInfo.bufferInfo);
+//            writeDescriptorSet.pBufferInfo = info;
+//            writeDescriptorSet.dstSet = descriptorSet;
+//            writes.emplace_back(std::move(writeDescriptorSet));
+//        }
 
         if (uniformDescriptor.getNumEntries()) {
             static_cast<VulkanUniformBlock&>(vkmtl->uniforms()).setDescriptorSet(descriptorSet);
@@ -1394,22 +1512,14 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
             static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->setDescriptorSet(descriptorSet);
             writes.push_back(static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->getDescriptorSet());
         }
-//
-//<<<<<<< HEAD
-//        if( lights.getUBO() != nullptr){
-//            static_cast<VulkanUniformBlock*>(lights.getUBO())->setDescriptorSet(descriptorSet);
-//            writes.push_back(static_cast<VulkanUniformBlock*>(lights.getUBO())->getDescriptorSet());
-//=======
+
         if(lights.getUBO() != nullptr){
             VkWriteDescriptorSet desc =  static_cast<VulkanUniformBlock*>(lights.getUBO())->getDescriptorSet();
             desc.dstSet = descriptorSet;
             writes.push_back(desc);
-//>>>>>>> 9a1c2d25... cleanup
         }
 
-//<<<<<<< HEAD
         ShadowMap* shadowMap = NULL;
-        //if(lights != NULL)
         shadowMap= lights.getShadowMap();
 
         if(shadowMap && !vkShader->isDepthShader()){
@@ -1432,22 +1542,44 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
             }
         }
 
-//=======
-//>>>>>>> bba42476... validate function for vulkan
         if(vkShader->bindTextures(vkmtl, writes,  descriptorSet) == false)
             return false;
 
         vkUpdateDescriptorSets(m_device, writes.size(), writes.data(), 0, nullptr);
-//<<<<<<< HEAD
-//        rp->descriptorSetNull = false;
-//=======
 
         vk_renderPass->descriptorSetNull = false;
 
-//>>>>>>> 68dd0213... validate all vulkan resources
         LOGI("Vulkan after update descriptor");
         return true;
     }
+
+
+    void VulkanCore::updateTransformDescriptors(RenderSorter::Renderable&r)
+    {
+        VulkanShader* vkShader = static_cast<VulkanShader*>(r.shader);
+        bool transformUboPresent = r.shader->usesMatrixUniforms();
+        VulkanRenderPass * rp = static_cast<VulkanRenderPass*>(r.renderPass);
+
+        std::vector<VkWriteDescriptorSet> writes;
+        // transform ubo is common for multiple sceneobjects, just update offset and range
+        if (transformUboPresent && rp->m_descriptorSet) {
+            VulkanUniformBlock* ubo =  static_cast<VulkanUniformBlock*>(r.transformBlock);
+            GVR_Uniform bufferInfo = ubo->getBuffer();
+            bufferInfo.bufferInfo.offset = r.matrixOffset* sizeof(glm::mat4);
+            bufferInfo.bufferInfo.range  = vkShader->getOutputBufferSize() * sizeof(glm::mat4);
+
+            VkWriteDescriptorSet writeDescriptorSet = static_cast<VulkanUniformBlock*>(r.transformBlock)->getDescriptorSet();
+            const VkDescriptorBufferInfo* info = new VkDescriptorBufferInfo(bufferInfo.bufferInfo);
+            writeDescriptorSet.pBufferInfo = info;
+            writeDescriptorSet.dstSet = rp->m_descriptorSet;
+            writes.emplace_back(std::move(writeDescriptorSet));
+            vkUpdateDescriptorSets(m_device, writes.size(), writes.data(), 0, nullptr);
+        }
+
+    }
+
+
+
     void VulkanCore::createPipelineCache() {
         VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
         pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;

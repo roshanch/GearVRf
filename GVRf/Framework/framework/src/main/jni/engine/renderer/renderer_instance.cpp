@@ -32,9 +32,11 @@ Renderer* Renderer::getInstance(std::string type)
 {
     if (instance == nullptr)
     {
-        if (useVulkanInstance())
-        {
-            instance = new VulkanRenderer();
+        int vulkanPropValue = getVulkanPropValue();
+        instance = new VulkanRenderer();
+        if(vulkanPropValue) {
+            instance = new VulkanRenderer(vulkanPropValue);
+
             if (static_cast<VulkanRenderer*>(instance)->getCore() != NULL)
             {
                 isVulkan_ = true;
@@ -52,32 +54,37 @@ Renderer* Renderer::getInstance(std::string type)
     return instance;
 }
 
-bool Renderer::useVulkanInstance(){
+int Renderer::getVulkanPropValue() {
     // Debug setting selecting Vulkan renderer:
     //     setprop debug.gearvrf.vulkan <value>
     //     <property not present>, <empty>, not recognized, or 0
     //                            - use setting from gvr.xml (not implemented yet. Select OpenGL ES.)
     //     1                      - pretend gvr.xml asked for Vulkan (not implemented yet. Select Vulkan.)
-    //     2                      - always use Vulkan.
-    bool useVulkan = false; // TODO: obtain setting from gvr.xml
+    //     2                      - vulkan with validation layers enabled (use for debugging)
+    int vulkanPropValue = 0; // TODO: obtain setting from gvr.xml
     const prop_info *pi = __system_property_find("debug.gearvrf.vulkan");
     char buffer[PROP_VALUE_MAX];
     int len = 0;
-    if( pi ) {
-        len = __system_property_read(pi,0,buffer);
+    if (pi) {
+        len = __system_property_read(pi, 0, buffer);
     }
-    if( len ) {
-        if( strcmp(buffer,"1") == 0 || // TODO: "1" should check if Vulkan is supported
-            strcmp(buffer,"2") == 0
-                ) {
-            useVulkan = true;
-            LOGI("Vulkan renderer: debug.gearvrf.vulkan is \"%s\".", buffer );
-        } else {
-            LOGI("OpenGL ES renderer: debug.gearvrf.vulkan is \"%s\".", buffer );
+    if (len) {
+
+        if (strcmp(buffer, "1") == 0) {
+            vulkanPropValue = 1;
+            LOGI("Vulkan renderer: debug.gearvrf.vulkan is \"%s\".", buffer);
         }
+
+        else if (strcmp(buffer, "2") == 0) {
+            vulkanPropValue = 2;
+            LOGI("Vulkan renderer with Validation layers: debug.gearvrf.vulkan is \"%s\".", buffer);
+        } else {
+            LOGI("OpenGL ES renderer: debug.gearvrf.vulkan is \"%s\".", buffer);
+        }
+
     }
 
-    return useVulkan;
+    return vulkanPropValue;
 }
 
 }

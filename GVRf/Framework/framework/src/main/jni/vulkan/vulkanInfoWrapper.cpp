@@ -316,7 +316,7 @@ FenceCreateInfo::FenceCreateInfo(VkFenceCreateFlags aFlags)
 
     PipelineLayoutCreateInfo::PipelineLayoutCreateInfo(VkPipelineLayoutCreateFlags flags, uint32_t setLayoutCount, const VkDescriptorSetLayout* pSetLayouts, uint32_t pushConstantRangeCount, const VkPushConstantRange* pPushConstantRanges) : mInfo()
     {
-        mInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        mInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         mInfo.flags = flags;
         mInfo.setLayoutCount = setLayoutCount;
         mInfo.pSetLayouts = pSetLayouts;

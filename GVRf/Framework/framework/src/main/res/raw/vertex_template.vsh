@@ -69,7 +69,7 @@ void main() {
 	Vertex vertex;
 
 	vertex.local_position = vec4(a_position.xyz, 1.0);
-	/*
+
 	vertex.local_normal = vec4(0.0, 0.0, 1.0, 0.0);
 	@VertexShader
 #ifdef HAS_VertexSkinShader
@@ -84,7 +84,7 @@ void main() {
 #ifdef HAS_TEXCOORDS
 	@TEXCOORDS
 #endif
-*/
+
     mat4 mvp = u_mvp;
 	viewspace_position = vertex.viewspace_position;
 	viewspace_normal = vertex.viewspace_normal;

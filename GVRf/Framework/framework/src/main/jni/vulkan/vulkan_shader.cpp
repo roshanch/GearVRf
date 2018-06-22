@@ -16,7 +16,7 @@
 /***************************************************************************
  * A shader which an user can add in run-time.
  ***************************************************************************/
-#define TEXTURE_BIND_START 5
+#define TEXTURE_BIND_START 6
 #include "vulkan/vulkan_shader.h"
 #include "vulkan/vulkan_material.h"
 #include "engine/renderer/vulkan_renderer.h"
@@ -77,18 +77,11 @@ int VulkanShader::makeLayout(std::vector<VkDescriptorSetLayoutBinding>& layoutBi
         layoutBinding.emplace_back(static_cast<VulkanUniformBlock*>(lights.getUBO())->getLayoutBinding());
     }
     else {
-//<<<<<<< HEAD
         dummy_binding.binding = LIGHT_UBO_INDEX;
         layoutBinding.push_back(dummy_binding);
-//=======
-//        dummy_binding.binding = 3;
-//        layoutBinding.push_back(dummy_binding);
-//>>>>>>> 68dd0213... validate all vulkan resources
     }
 
-//<<<<<<< HEAD
-    // Dummy shadowmap binding
-    VkDescriptorSetLayoutBinding shadowMapBinding;
+    VkDescriptorSetLayoutBinding shadowMapBinding = {};
     shadowMapBinding.binding = SHADOW_UBO_INDEX;
     shadowMapBinding.descriptorCount = 1;
     shadowMapBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -98,26 +91,19 @@ int VulkanShader::makeLayout(std::vector<VkDescriptorSetLayoutBinding>& layoutBi
 
     int index = TEXTURE_BIND_START;
     vkmtl->forEachTexture([this, &layoutBinding](const char* texname, Texture* t) mutable
-//=======
-//    /*
-//     * TODO :: if has shadowmap, create binding for it
-//     */
-//    int index = TEXTURE_BIND_START;
-//    vkmtl->forEachTexture([this, &layoutBinding](const char* texname, Texture* t) mutable
-//>>>>>>> bba42476... validate function for vulkan
     {
         const DataDescriptor::DataEntry* entry = mTextureDesc.find(texname);
         if ((entry == NULL) || entry->NotUsed)
         {
             return;
         }
-        VkDescriptorSetLayoutBinding layout_binding;
-        layout_binding.binding = entry->Index + TEXTURE_BIND_START;
-        layout_binding.descriptorCount = 1;
-        layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_binding.pImmutableSamplers = nullptr;
-        (layoutBinding).push_back(layout_binding);
+        VkDescriptorSetLayoutBinding sampler_binding = {};
+        sampler_binding.binding = entry->Index + TEXTURE_BIND_START;
+        sampler_binding.descriptorCount = 1;
+        sampler_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        sampler_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+        sampler_binding.pImmutableSamplers = nullptr;
+        (layoutBinding).push_back(sampler_binding);
     });
 
     return index;
@@ -137,7 +123,7 @@ bool VulkanShader::bindTextures(VulkanMaterial* material, std::vector<VkWriteDes
             return;
         }
 
-        VkWriteDescriptorSet write;
+        VkWriteDescriptorSet write = {};
         memset(&write, 0, sizeof(write));
 
         write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;

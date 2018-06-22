@@ -238,7 +238,7 @@ class OvrViewManager extends GVRViewManager {
                     captureCenterEye(renderTarget, false);
                     renderTarget.render(mMainScene, leftCamera, mRenderBundle.getShaderManager(), mRenderBundle.getPostEffectRenderTextureA(), mRenderBundle.getPostEffectRenderTextureB());
 
-                    //captureLeftEye(renderTarget, false);
+                    captureLeftEye(renderTarget, false);
 
                     if (DEBUG_STATS) {
                         mTracerDrawEyes2.leave();

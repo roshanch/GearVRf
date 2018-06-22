@@ -40,14 +40,14 @@ class vkImageBase : public VKDeviceComponent
     explicit vkImageBase(VkImageViewType type) : imageType(type), size(0), format_(VK_FORMAT_R8G8B8A8_UNORM), tiling_(VK_IMAGE_TILING_LINEAR), usage_flags_(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT),mSampleCount(1)
     { }
     explicit vkImageBase(VkImageViewType type, VkFormat format, int width, int height, int depth, VkImageTiling tiling, VkImageUsageFlags flags, VkImageLayout imageLayout)
-    : mLayers(1),imageType(type), size(0), format_(format), usage_flags_(flags), width_(width), height_(height), depth_(depth), imageLayout(imageLayout), mSampleCount(1)
+    : mLayers(1),imageType(type), size(0), format_(format), usage_flags_(flags), width_(width), height_(height), depth_(depth), tiling_(tiling), imageLayout(imageLayout), mSampleCount(1)
     { }
 
     explicit vkImageBase(VkImageViewType type, VkFormat format, int width, int height, int depth, VkImageTiling tiling, VkImageUsageFlags flags, VkImageLayout imageLayout, int sample_count)
-    :mLayers(1), imageType(type), size(0), format_(format), usage_flags_(flags), width_(width), height_(height), depth_(depth), imageLayout(imageLayout), mSampleCount(sample_count)
+    :mLayers(1), imageType(type), size(0), format_(format), usage_flags_(flags), width_(width), height_(height), depth_(depth), tiling_(tiling), imageLayout(imageLayout), mSampleCount(sample_count)
     { }
     explicit vkImageBase(VkImageViewType type, VkFormat format, int width, int height, int depth, VkImageTiling tiling, VkImageUsageFlags flags, VkImageLayout imageLayout, int layers, int sample_count )
-    :imageType(type), mLayers(layers) ,size(0), format_(format), usage_flags_(flags), width_(width), height_(height), depth_(depth), imageLayout(imageLayout), mSampleCount(sample_count)
+    :imageType(type), mLayers(layers) ,size(0), format_(format), usage_flags_(flags), width_(width), height_(height), depth_(depth), tiling_(tiling), imageLayout(imageLayout), mSampleCount(sample_count)
     { }
     virtual ~vkImageBase();
 
@@ -95,7 +95,7 @@ class vkImageBase : public VKDeviceComponent
         VkImage imageHandle = 0;
         VkDeviceMemory device_memory = 0;
         VkImageLayout imageLayout;
-        VkImageView imageView;
+        VkImageView imageView = 0;
         std::vector<VkImageView> cascadeImageView;
         VkFormat format_;
         int mSampleCount;

@@ -105,9 +105,9 @@ void VkRenderTexture::createBufferForRenderedResult(){
     VkMemoryRequirements mem_reqs;
     uint32_t memoryTypeIndex;
 
-    // Components currently hard coded to 4 since our Color buffer is VK_FORMAT_R8G8B8A8_UNORM
+    //  VK_FORMAT_R8G8B8A8_UNORM is our current format. 32 bits per pixel
     ret = vkCreateBuffer(device,
-                         gvr::BufferCreateInfo(mWidth * mHeight *  4 * sizeof(uint8_t),
+                         gvr::BufferCreateInfo((VkDeviceSize) (mWidth * mHeight * 32),
                                                VK_BUFFER_USAGE_TRANSFER_DST_BIT), nullptr,
                          &readbackMemoryHandle);
     GVR_VK_CHECK(!ret);
@@ -169,6 +169,32 @@ void VkRenderTexture::beginRendering(Renderer* renderer){
     // By calling vkBeginCommandBuffer, cmdBuffer is put into the recording state.
     err = vkBeginCommandBuffer(mCmdBuffer, &cmd_buf_info);
     GVR_VK_CHECK(!err);
+
+
+    //todo:: handle the image layout transition lifecycle
+    //for oculus: undefined--->COLOR-->(before copytovullkan)SOURCE-->(aftercopytovulkan)COLOR
+    //for monoscopic: undefined-->COLOR-->(before present)-->PRESENT-->(after present) COLOR
+
+    VkImageMemoryBarrier imageMemoryBarrier = {};
+    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    imageMemoryBarrier.pNext = NULL;
+    imageMemoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    imageMemoryBarrier.subresourceRange.baseMipLevel = 0;
+    imageMemoryBarrier.subresourceRange.levelCount = 1;
+    imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
+    imageMemoryBarrier.subresourceRange.layerCount = 1;
+
+    // change layout of current mip level to transfer dest
+    setImageLayout(imageMemoryBarrier,
+                   mCmdBuffer,
+                   fbo->getImage(COLOR_IMAGE),
+                   VK_IMAGE_ASPECT_COLOR_BIT,
+                   VK_IMAGE_LAYOUT_UNDEFINED,
+                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, imageMemoryBarrier.subresourceRange,
+                   VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                   VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
+
     vkCmdSetScissor(mCmdBuffer,0,1, &scissor);
     vkCmdSetViewport(mCmdBuffer,0,1,&viewport);
     vkCmdBeginRenderPass(mCmdBuffer, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
@@ -252,9 +278,9 @@ bool VkRenderTexture::readRenderResult(uint8_t *readback_buffer){
         VkResult err;
         VulkanRenderer* vk_renderer = static_cast<VulkanRenderer*>(Renderer::getInstance());
         VkDevice device = vk_renderer->getDevice();
-
         err = vkResetFences(device, 1, &mWaitFence);
         vk_renderer->getCore()->beginCmdBuffer(mCmdBuffer);
+
         VkExtent3D extent3D = {};
         extent3D.width = mWidth;
         extent3D.height = mHeight;
@@ -297,6 +323,12 @@ bool VkRenderTexture::readRenderResult(uint8_t *readback_buffer){
         VulkanRenderer* vk_renderer = static_cast<VulkanRenderer*>(Renderer::getInstance());
         VkDevice device = vk_renderer->getDevice();
         vkUnmapMemory(device, readbackMemory);
+
+
+        //image barrier to change layout to color optimal
+
+
+
     }
 
     void VkRenderTexture::cleanup() {

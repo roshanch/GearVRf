@@ -75,9 +75,9 @@ public:
     Texture* createSharedTexture( int id) { return nullptr; };
 
 
-    VulkanRenderer() : Renderer(), vulkanCore_(nullptr) {
+    VulkanRenderer(int vulkanPropValue = 0) : Renderer(), vulkanCore_(nullptr) {
         vkflags::initVkRenderFlags();
-        vulkanCore_ = VulkanCore::getInstance();
+        vulkanCore_ = VulkanCore::getInstance(nullptr, vulkanPropValue);
     }
 
     VulkanCore* getCore() { return vulkanCore_; }
@@ -125,14 +125,10 @@ public:
                                     RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b);
     virtual Light* createLight(const char* uniformDescriptor, const char* textureDescriptor);
     virtual void updatePostEffectMesh(Mesh*);
-//<<<<<<< HEAD
-//    virtual void validate(RenderSorter::Renderable& r);
-//=======
     virtual void validate(RenderSorter::Renderable& , RenderState& rstate);
     virtual bool selectMesh(RenderState& rstate, const RenderSorter::Renderable& r) { };
     virtual bool selectMaterial(RenderState& rstate, ShaderData* material, Shader* shader) { };
     virtual bool selectShader(RenderState& rstate, Shader* shader) { };
-//>>>>>>> 68dd0213... validate all vulkan resources
     virtual void render(const RenderState&, const RenderSorter::Renderable&);
     virtual UniformBlock* createTransformBlock(int numMatrices);
 

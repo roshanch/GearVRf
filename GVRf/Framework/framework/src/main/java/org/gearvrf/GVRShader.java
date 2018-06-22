@@ -84,7 +84,7 @@ public class GVRShader
             + "uniform uint u_render_mask;\n"
             + "uniform float u_proj_offset;\n"
             + "layout (std140) uniform Transform_ubo\n{\n"
-            + "     mat4 u_matrices[64];\n"
+            + "     mat4 u_matrices[20];\n"
             + "};\n";
 
     protected static String sTransformCode =
@@ -115,7 +115,7 @@ public class GVRShader
             + "     float u_proj_offset;\n"
             + "}pushConsts;\n"
             + "layout (std140, set = 0, binding = 0) uniform Transform_ubo {\n "
-            + "     mat4 u_matrices[45];\n"
+            + "     mat4 u_matrices[20];\n"
             + "};\n"
             + "#define u_right pushConsts.u_right_\n"
             + "#define u_render_mask pushConsts.u_render_mask_\n"

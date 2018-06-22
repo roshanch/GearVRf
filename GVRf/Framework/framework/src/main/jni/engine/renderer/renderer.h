@@ -99,7 +99,7 @@ public:
             instance = NULL;
         }
     }
-    static bool useVulkanInstance();
+    static int getVulkanPropValue();
     virtual UniformBlock* createTransformBlock(int numMatrices) = 0;
     virtual ShaderData* createMaterial(const char* uniform_desc, const char* texture_desc) = 0;
     virtual RenderData* createRenderData() = 0;

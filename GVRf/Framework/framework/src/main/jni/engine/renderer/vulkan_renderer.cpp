@@ -215,7 +215,6 @@ inline bool isDescriptorSetDirty(RenderSorter::Renderable& r){
     return r.renderModes.isDirty() || r.material->isDirty(ShaderData::DIRTY_BITS::NEW_TEXTURE | ShaderData::DIRTY_BITS::MAT_DATA)  ||
             static_cast<VulkanRenderPass*>(r.renderPass)->m_descriptorSet == 0;
 }
-//>>>>>>> 9a1c2d25... cleanup
 void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState& rstate){
 
     VulkanRenderData* vkRdata = static_cast<VulkanRenderData*>(r.renderData);
@@ -223,53 +222,30 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
     vkRdata->updateGPU(this, r.shader);
     LightList& lights = rstate.scene->getLights();
     bool need_layouts = isLayoutNeeded(r, lights);
-        //revert this
     if(r.shader->isShaderDirty() && need_layouts)
         vulkanCore_->InitLayoutRenderData(r, lights);
 
-   if(isDescriptorSetDirty(r)) {
-       if(isLayoutNeeded(r, lights))
-           vulkanCore_->InitDescriptorSetForRenderData(r, lights);
-        VkRenderPass render_pass = vulkanCore_->createVkRenderPass(NORMAL_RENDERPASS, rstate.sampleCount);
 
-//<<<<<<< HEAD
-//<<<<<<< HEAD
-//        std::string vkPipelineHashCode = std::to_string(r.shader) + std::to_string(r.renderModes) +
-//                                std::to_string(rstate.sampleCount) + r.mesh->getVertexBuffer()->getDescriptor();
-//=======
-//        std::string vkPipelineHashCode;
-//        vkPipelineHashCode += std::to_string(r.shader);
-//        vkPipelineHashCode += r.renderModes.to_string();
-//        vkPipelineHashCode += std::to_string(rstate.sampleCount);
-//        vkPipelineHashCode += r.mesh->getVertexBuffer()->getDescriptor();
-//>>>>>>> d8c3a866... adding to_string() for render_modes
-//=======
+    //todo: better logic for pipeline creation check
+    bool createPipeline = false;
+    if(isDescriptorSetDirty(r)) {
+       if (isLayoutNeeded(r, lights))
+           vulkanCore_->InitDescriptorSetForRenderData(r, lights);
+       createPipeline = true;
+    }
+
+    vulkanCore_->updateTransformDescriptors(r);
+
+    if(createPipeline) {
+        VkRenderPass render_pass = vulkanCore_->createVkRenderPass(NORMAL_RENDERPASS,
+                                                                   rstate.sampleCount);
         PipelineHashing& pipelineHashing = vulkanCore_->getPipelineHash();
 
        //todo: check for pipeline derivatives
         pipelineHashing.createPipeline(this,r,rstate,render_pass);
-//>>>>>>> 4ee0e2c6... pipeline hashing for vulkan
-
         VulkanRenderPass* vk_renderPass = static_cast<VulkanRenderPass*>(r.renderPass);
-//<<<<<<< HEAD
-//        if(pipeline == 0) {
-//=======
-
-//<<<<<<< HEAD
-//        if(!pipeline) {
-////>>>>>>> bba42476... validate function for vulkan
-//            vkRdata->createPipeline(this,r,rstate,render_pass);
-//            vulkanCore_->addPipeline(vkPipelineHashCode, vk_renderPass->m_pipeline);
-//        }
-//        else{
-//            vk_renderPass->m_pipeline = pipeline;
-//            vkRdata->clearDirty();
-//        }
-//=======
         vk_renderPass->render_modes().clearDirty();
-//>>>>>>> 4ee0e2c6... pipeline hashing for vulkan
-   //revert this
-         }
+    }
 }
 void VulkanRenderer::validate(RenderSorter::Renderable& r, RenderState& rstate)
 {
@@ -339,12 +315,8 @@ void VulkanRenderer::render(const RenderState& rstate, const RenderSorter::Rende
 }
 
 void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, RenderTarget* renderTarget, ShaderManager* shader_manager,
-//<<<<<<< HEAD
-//                                        RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b){
-//=======
                                 RenderTexture* post_effect_render_texture_a, RenderTexture* post_effect_render_texture_b){
 #if 0
-
 //>>>>>>> 9a1c2d25... cleanup
     std::vector<RenderData*> render_data_list;
     Camera* camera = renderTarget->getCamera();
@@ -459,6 +431,11 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
     renderTarget->render();
     renderTarget->endRendering();
     vulkanCore_->submitCmdBuffer(static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(), rstate.cmd_buffer);
+
+    VkFence fence =  static_cast<VkRenderTexture*>(renderTarget->getTexture())->getFenceObject();
+    VkResult err;
+    err = vkWaitForFences(vulkanCore_->getDevice(), 1, &fence , VK_TRUE, 4294967295U);
+    GVR_VK_CHECK(!err);
 }
 
     /**

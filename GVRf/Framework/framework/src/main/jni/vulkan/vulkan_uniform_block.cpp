@@ -36,7 +36,7 @@ namespace gvr {
     void VulkanUniformBlock::createDescriptorWriteInfo(int binding_index, int stageFlags, bool sampler) {
 
         VkDescriptorType descriptorType = (sampler ? VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                                                   : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC);
+                                                   : VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
         GVR_Uniform &uniform = getBuffer();
         gvr::DescriptorWrite writeInfo = gvr::DescriptorWrite(
                 VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, binding_index, 1,
