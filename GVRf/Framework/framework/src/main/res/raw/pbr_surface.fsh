@@ -25,17 +25,24 @@ layout(location = 14) in vec2 lightmap_coord;
 layout(set = 0, binding = 14) uniform sampler2D lightmapTexture;
 #endif
 
-#ifdef HAS_opacityTexture
-layout(location = 15) in vec2 opacity_coord;
-layout(set = 0, binding = 15) uniform sampler2D opacityTexture;
-#endif
-
 #ifdef HAS_normalTexture
 layout(location = 16) in vec2 normal_coord;
 layout(set = 0, binding = 16) uniform sampler2D normalTexture;
 #ifdef HAS_a_tangent
 layout(location = 4) in mat3 tangent_matrix;
 #endif
+#endif
+
+#ifdef HAS_brdfLUTTexture
+layout(set = 0, binding = 15) uniform sampler2D brdfLUTTexture;
+#endif
+
+#ifdef HAS_diffuseEnvTex
+layout(set = 0, binding = 17) uniform samplerCube diffuseEnvTex;
+#endif
+
+#ifdef HAS_specularEnvTexture
+layout(set = 0, binding = 18) uniform samplerCube specularEnvTexture;
 #endif
 
 struct Surface
@@ -54,6 +61,27 @@ vec3 SRGBtoLINEAR(vec3 srgbIn)
     return pow(srgbIn.xyz, vec3(2.2));
 }
 
+#ifdef HAS_normalTexture
+mat3 calculateTangentMatrix()
+{
+#ifdef HAS_a_tangent
+    return tangent_matrix;
+#else
+    vec3 pos_dx = dFdx(viewspace_position);
+    vec3 pos_dy = dFdy(viewspace_position);
+    vec3 tex_dx = dFdx(vec3(normal_coord, 0.0));
+    vec3 tex_dy = dFdy(vec3(normal_coord, 0.0));
+
+    vec3 dp2perp = cross(pos_dy, viewspace_normal);
+    vec3 dp1perp = cross(viewspace_normal, pos_dx);
+    vec3 t = dp2perp * tex_dx.x + dp1perp * tex_dy.x;
+    vec3 b = dp2perp * tex_dx.y + dp1perp * tex_dy.y;
+    float invmax = inversesqrt(max(dot(t, t), dot(b, b)));
+    return mat3(t * invmax, b * invmax, viewspace_normal);
+#endif
+}
+#endif
+
 Surface @ShaderName()
 {
 
@@ -63,8 +91,8 @@ Surface @ShaderName()
     vec3 emission = emissive_color.xyz;
 
     //specular glossiness workflow
-    #ifdef HAS_glossinessFactor
-        diffuse = diffuse_color.rgb;
+#ifdef HAS_glossinessFactor
+    diffuse = diffuse_color.rgb;
         specular = specular_color.rgb;
         float glossiness = glossinessFactor;
 
@@ -78,29 +106,29 @@ Surface @ShaderName()
         #endif
         perceptualRoughness = 1.0f - glossiness;
 
-    #else
-        //metallic roughness workflow
-        vec4 basecolor = diffuse_color;
-        float metal = metallic;
-        perceptualRoughness = roughness;
-        #ifdef HAS_metallicRoughnessTexture
-                // Roughness is stored in the 'g' channel, metallic is stored in the 'b' channel.
+#else
+    //metallic roughness workflow
+    vec4 basecolor = diffuse_color;
+    float metal = metallic;
+    perceptualRoughness = roughness;
+#ifdef HAS_metallicRoughnessTexture
+    // Roughness is stored in the 'g' channel, metallic is stored in the 'b' channel.
                 // This layout intentionally reserves the 'r' channel for (optional) occlusion map data
                 vec4 mrSample = texture(metallicRoughnessTexture, metallicRoughness_coord.xy);
                 perceptualRoughness = mrSample.g * perceptualRoughness;
                 metal = mrSample.b * metal;
-        #endif
-        metal = clamp(metal, 0.0, 1.0);
+#endif
+    metal = clamp(metal, 0.0, 1.0);
 
-        #ifdef HAS_diffuseTexture
-                basecolor.rgb *= SRGBtoLINEAR(texture(diffuseTexture, diffuse_coord.xy).rgb);
-        #endif
+#ifdef HAS_diffuseTexture
+    basecolor.rgb *= SRGBtoLINEAR(texture(diffuseTexture, diffuse_coord.xy).rgb);
+#endif
 
-        vec3 f0 = vec3(0.04);
-        diffuse = basecolor.rgb * (vec3(1.0) - f0);
-        diffuse *= 1.0 - metal;
-        specular = mix(f0, basecolor.rgb, metal);
-    #endif
+    vec3 f0 = vec3(0.04);
+    diffuse = basecolor.rgb * (vec3(1.0) - f0);
+    diffuse *= 1.0 - metal;
+    specular = mix(f0, basecolor.rgb, metal);
+#endif
 
     perceptualRoughness = clamp(perceptualRoughness, c_MinRoughness, 1.0);
 
@@ -113,15 +141,15 @@ Surface @ShaderName()
     vec2 brdf = vec2(reflectance, reflectance90);
     vec3 viewspaceNormal;
 
-    #ifdef HAS_emissiveTexture
-        emission = SRGBtoLINEAR(texture(emissiveTexture, emissive_coord.xy).rgb);
-    #endif
-    #if defined(HAS_normalTexture) && defined(HAS_a_tangent)
-        viewspaceNormal = texture(normalTexture, normal_coord.xy).xyz * 2.0 - 1.0;
-        viewspaceNormal = normalize(tangent_matrix * (viewspaceNormal * vec3(normalScale, normalScale, 1.0)));
-    #else
-        viewspaceNormal = viewspace_normal;
-    #endif
+#ifdef HAS_emissiveTexture
+    emission = SRGBtoLINEAR(texture(emissiveTexture, emissive_coord.xy).rgb);
+#endif
+#if defined(HAS_normalTexture)
+    viewspaceNormal = texture(normalTexture, normal_coord.xy).xyz * 2.0 - 1.0;
+        viewspaceNormal = normalize(calculateTangentMatrix() * viewspaceNormal * vec3(normalScale, normalScale, 1.0));
+#else
+    viewspaceNormal = viewspace_normal;
+#endif
 
     return Surface(vec4(diffuse, diffuse_color.a), specular, emission,
                    viewspaceNormal, brdf,
