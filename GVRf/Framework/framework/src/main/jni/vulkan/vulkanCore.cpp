@@ -31,7 +31,7 @@
 #include "vk_device_component.h"
 
 
-#define TEXTURE_BIND_START 6
+#define TEXTURE_BIND_START 10
 #define QUEUE_INDEX_MAX 99999
 #define VERTEX_BUFFER_BIND_ID 0
 
@@ -261,8 +261,6 @@ namespace gvr {
         VkLayerProperties* layerProperties = (VkLayerProperties*)malloc(numInstanceLayers * sizeof(VkLayerProperties));
         vkEnumerateInstanceLayerProperties(&numInstanceLayers, layerProperties);
 
-        LOGE("sushant: layer prop size = %d", numInstanceLayers);
-
         for (uint32_t i = 0; i < instanceLayers.size(); i++)
         {
             bool found = false;
@@ -382,7 +380,7 @@ namespace gvr {
         VkResult ret = VK_SUCCESS;
 
         std::vector<const char*>  instanceLayers;
-        validationLayers = true;
+        validationLayers = false;
         if(validationLayers)
             instanceLayers = getInstanceLayers();
 

@@ -33,7 +33,6 @@ Renderer* Renderer::getInstance(std::string type)
     if (instance == nullptr)
     {
         int vulkanPropValue = getVulkanPropValue();
-        instance = new VulkanRenderer();
         if(vulkanPropValue) {
             instance = new VulkanRenderer(vulkanPropValue);
 
