@@ -38,18 +38,15 @@ VkRenderTarget::VkRenderTarget(RenderTexture* renderTexture, bool is_multiview, 
 {
     VkRenderTexture* vkRenderTexture =  static_cast<VkRenderTexture*>(mRenderTexture);
     vkRenderTexture->initVkData();
-    mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
+    //mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
 }
 
 VkRenderTarget::VkRenderTarget(Scene* scene, bool is_stereo)
      : RenderTarget(scene, is_stereo)
 {
-//<<<<<<< HEAD
-//=======
     VkRenderTexture* vkRenderTexture =  static_cast<VkRenderTexture*>(mRenderTexture);
     vkRenderTexture->initVkData();
-    mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
-//>>>>>>> 9a1c2d25... cleanup
+    //mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
 }
 
 VkRenderTarget::VkRenderTarget(RenderTexture* renderTexture, const RenderTarget* source)
@@ -60,7 +57,7 @@ VkRenderTarget::VkRenderTarget(RenderTexture* renderTexture, const RenderTarget*
 //=======
     VkRenderTexture* vkRenderTexture =  static_cast<VkRenderTexture*>(mRenderTexture);
     vkRenderTexture->initVkData();
-    mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
+    //mRenderState.cmd_buffer = vkRenderTexture->getCommandBuffer();
 //>>>>>>> 9a1c2d25... cleanup
 }
 

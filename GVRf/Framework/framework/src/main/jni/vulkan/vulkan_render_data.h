@@ -33,15 +33,9 @@ namespace gvr
 struct VulkanRenderPass : public RenderPass
 {
     virtual ~VulkanRenderPass() {}
-//<<<<<<< HEAD
     bool descriptorSetNull = true;
-    //VkDescriptorPool m_descriptorPool;
     VkPipeline m_pipeline = 0;
     VkDescriptorSet m_descriptorSet = 0;
-//=======
-//    VkPipeline m_pipeline = 0;
-//    VkDescriptorSet m_descriptorSet = 0;
-//>>>>>>> 9a1c2d25... cleanup
 };
 
 

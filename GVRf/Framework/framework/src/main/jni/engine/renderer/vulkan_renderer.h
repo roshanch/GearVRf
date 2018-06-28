@@ -131,6 +131,8 @@ public:
     virtual bool selectShader(RenderState& rstate, Shader* shader) { };
     virtual void render(const RenderState&, const RenderSorter::Renderable&);
     virtual UniformBlock* createTransformBlock(int numMatrices);
+    VkCommandBuffer getCurrentCommandBuffer(){return mCurrentCmdBuffer;};
+    void setCurrentCommandBuffer(VkCommandBuffer cmdbuff){ mCurrentCmdBuffer = cmdbuff; };
 
 private:
 
@@ -146,6 +148,8 @@ private:
 
     RenderSorter::Renderable mCurrentState;
     VulkanCore* vulkanCore_;
+    VkCommandBuffer mCurrentCmdBuffer;
+
 };
 }
 #endif //FRAMEWORK_VULKANRENDERER_H

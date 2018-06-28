@@ -170,31 +170,6 @@ void VkRenderTexture::beginRendering(Renderer* renderer){
     err = vkBeginCommandBuffer(mCmdBuffer, &cmd_buf_info);
     GVR_VK_CHECK(!err);
 
-
-    //todo:: handle the image layout transition lifecycle
-    //for oculus: undefined--->COLOR-->(before copytovullkan)SOURCE-->(aftercopytovulkan)COLOR
-    //for monoscopic: undefined-->COLOR-->(before present)-->PRESENT-->(after present) COLOR
-
-    VkImageMemoryBarrier imageMemoryBarrier = {};
-    imageMemoryBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageMemoryBarrier.pNext = NULL;
-    imageMemoryBarrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    imageMemoryBarrier.subresourceRange.baseMipLevel = 0;
-    imageMemoryBarrier.subresourceRange.levelCount = 1;
-    imageMemoryBarrier.subresourceRange.baseArrayLayer = 0;
-    imageMemoryBarrier.subresourceRange.layerCount = 1;
-
-    // change layout of current mip level to transfer dest
-    setImageLayout(imageMemoryBarrier,
-                   mCmdBuffer,
-                   fbo->getImage(COLOR_IMAGE),
-                   VK_IMAGE_ASPECT_COLOR_BIT,
-                   VK_IMAGE_LAYOUT_UNDEFINED,
-                   VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, imageMemoryBarrier.subresourceRange,
-                   VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                   VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
-
-
     vkCmdSetScissor(mCmdBuffer,0,1, &scissor);
     vkCmdSetViewport(mCmdBuffer,0,1,&viewport);
     vkCmdBeginRenderPass(mCmdBuffer, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);

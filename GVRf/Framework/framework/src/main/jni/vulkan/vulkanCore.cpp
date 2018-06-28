@@ -1208,7 +1208,7 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         if(image_type & COLOR_IMAGE && mAttachments[COLOR_IMAGE]== nullptr) {
             vkImageBase *colorImage = new vkImageBase(imageViewType, VK_FORMAT_R8G8B8A8_UNORM, mWidth,
                                                       mHeight, 1, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|
-                                                                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
+                                                                  VK_IMAGE_USAGE_TRANSFER_SRC_BIT|VK_IMAGE_USAGE_SAMPLED_BIT,
                                                       VK_IMAGE_LAYOUT_UNDEFINED, layers, 1);
 
             mAttachments[COLOR_IMAGE] = colorImage;

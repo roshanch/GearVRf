@@ -282,7 +282,7 @@ private:
     uint32_t m_queueFamilyIndex;
     VkQueue m_queue;
 
-    VkSurfaceKHR m_surface;
+    VkSurfaceKHR m_surface = VK_NULL_HANDLE;
     VkSurfaceFormatKHR mSurfaceFormat;
     VkSwapchainKHR mSwapchain;
     struct SwapchainBuffer

@@ -261,18 +261,15 @@ void VulkanRenderer::render(const RenderState& rstate, const RenderSorter::Rende
     VulkanRenderPass* vkRenderPass = static_cast<VulkanRenderPass*>(r.renderPass);
     VkPipeline item_pipeline = vkRenderPass->m_pipeline;
     VkPipeline curr_pipeline = mCurrentState.renderPass ? static_cast<VulkanRenderPass*>(r.renderPass) ->m_pipeline : VK_NULL_HANDLE;
-    VkCommandBuffer cmdBuffer = rstate.cmd_buffer;
+    VkCommandBuffer cmdBuffer = mCurrentCmdBuffer;
 
-    if(item_pipeline != curr_pipeline){
+    //if(item_pipeline != curr_pipeline){
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           item_pipeline);
         mCurrentState.renderPass = r.renderPass;
-    }
+    //}
 
     VulkanShader *Vkshader = reinterpret_cast<VulkanShader *>(r.shader);
-
-
-
 
     //bind out descriptor set, which handles our uniforms and samplers
     if (vkRenderPass->m_descriptorSet)
@@ -409,6 +406,7 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
     }
 #endif
     mCurrentState.reset();
+    renderTarget = static_cast<VkRenderTarget *> (renderTarget);
     Camera* camera = renderTarget->getCamera();
     RenderState rstate = renderTarget->getRenderState();
     rstate.javaSceneObject = javaSceneObject;
@@ -428,15 +426,88 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
             rstate.u_right = 1;
         }
     }
-    renderTarget->beginRendering();
-    renderTarget->render();
-    renderTarget->endRendering();
-    vulkanCore_->submitCmdBuffer(static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(), rstate.cmd_buffer);
 
-    VkFence fence =  static_cast<VkRenderTexture*>(renderTarget->getTexture())->getFenceObject();
-    VkResult err;
-    err = vkWaitForFences(vulkanCore_->getDevice(), 1, &fence , VK_TRUE, 4294967295U);
-    GVR_VK_CHECK(!err);
+    int postEffectCount = 0;
+    RenderData* post_effects = camera->post_effect_data();
+
+    if ((post_effects != NULL) &&
+        (post_effect_render_texture_a != nullptr) &&
+        (post_effects->pass_count() > 0)) {
+
+        VkResult err;
+        //render everything on post_effect_render_texture_a
+        VkRenderTexture* renderTexture = static_cast<VkRenderTexture*>(post_effect_render_texture_a);
+        VkRenderTexture* input_texture = renderTexture;
+
+//        renderTexture->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),
+//                                          camera->background_color_b(), camera->background_color_a());
+//        renderTexture->useStencil(this->useStencilBuffer_);
+        renderTexture->beginRendering(this);
+        setCurrentCommandBuffer(renderTexture->getCommandBuffer());
+        renderTarget->render();
+        renderTexture->endRendering(this);
+
+        vulkanCore_->submitCmdBuffer( renderTexture->getFenceObject(), getCurrentCommandBuffer());
+        err = vkWaitForFences(vulkanCore_->getDevice(), 1, &(renderTexture->getFenceObject()), VK_TRUE, 4294967295U);
+        GVR_VK_CHECK(!err);
+
+        postEffectCount = post_effects->pass_count();
+
+        for (int i = 0; i < postEffectCount-1; i++) {
+            if (i % 2 == 0)
+            {
+                renderTexture = static_cast<VkRenderTexture*>(post_effect_render_texture_b);
+            }
+            else
+            {
+                renderTexture = static_cast<VkRenderTexture*>(post_effect_render_texture_a);
+            }
+
+            renderTexture->beginRendering(this);
+            setCurrentCommandBuffer(renderTexture->getCommandBuffer());
+            if(!renderPostEffectData(rstate,input_texture,post_effects,i))
+                return;
+            renderTexture->endRendering(this);
+
+            vulkanCore_->submitCmdBuffer( renderTexture->getFenceObject(), getCurrentCommandBuffer());
+            err = vkWaitForFences(vulkanCore_->getDevice(), 1, &(renderTexture->getFenceObject()), VK_TRUE, 4294967295U);
+            GVR_VK_CHECK(!err);
+
+            input_texture = renderTexture;
+
+        }
+
+        renderTarget->beginRendering();
+        setCurrentCommandBuffer(static_cast<VkRenderTexture *>(renderTarget->getTexture())->getCommandBuffer());
+        if(!renderPostEffectData(rstate, input_texture, post_effects, postEffectCount - 1))
+            return;
+        renderTarget->endRendering();
+
+        vulkanCore_->submitCmdBuffer(
+                static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(),
+                getCurrentCommandBuffer());
+
+        VkFence  fence = static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject();
+        err = vkWaitForFences(vulkanCore_->getDevice(), 1, &fence, VK_TRUE, 4294967295U);
+        GVR_VK_CHECK(!err);
+
+
+    } else {
+
+        renderTarget->beginRendering();
+        setCurrentCommandBuffer(static_cast<VkRenderTexture *>(renderTarget->getTexture())->getCommandBuffer());
+        renderTarget->render();
+        renderTarget->endRendering();
+
+        vulkanCore_->submitCmdBuffer(
+                static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject(),
+                getCurrentCommandBuffer());
+
+        VkFence fence = static_cast<VkRenderTexture *>(renderTarget->getTexture())->getFenceObject();
+        VkResult err;
+        err = vkWaitForFences(vulkanCore_->getDevice(), 1, &fence, VK_TRUE, 4294967295U);
+        GVR_VK_CHECK(!err);
+    }
 }
 
     /**
