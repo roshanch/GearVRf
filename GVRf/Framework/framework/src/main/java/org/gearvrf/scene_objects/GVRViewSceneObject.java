@@ -25,8 +25,10 @@ import android.graphics.SurfaceTexture;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.view.ActionMode;
 import android.view.GestureDetector;
+import android.view.InputDevice;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -45,7 +47,6 @@ import android.widget.TextView;
 import org.gearvrf.GVRActivity;
 import org.gearvrf.GVRCollider;
 import org.gearvrf.GVRContext;
-import org.gearvrf.GVRDrawFrameListener;
 import org.gearvrf.GVRExternalTexture;
 import org.gearvrf.GVRMaterial;
 import org.gearvrf.GVRMaterial.GVRShaderType;
@@ -561,6 +562,16 @@ public class GVRViewSceneObject extends GVRSceneObject {
             return false;
         }
 
+        private void dispatchPickerHoverEvent(final MotionEvent event) {
+            mGVRContext.getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    RootViewGroup.super.dispatchHoverEvent(event);
+                    event.recycle();
+                }
+            });
+        }
+
         public void setCurrentFocusedView(View view) {
             view.requestFocus();
         }
@@ -691,33 +702,50 @@ public class GVRViewSceneObject extends GVRSceneObject {
             mSurfaceTexture.setDefaultBufferSize(getWidth(), getHeight());
 
             mSurfaceTexture.setOnFrameAvailableListener(new SurfaceTexture.OnFrameAvailableListener() {
-                GVRDrawFrameListener drawFrameListener = new GVRDrawFrameListener() {
+                Runnable onFrameAvailableGLCallback = new Runnable() {
                     @Override
-                    public void onDrawFrame(float frameTime) {
+                    public void run() {
                         mSurfaceTexture.updateTexImage();
-                        mGVRContext.unregisterDrawFrameListener(this);
                     }
                 };
 
                 @Override
                 public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-                    mGVRContext.registerDrawFrameListener(drawFrameListener);
+                    mGVRContext.runOnGlThread(onFrameAvailableGLCallback);
                 }
             });
+        }
 
+        private MotionEvent createMotionEvent(GVRPicker.GVRPickedObject pickInfo, int action) {
+            float hitX = pickInfo.textureCoords[0] * getWidth();
+            float hitY = pickInfo.textureCoords[1] * getHeight();
+            long now = SystemClock.uptimeMillis();
+
+            final MotionEvent event = MotionEvent.obtain(now, now, action, hitX, hitY,0);
+            // Set source to touchscreen to make hover works fine
+            event.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            return event;
         }
 
         @Override
-        public void onEnter(GVRSceneObject sceneObject, GVRPicker.GVRPickedObject pickInfo) { }
+        public void onEnter(GVRSceneObject sceneObject, GVRPicker.GVRPickedObject pickInfo) {
+            // If motionEvent is null, it is a hover action
+            if (pickInfo.motionEvent == null) {
+                MotionEvent event = createMotionEvent(pickInfo, MotionEvent.ACTION_HOVER_ENTER);
+                dispatchPickerHoverEvent(event);
+            }
+        }
 
         @Override
-        public void onExit(GVRSceneObject sceneObject, GVRPicker.GVRPickedObject pickInfo)
-        {
-            if (sceneObject == mSelected)
-            {
+        public void onExit(GVRSceneObject sceneObject, GVRPicker.GVRPickedObject pickInfo) {
+            // If motionEvent is null, it is a hover action
+            if (pickInfo.motionEvent == null) {
+                MotionEvent event = createMotionEvent(pickInfo, MotionEvent.ACTION_HOVER_EXIT);
+                dispatchPickerHoverEvent(event);
+            } else if (sceneObject == mSelected) {
                 mSelected = null;
                 onDrag(pickInfo);
-           }
+            }
         }
 
         @Override
@@ -739,8 +767,11 @@ public class GVRViewSceneObject extends GVRSceneObject {
         public void onInside(GVRSceneObject sceneObject, GVRPicker.GVRPickedObject pickInfo) {
             final MotionEvent event = pickInfo.motionEvent;
 
-            if (sceneObject == mSelected && event != null
-                    && event.getAction() == MotionEvent.ACTION_MOVE) {
+            // If motionEvent is null, it is a hover action
+            if (event == null) {
+                MotionEvent e = createMotionEvent(pickInfo, MotionEvent.ACTION_HOVER_MOVE);
+                dispatchPickerHoverEvent(e);
+            } else if ((sceneObject == mSelected && event.getAction() == MotionEvent.ACTION_MOVE)) {
                 onDrag(pickInfo);
             }
         }

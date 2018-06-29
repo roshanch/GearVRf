@@ -25,29 +25,26 @@
 #include <LinearMath/btTransform.h>
 #include <math.h>
 
-static const char tag[] = "BulletRbN";
-
 namespace gvr {
 
 BulletRigidBody::BulletRigidBody()
-        : mRigidBody(nullptr),
-          mConstructionInfo(btScalar(0.0f), nullptr, new btEmptyShape()),
+        : mConstructionInfo(btScalar(0.0f), nullptr, new btEmptyShape()),
+          mRigidBody(new btRigidBody(mConstructionInfo)),
           m_centerOfMassOffset(btTransform::getIdentity()),
           mScale(1.0f, 1.0f, 1.0f),
           mSimType(SimulationType::DYNAMIC)
 {
-    initialize();
+    mRigidBody->setUserPointer(this);
 }
 
 BulletRigidBody::BulletRigidBody(btRigidBody *rigidBody)
-        : mRigidBody(rigidBody),
-          mConstructionInfo(btScalar(0.0f), nullptr, new btEmptyShape()),
+        : mConstructionInfo(btScalar(0.0f), nullptr, nullptr),
+          mRigidBody(rigidBody),
           m_centerOfMassOffset(btTransform::getIdentity()),
           mScale(1.0f, 1.0f, 1.0f),
           mSimType(SimulationType::DYNAMIC)
 {
-    initialize();
-    mConstructionInfo.m_mass = rigidBody->isStaticObject() ? 0.f : 1.f / rigidBody->getInvMass();
+    mRigidBody->setUserPointer(this);
 }
 
 BulletRigidBody::~BulletRigidBody() {
@@ -67,15 +64,15 @@ void BulletRigidBody::setSimulationType(PhysicsRigidBody::SimulationType type)
         break;
 
         case SimulationType::STATIC:
-        mRigidBody->setCollisionFlags(mRigidBody->getCollisionFlags() |
-                                      btCollisionObject::CollisionFlags::CF_STATIC_OBJECT &
+        mRigidBody->setCollisionFlags((mRigidBody->getCollisionFlags() |
+                                      btCollisionObject::CollisionFlags::CF_STATIC_OBJECT) &
                                       ~btCollisionObject::CollisionFlags::CF_KINEMATIC_OBJECT);
         mRigidBody->setActivationState(ISLAND_SLEEPING);
         break;
 
         case SimulationType::KINEMATIC:
-        mRigidBody->setCollisionFlags(mRigidBody->getCollisionFlags() |
-                                       btCollisionObject::CollisionFlags::CF_KINEMATIC_OBJECT &
+        mRigidBody->setCollisionFlags((mRigidBody->getCollisionFlags() |
+                                       btCollisionObject::CollisionFlags::CF_KINEMATIC_OBJECT) &
                                        ~btCollisionObject::CollisionFlags::CF_STATIC_OBJECT);
         mRigidBody->setActivationState(ISLAND_SLEEPING);
         break;
@@ -88,40 +85,35 @@ BulletRigidBody::SimulationType BulletRigidBody::getSimulationType() const
 }
 
 void BulletRigidBody::updateConstructionInfo() {
-    bool isDynamic = (getMass() != 0.f);
-    Collider* collider = (Collider*)owner_object_->getComponent(COMPONENT_TYPE_COLLIDER);
-    RenderData* rdata = owner_object_->render_data();
-    if (mConstructionInfo.m_collisionShape) {
-        delete mConstructionInfo.m_collisionShape;
-    }
-    mRigidBody->setMotionState(this);
-    mRigidBody->setMassProps(mConstructionInfo.m_mass, mConstructionInfo.m_localInertia);
-    if (collider) {
-        mConstructionInfo.m_collisionShape = convertCollider2CollisionShape(collider);
-        if (isDynamic) {
-            mConstructionInfo.m_collisionShape->calculateLocalInertia(getMass(),
-                                                                      mConstructionInfo.m_localInertia);
-        }
-        mRigidBody->setCollisionShape(mConstructionInfo.m_collisionShape);
-        mRigidBody->setMassProps(getMass(), mConstructionInfo.m_localInertia);
-        mRigidBody->updateInertiaTensor();
-        updateColisionShapeLocalScaling();
-    }
-    else {
-        LOGE("PHYSICS: Cannot attach rigid body without collider");
-    }
-
-    getWorldTransform(prevPos);
-
-}
-
-void BulletRigidBody::initialize() {
-    if (nullptr == mRigidBody)
+    if (mConstructionInfo.m_collisionShape != nullptr)
     {
-        mRigidBody = new btRigidBody(mConstructionInfo);
+        // This rigid body was not loaded so its construction must be finished
+        Collider *collider = (Collider *) owner_object_->getComponent(COMPONENT_TYPE_COLLIDER);
+        if (collider)
+        {
+            bool isDynamic = (getMass() != 0.f);
+            delete mConstructionInfo.m_collisionShape;
+            mRigidBody->setMotionState(this);
+            mRigidBody->setMassProps(mConstructionInfo.m_mass, mConstructionInfo.m_localInertia);
+            mConstructionInfo.m_collisionShape = convertCollider2CollisionShape(collider);
+            if (isDynamic)
+            {
+                mConstructionInfo.m_collisionShape->calculateLocalInertia(getMass(),
+                        mConstructionInfo.m_localInertia);
+            }
+            mRigidBody->setCollisionShape(mConstructionInfo.m_collisionShape);
+            mRigidBody->setMassProps(getMass(), mConstructionInfo.m_localInertia);
+            mRigidBody->updateInertiaTensor();
+            updateColisionShapeLocalScaling();
+        }
+        else
+        {
+            LOGE("PHYSICS: Cannot attach rigid body without collider");
+        }
     }
 
-    mRigidBody->setUserPointer(this);
+    mRigidBody->setMotionState(this);
+    getWorldTransform(prevPos);
 }
 
 void BulletRigidBody::finalize() {
@@ -203,10 +195,48 @@ void BulletRigidBody::setWorldTransform(const btTransform &centerOfMassWorldTran
 
 void BulletRigidBody::applyCentralForce(float x, float y, float z) {
     mRigidBody->applyCentralForce(btVector3(x, y, z));
+    if (!mRigidBody->isActive()) {
+        mRigidBody->activate(true);
+    }
+}
+
+void BulletRigidBody::applyForce(float force_x, float force_y, float force_z,
+		float rel_pos_x, float rel_pos_y, float rel_pos_z) {
+	mRigidBody->applyForce(btVector3(force_x, force_y, force_z),
+			btVector3(rel_pos_x, rel_pos_y, rel_pos_z));
+    if (!mRigidBody->isActive()) {
+        mRigidBody->activate(true);
+    }
+}
+
+void BulletRigidBody::applyCentralImpulse(float x, float y, float z) {
+    mRigidBody->applyCentralImpulse(btVector3(x, y, z));
+    if (!mRigidBody->isActive()) {
+        mRigidBody->activate(true);
+    }
+}
+
+void BulletRigidBody::applyImpulse(float impulse_x, float impulse_y, float impulse_z,
+        float rel_pos_x, float rel_pos_y, float rel_pos_z) {
+    mRigidBody->applyImpulse(btVector3(impulse_x, impulse_y, impulse_z),
+                           btVector3(rel_pos_x, rel_pos_y, rel_pos_z));
+    if (!mRigidBody->isActive()) {
+        mRigidBody->activate(true);
+    }
 }
 
 void BulletRigidBody::applyTorque(float x, float y, float z) {
     mRigidBody->applyTorque(btVector3(x, y, z));
+    if (!mRigidBody->isActive()) {
+        mRigidBody->activate(true);
+    }
+}
+
+void BulletRigidBody::applyTorqueImpulse(float x, float y, float z) {
+    mRigidBody->applyTorqueImpulse(btVector3(x, y, z));
+    if (!mRigidBody->isActive()) {
+        mRigidBody->activate(true);
+    }
 }
 
 float BulletRigidBody::center_x() const {

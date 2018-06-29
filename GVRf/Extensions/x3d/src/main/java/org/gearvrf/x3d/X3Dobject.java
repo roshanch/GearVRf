@@ -53,6 +53,9 @@ import javax.xml.parsers.SAXParserFactory;
 import org.gearvrf.script.GVRJavascriptScriptFile;
 import org.gearvrf.script.javascript.GVRJavascriptV8File;
 import org.gearvrf.x3d.data_types.MFString;
+import org.gearvrf.x3d.data_types.SFBool;
+import org.gearvrf.x3d.data_types.SFFloat;
+import org.gearvrf.x3d.data_types.SFRotation;
 import org.joml.Matrix3f;
 import org.joml.Vector2f;
 import org.xml.sax.Attributes;
@@ -1831,8 +1834,8 @@ public class X3Dobject {
                     }
                     attributeValue = attributes.getValue("solid");
                     if (attributeValue != null) {
-                        if (parseBooleanString(attributeValue)) {
-                            Log.e(TAG, "IndexedFaceSet solid=true attribute not implemented. ");
+                        if ( !parseBooleanString(attributeValue)) {
+                            Log.e(TAG, "IndexedFaceSet solid=false not implemented. ");
                         }
                     }
                     attributeValue = attributes.getValue("ccw");
@@ -2819,7 +2822,7 @@ public class X3Dobject {
                         fieldOfView = parseSingleFloatString(attributeValue, false, true);
                         if (fieldOfView > (float) Math.PI)
                             fieldOfView = (float) Math.PI;
-                        Log.e(TAG, "Viewpoint fieldOfView attribute not implemented. ");
+                        Log.e(TAG, "X3D Viewpoint fieldOfView not implemented in GearVR. ");
                     }
                     attributeValue = attributes.getValue("jump");
                     if (attributeValue != null) {
@@ -3234,6 +3237,86 @@ public class X3Dobject {
                 } // end <PlaneSensor> node
 
 
+                /********** CylinderSensor **********/
+                else if (qName.equalsIgnoreCase("CylinderSensor")) {
+                    String name = "";
+                    String description = "";
+                    SFRotation axisRotation = new SFRotation(0, 1, 0, 0);
+                    SFBool enabled = new SFBool(true);
+                    SFFloat diskAngle = new SFFloat( (float)Math.PI/12.0f);
+                    SFFloat minAngle = new SFFloat(0);
+                    SFFloat maxAngle = new SFFloat(-1);
+                    attributeValue = attributes.getValue("DEF");
+                    if (attributeValue != null) {
+                        name = attributeValue;
+                    }
+                    attributeValue = attributes.getValue("description");
+                    if (attributeValue != null) {
+                        description = attributeValue;
+                    }
+                    attributeValue = attributes.getValue("axisRotation");
+                    if (attributeValue != null) {
+                        axisRotation.setValue( parseFixedLengthFloatString(attributeValue, 4, true, true) );
+                        Log.e(TAG, "CylinderSensor axisRotation not implemented");
+                    }
+
+                    attributeValue = attributes.getValue("enabled");
+                    if (attributeValue != null) {
+                        enabled.setValue( parseBooleanString(attributeValue) );
+                    }
+                    attributeValue = attributes.getValue("diskAngle");
+                    if (attributeValue != null) {
+                        Log.e(TAG, "CylinderSensor diskAngle not implemented");
+                    }
+                    attributeValue = attributes.getValue("maxAngle");
+                    if (attributeValue != null) {
+                        float maxValue = parseSingleFloatString(attributeValue, false, false);
+                        if (maxValue > Math.PI*2) maxValue = (float)Math.PI*2;
+                        else if (maxValue < -Math.PI*2) maxValue = -(float)Math.PI*2;
+                        maxAngle.setValue(maxValue);
+                    }
+                    attributeValue = attributes.getValue("minAngle");
+                    if (attributeValue != null) {
+                        float minValue = parseSingleFloatString(attributeValue, false, false);
+                        if (minValue > Math.PI*2) minValue = (float)Math.PI*2;
+                        else if (minValue < -Math.PI*2) minValue = -(float)Math.PI*2;
+                        minAngle.setValue(minValue);
+                    }
+
+                    Sensor sensor = new Sensor(name, Sensor.Type.CYLINDER, currentSceneObject, enabled.getValue() );
+                    sensor.setMinMaxAngle(minAngle, maxAngle);
+                    sensor.setAxisRotation( axisRotation );
+                    sensors.add(sensor);
+                    // add colliders to all objects under the touch sensor
+                    currentSceneObject.attachCollider(new GVRMeshCollider(gvrContext, true));
+                } // end <CylinderSensor> node
+
+
+                /********** SphereSensor **********/
+                else if (qName.equalsIgnoreCase("SphereSensor")) {
+                    String name = "";
+                    String description = "";
+                    boolean enabled = true;
+                    attributeValue = attributes.getValue("DEF");
+                    if (attributeValue != null) {
+                        name = attributeValue;
+                    }
+                    attributeValue = attributes.getValue("description");
+                    if (attributeValue != null) {
+                        description = attributeValue;
+                    }
+                    attributeValue = attributes.getValue("enabled");
+                    if (attributeValue != null) {
+                        enabled = parseBooleanString(attributeValue);
+                    }
+
+                    Sensor sensor = new Sensor(name, Sensor.Type.SPHERE, currentSceneObject, enabled);
+                    sensors.add(sensor);
+                    // add colliders to all objects under the touch sensor
+                    currentSceneObject.attachCollider(new GVRMeshCollider(gvrContext, true));
+                } // end <SphereSensor> node
+
+
                 /********** ProximitySensor **********/
                 else if (qName.equalsIgnoreCase("ProximitySensor")) {
                     Log.e(TAG, "ProximitySensor currently not implemented. ");
@@ -3635,7 +3718,9 @@ public class X3Dobject {
                         headlightSceneObject.attachLight(headLight);
                         headLight.setDiffuseIntensity(1, 1, 1, 1);
                         headlightSceneObject.setName("HeadLight");
-                        cameraRigAtRoot.addChildObject(headlightSceneObject);
+                        GVRSceneObject cameraHeadTransform = cameraRigAtRoot.getHeadTransformObject();
+                        GVRPerspectiveCamera gvrCenterCamera = cameraRigAtRoot.getCenterCamera();
+                        cameraHeadTransform.attachLight(headLight);
                     }
 
                 } // end <NavigationInfo> node
@@ -4138,6 +4223,10 @@ public class X3Dobject {
                 ;
             } else if (qName.equalsIgnoreCase("PlaneSensor")) {
                 ;
+            } else if (qName.equalsIgnoreCase("CylinderSensor")) {
+                ;
+            } else if (qName.equalsIgnoreCase("SphereSensor")) {
+                ;
             } else if (qName.equalsIgnoreCase("ProximitySensor")) {
                 ;
             } else if (qName.equalsIgnoreCase("Text")) {
@@ -4288,18 +4377,6 @@ public class X3Dobject {
                     }
                 } // end setting based on new camera rig
 
-                try {
-                    animationInteractivityManager.initAnimationsAndInteractivity();
-                    // Need to build a JavaScript function that constructs the
-                    // X3D data type objects used with a SCRIPT.
-                    // Scripts can also have an initialize() method.
-                    animationInteractivityManager.InitializeScript();
-                }
-                catch (Exception exception) {
-                    Log.e(TAG, "Error initialing X3D <ROUTE> or <Script> node related to Animation or Interactivity.\n"
-                            + exception);
-                }
-
             } // end </scene>
             else if (qName.equalsIgnoreCase("x3d")) {
                 ;
@@ -4361,6 +4438,15 @@ public class X3Dobject {
                                 filename = urls[j].substring(urls[j].lastIndexOf('/')+1, urls[j].length());
                             }
 
+                            // Get rid of any single or double quotes surrounding the filename.
+                            // this happens when the url = '"filename.x3d"' for example
+                            if ( (filename.indexOf("\"") == 0) || (filename.indexOf("\'") == 0) ) {
+                                filename = filename.substring(1, filename.length());
+                            }
+                            if ( (filename.indexOf("\"") == (filename.length()-1)) || (filename.indexOf("\'") == (filename.length()-1)) ) {
+                                filename = filename.substring(0, filename.length()-1);
+                            }
+
                             gvrResourceVolume = new GVRResourceVolume(gvrContext, urls[j]);
                             gvrAndroidResource = gvrResourceVolume.openResource( filename );
 
@@ -4393,9 +4479,20 @@ public class X3Dobject {
                     }
                 }
             }
-        }  catch (IOException exception) {
-            Log.d(TAG, "X3D/XML Parse IOException = " + exception);
-        }catch (Exception exception) {
+
+            try {
+                animationInteractivityManager.initAnimationsAndInteractivity();
+                // Need to build a JavaScript function that constructs the
+                // X3D data type objects used with a SCRIPT.
+                // Scripts can also have an initialize() method.
+                animationInteractivityManager.InitializeScript();
+            }
+            catch (Exception exception) {
+                Log.e(TAG, "Error initialing X3D <ROUTE> or <Script> node related to Animation or Interactivity.");
+            }
+
+        } catch (Exception exception) {
+
             Log.e(TAG, "X3D/XML Parsing Exception = " + exception);
         }
 

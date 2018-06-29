@@ -129,6 +129,7 @@ public final class GVRGearCursorController extends GVRCursorController
         public String getModelFileName(){
             return "gear_vr_controller.obj";
         }
+
         @Override
         public void updateAngularVelocity(Vector3f vec, int index){}
         @Override
