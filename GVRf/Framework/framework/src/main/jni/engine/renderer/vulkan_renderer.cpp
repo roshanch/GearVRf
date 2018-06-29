@@ -249,7 +249,6 @@ void VulkanRenderer::createVkResources(RenderSorter::Renderable& r, RenderState&
 }
 void VulkanRenderer::validate(RenderSorter::Renderable& r, RenderState& rstate)
 {
-    LightList& lightList = rstate.scene->getLights();
     r.material->updateGPU(this);
     createVkResources(r,rstate);
 }
@@ -263,11 +262,11 @@ void VulkanRenderer::render(const RenderState& rstate, const RenderSorter::Rende
     VkPipeline curr_pipeline = mCurrentState.renderPass ? static_cast<VulkanRenderPass*>(r.renderPass) ->m_pipeline : VK_NULL_HANDLE;
     VkCommandBuffer cmdBuffer = mCurrentCmdBuffer;
 
-    //if(item_pipeline != curr_pipeline){
+    if(item_pipeline != curr_pipeline){
         vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                           item_pipeline);
         mCurrentState.renderPass = r.renderPass;
-    //}
+    }
 
     VulkanShader *Vkshader = reinterpret_cast<VulkanShader *>(r.shader);
 
@@ -287,23 +286,23 @@ void VulkanRenderer::render(const RenderState& rstate, const RenderSorter::Rende
     }
     const VulkanIndexBuffer *ibuf = reinterpret_cast<const VulkanIndexBuffer *>(r.mesh->getIndexBuffer());
 
-    if(mCurrentState.mesh != r.mesh) {
-        mCurrentState.mesh = r.mesh;
-        // Bind our vertex buffer, with a 0 offset.
-        VkDeviceSize offsets[1] = {0};
-        VulkanVertexBuffer *vbuf = reinterpret_cast< VulkanVertexBuffer *>(r.mesh->getVertexBuffer());
-        const GVR_VK_Vertices *vert = (vbuf->getVKVertices(r.shader));
+    //if(mCurrentState.mesh != r.mesh) {
+    mCurrentState.mesh = r.mesh;
+    // Bind our vertex buffer, with a 0 offset.
+    VkDeviceSize offsets[1] = {0};
+    VulkanVertexBuffer *vbuf = reinterpret_cast< VulkanVertexBuffer *>(r.mesh->getVertexBuffer());
+    const GVR_VK_Vertices *vert = (vbuf->getVKVertices(r.shader));
 
-        vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &(vert->buf), offsets);
+    vkCmdBindVertexBuffers(cmdBuffer, VERTEX_BUFFER_BIND_ID, 1, &(vert->buf), offsets);
 
-        if (ibuf && ibuf->getIndexCount()) {
-            const GVR_VK_Indices &ind = ibuf->getVKIndices();
-            VkIndexType indexType = (ibuf->getIndexSize() == 2) ? VK_INDEX_TYPE_UINT16
-                                                                : VK_INDEX_TYPE_UINT32;
-            vkCmdBindIndexBuffer(cmdBuffer, ind.buffer, 0, indexType);
-        }
-
+    if (ibuf && ibuf->getIndexCount()) {
+        const GVR_VK_Indices &ind = ibuf->getVKIndices();
+        VkIndexType indexType = (ibuf->getIndexSize() == 2) ? VK_INDEX_TYPE_UINT16
+                                                            : VK_INDEX_TYPE_UINT32;
+        vkCmdBindIndexBuffer(cmdBuffer, ind.buffer, 0, indexType);
     }
+
+    //}
     if (ibuf && ibuf->getIndexCount())
         vkCmdDrawIndexed(cmdBuffer, ibuf->getVKIndices().count, 1, 0, 0, 1);
     else
@@ -407,8 +406,12 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
 #endif
     mCurrentState.reset();
     renderTarget = static_cast<VkRenderTarget *> (renderTarget);
-    Camera* camera = renderTarget->getCamera();
+
+
+    //todo: bug here
     RenderState rstate = renderTarget->getRenderState();
+    Camera* camera = rstate.camera;
+
     rstate.javaSceneObject = javaSceneObject;
     rstate.scene = scene;
     rstate.shader_manager = shader_manager;
@@ -439,9 +442,9 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
         VkRenderTexture* renderTexture = static_cast<VkRenderTexture*>(post_effect_render_texture_a);
         VkRenderTexture* input_texture = renderTexture;
 
-//        renderTexture->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),
-//                                          camera->background_color_b(), camera->background_color_a());
-//        renderTexture->useStencil(this->useStencilBuffer_);
+        renderTexture->setBackgroundColor(camera->background_color_r(), camera->background_color_g(),
+                                          camera->background_color_b(), camera->background_color_a());
+        renderTexture->useStencil(this->useStencilBuffer_);
         renderTexture->beginRendering(this);
         setCurrentCommandBuffer(renderTexture->getCommandBuffer());
         renderTarget->render();
@@ -454,6 +457,7 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
         postEffectCount = post_effects->pass_count();
 
         for (int i = 0; i < postEffectCount-1; i++) {
+
             if (i % 2 == 0)
             {
                 renderTexture = static_cast<VkRenderTexture*>(post_effect_render_texture_b);
@@ -508,6 +512,7 @@ void VulkanRenderer::renderRenderTarget(Scene* scene, jobject javaSceneObject, R
         err = vkWaitForFences(vulkanCore_->getDevice(), 1, &fence, VK_TRUE, 4294967295U);
         GVR_VK_CHECK(!err);
     }
+    rstate.javaSceneObject = nullptr;
 }
 
     /**

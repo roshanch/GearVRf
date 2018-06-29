@@ -107,10 +107,10 @@ bool Renderer::renderPostEffectData(RenderState& rstate, RenderTexture* input_te
         return false;
     }
 
-    if (mPostEffectSorter == nullptr)
-    {
+//    if (mPostEffectSorter == nullptr)
+//    {
         mPostEffectSorter = new RenderSorter(*this, "PostEffectSorter", 8);
-    }
+//    }
 
     RenderSorter::Renderable r;
 
