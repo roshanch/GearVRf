@@ -85,6 +85,7 @@ namespace gvr
         unsigned char           sampleCount;
         unsigned char           u_matrix_offset;      // offset of model matrix
         glm::mat4               u_matrices[MAX_MATRIX];
+        UniformBlock*           sceneUbo = nullptr;
         //todo: we need something like a vk_render_state to have cmd_buffer
         //VkCommandBuffer         cmd_buffer;
     };

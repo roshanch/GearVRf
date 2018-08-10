@@ -59,4 +59,5 @@ void main()
     fragColor = s.diffuse;
 	//fragColor = vec4(diffuse_coord.x, diffuse_coord.y, 1, 1);
 #endif
+
 }

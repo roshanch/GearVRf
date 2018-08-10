@@ -21,6 +21,7 @@ namespace gvr
 {
 void VulkanRenderData::render(Shader* shader, VkCommandBuffer cmdBuffer, int curr_pass){
 
+#if 0
     if(shader == NULL)
         LOGE("Shader is NULL");
 
@@ -68,6 +69,7 @@ void VulkanRenderData::render(Shader* shader, VkCommandBuffer cmdBuffer, int cur
     }
     else
         vkCmdDraw(cmdBuffer, mesh_->getVertexCount(), 1, 0, 1);
+#endif
 
 }
     void VulkanRenderData::bindToShader(Shader* shader, Renderer* renderer)

@@ -105,6 +105,6 @@ void main() {
 //revert this
     gl_Position = mvp * vertex.local_position;
 
-    //gl_Position = vertex.local_position;
+//    gl_Position = vertex.local_position;
 
 }

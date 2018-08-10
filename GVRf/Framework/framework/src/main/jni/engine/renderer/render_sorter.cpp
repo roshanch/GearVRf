@@ -26,6 +26,7 @@
 namespace gvr {
 
 #define NUM_SCENE_MATRICES (MODEL - PROJECTION)
+//#define NUM_SCENE_MATRICES 0
 #define MAX_MATRICES    20
 
 RenderSorter::RenderSorter(Renderer& renderer, const char* name, int numMatrices, bool forceTransformBlock)
@@ -33,6 +34,7 @@ RenderSorter::RenderSorter(Renderer& renderer, const char* name, int numMatrices
         mMemoryPool(nullptr),
         mMaxElems(128),
         mCurBlock(nullptr),
+        mSceneUbo(nullptr),
         mTransBlockIndex(0),
         mName(name),
         mForceTransformBlock(forceTransformBlock),
@@ -51,7 +53,8 @@ RenderSorter::RenderSorter(Renderer& renderer, const char* name, int numMatrices
         mCurBlock->numElems = 0;
     }
     UniformBlock* transformBlock = mRenderer.createTransformBlock(numMatrices);
-    mNumMatricesInBlock = NUM_SCENE_MATRICES;
+    mSceneUbo = mRenderer.createTransformBlock(NUM_SCENE_MATRICES);
+    mNumMatricesInBlock = 0;
     mTransBlockIndex = 0;
     mTransformBlocks.push_back(transformBlock);
     mMaxMatricesPerBlock = transformBlock->getNumElems();
@@ -73,6 +76,7 @@ RenderSorter::~RenderSorter()
             delete transformBlock;
         }
     }
+    delete mSceneUbo;
     mTransformBlocks.clear();
     clear();
 }
@@ -287,7 +291,7 @@ UniformBlock* RenderSorter::updateTransformBlock(Renderable& r, int numMatrices,
             transformBlock = mRenderer.createTransformBlock(mMaxMatricesPerBlock);
             mTransformBlocks.push_back(transformBlock);
         }
-        mNumMatricesInBlock = NUM_SCENE_MATRICES;
+        mNumMatricesInBlock = 0;
     }
     r.matrixOffset = mNumMatricesInBlock;
     mNumMatricesInBlock += numMatrices;
@@ -361,11 +365,12 @@ void RenderSorter::sort(RenderState& rstate)
      * Generate required shaders and update the transforms
      * required for each shader
      */
+    rstate.sceneUbo = mSceneUbo;
     validate(rstate);
     /*
      * Update the transform blocks in the GPU
      */
-    for (auto it = mTransformBlocks.begin(); it != mTransformBlocks.end(); ++it)
+  /*  for (auto it = mTransformBlocks.begin(); it != mTransformBlocks.end(); ++it)
     {
         UniformBlock* transformBlock = *it;
         if ((transformBlock != nullptr) && (transformBlock->getNumElems() > NUM_SCENE_MATRICES))
@@ -377,6 +382,13 @@ void RenderSorter::sort(RenderState& rstate)
             transformBlock->setNumElems(NUM_SCENE_MATRICES);
         }
     }
+*/
+    glm::mat4* matrices = &rstate.u_matrices[PROJECTION];
+    int nbytes = NUM_SCENE_MATRICES * mSceneUbo->getElemSize();
+    mSceneUbo->setRange(0, matrices, NUM_SCENE_MATRICES);
+    mSceneUbo->updateGPU(&mRenderer, 0, nbytes);
+    mSceneUbo->setNumElems(NUM_SCENE_MATRICES);
+
     mTransBlockIndex = 0;
     mNumMatricesInBlock = NUM_SCENE_MATRICES;
     if (rstate.javaEnv)

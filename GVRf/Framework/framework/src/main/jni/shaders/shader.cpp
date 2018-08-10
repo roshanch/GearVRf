@@ -64,7 +64,7 @@ Shader::Shader(int id,
     }
     else if (mUseMatrixUniforms)
     {
-        mOutputBufferSize = 2;
+        mOutputBufferSize = 1;
     }
 }
 

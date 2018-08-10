@@ -44,12 +44,21 @@ namespace gvr {
         GVR_Uniform& getBuffer() { return m_bufferInfo; }
 
         GVR_Uniform m_bufferInfo;
-        const VkWriteDescriptorSet& getDescriptorSet();
+        const VkWriteDescriptorSet& getWriteDescriptorSet();
         void setDescriptorSet(VkDescriptorSet descriptorSet){
             writeDescriptorSet.dstSet = descriptorSet;
         }
         VkDescriptorSetLayoutBinding getLayoutBinding(){
             return  layout_binding;
+        }
+        VkDescriptorSet getDescriptorSet(){
+            return writeDescriptorSet.dstSet;
+        }
+        void setDescriptorLayout(VkDescriptorSetLayout descriptorSetLayout){
+            this->descriptorSetLayout = descriptorSetLayout;
+        }
+        VkDescriptorSetLayout getDescriptorSetLayout(){
+            return descriptorSetLayout;
         }
         char * getUniformData() { return mUniformData; }
         virtual bool setFloatVec(const char *name, const float *val, int n);
@@ -57,7 +66,8 @@ namespace gvr {
     protected:
 
         void updateBuffer(VulkanCore* vk, int start, int len);
-        VkWriteDescriptorSet writeDescriptorSet;
+        VkWriteDescriptorSet writeDescriptorSet = {};
+        VkDescriptorSetLayout descriptorSetLayout = 0;
         VkDescriptorSetLayoutBinding layout_binding;
     };
 }

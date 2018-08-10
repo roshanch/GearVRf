@@ -332,6 +332,8 @@ protected:
     bool            mForceTransformBlock;   // force all shaders to use the transform block
     glm::mat4       mOutputMatrices[10];    // temporary output matrix storage
     std::vector<UniformBlock*> mTransformBlocks; // list of transform blocks
+    UniformBlock*   mSceneUbo;
+
 };
 
 

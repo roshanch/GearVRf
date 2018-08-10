@@ -33,9 +33,8 @@ namespace gvr
 struct VulkanRenderPass : public RenderPass
 {
     virtual ~VulkanRenderPass() {}
-    bool descriptorSetNull = true;
     VkPipeline m_pipeline = 0;
-    VkDescriptorSet m_descriptorSet = 0;
+    std::vector<VkDescriptorSet> mDescriptorSets;
 };
 
 
@@ -64,28 +63,15 @@ struct VulkanRenderPass : public RenderPass
             return renderPass->m_pipeline;
 
         }
-        bool isDescriptorSetNull(int pass){
-            VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
-            return renderPass->descriptorSetNull;
-        }
-        VkDescriptorSet getDescriptorSet(int pass)
+
+        std::vector<VkDescriptorSet> getDescriptorSet(int pass)
         {
             VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
-            return renderPass->m_descriptorSet;
+            return renderPass->mDescriptorSets;
         }
         void setPipeline(VkPipeline pipeline, int pass){
             VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
             renderPass->m_pipeline = pipeline;
-
-        }
-        void setDescriptorSet(VkDescriptorSet descriptorSet, int pass){
-            VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
-            renderPass->m_descriptorSet= descriptorSet;
-
-        }
-        void setDescriptorSetNull(bool flag, int pass){
-            VulkanRenderPass* renderPass = static_cast<VulkanRenderPass*>(render_pass_list_[pass]);
-            renderPass->descriptorSetNull = flag;
 
         }
         void generateVbos(const std::string& descriptor, VulkanRenderer* renderer, Shader* shader){

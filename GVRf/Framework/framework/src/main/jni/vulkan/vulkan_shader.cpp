@@ -41,14 +41,14 @@ void VulkanShader::initialize()
 {
 }
 
-int VulkanShader::makeLayout(std::vector<VkDescriptorSetLayoutBinding>& layoutBinding, RenderSorter::Renderable& r, LightList& lights)
+int VulkanShader::makeLayout(std::vector<VkDescriptorSetLayoutBinding>& layoutBinding, RenderSorter::Renderable& r, LightList& lights,  RenderState& rstate)
 {
     VulkanMaterial* vkmtl = static_cast<VulkanMaterial*>(r.renderPass->material());
     VulkanRenderData* vkdata = static_cast<VulkanRenderData*>(r.renderData);
 
     VkDescriptorSetLayoutBinding dummy_binding ={} ;
     if (usesMatrixUniforms()) {
-        VulkanUniformBlock* ubo = static_cast<VulkanUniformBlock*>(r.transformBlock);
+        VulkanUniformBlock* ubo = static_cast<VulkanUniformBlock*>(rstate.sceneUbo);
         layoutBinding.emplace_back(ubo->getLayoutBinding());
     }
     else {

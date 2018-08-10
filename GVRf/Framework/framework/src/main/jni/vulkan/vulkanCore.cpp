@@ -798,7 +798,7 @@ void VulkanCore::InitCommandPools(){
         GVR_VK_CHECK(!ret);
     }
 
-    void VulkanCore::InitLayoutRenderData(RenderSorter::Renderable& r, LightList& lights) {
+    void VulkanCore::InitLayoutRenderData(RenderSorter::Renderable& r, LightList& lights, RenderState& rstate) {
 
         if (!r.shader->isShaderDirty())
             return;
@@ -807,6 +807,7 @@ void VulkanCore::InitCommandPools(){
         DataDescriptor &uniformDescriptor = r.shader->getUniformDescriptor();
         bool transformUboPresent = r.shader->usesMatrixUniforms();
         VulkanMaterial* vkmtl = static_cast<VulkanMaterial*>(r.renderPass->material());
+        VulkanUniformBlock* transformUbo = static_cast<VulkanUniformBlock*>(r.transformBlock);
 
         if (textureDescriptor.getNumEntries() == 0 && uniformDescriptor.getNumEntries() == 0 && !transformUboPresent && !lights.getLightCount())
             return;
@@ -817,16 +818,33 @@ void VulkanCore::InitCommandPools(){
         VkResult ret = VK_SUCCESS;
 
         std::vector<VkDescriptorSetLayoutBinding> layoutBinding;
-        vk_shader->makeLayout(layoutBinding, r, lights);
+        vk_shader->makeLayout(layoutBinding, r, lights, rstate);
 
-        VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(r.shader)->getDescriptorLayout();
-
+        VkDescriptorSetLayout descriptorLayout;
+        VkDescriptorSetLayout transform_descriptorLayout = transformUbo->getDescriptorSetLayout();
         ret = vkCreateDescriptorSetLayout(m_device, gvr::DescriptorSetLayoutCreateInfo(0,
                                                                                        layoutBinding.size(),
                                                                                        layoutBinding.data()),
                                           nullptr,
                                           &descriptorLayout);
         GVR_VK_CHECK(!ret);
+        VkDescriptorSetLayoutBinding transformUboBinding = transformUbo->getLayoutBinding();
+        // multiple renderables share transformUbo which contains descriptorset and descriptorLayout
+        // if previous renderable has not created descriptorLayout, create it now.
+        if(transform_descriptorLayout == 0) {
+            ret = vkCreateDescriptorSetLayout(m_device, gvr::DescriptorSetLayoutCreateInfo(0,
+                                                                                           1,
+                                                                                           &transformUboBinding),
+                                              nullptr,
+                                              &transform_descriptorLayout);
+            static_cast<VulkanUniformBlock*>(r.transformBlock)->setDescriptorLayout(transform_descriptorLayout);
+        }
+
+        vk_shader->addDescriptorSetLayout(descriptorLayout);
+        vk_shader->addDescriptorSetLayout(transform_descriptorLayout);
+
+
+        std::vector<VkDescriptorSetLayout> descLayouts = vk_shader->getDescriptorLayout();
 
         VkPipelineLayout &pipelineLayout = static_cast<VulkanShader *>(r.shader)->getPipelineLayout();
 
@@ -836,7 +854,7 @@ void VulkanCore::InitCommandPools(){
         pushConstantRange.stageFlags                    = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT;
 
         ret = vkCreatePipelineLayout(m_device,
-                                     gvr::PipelineLayoutCreateInfo(0, 1, &descriptorLayout, 1,&pushConstantRange),
+                                     gvr::PipelineLayoutCreateInfo(0, 2, descLayouts.data(), 1,&pushConstantRange),
                                      nullptr, &pipelineLayout);
 
         GVR_VK_CHECK(!ret);
@@ -1443,7 +1461,7 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {};
         descriptorPoolCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
         descriptorPoolCreateInfo.pNext = nullptr;
-        descriptorPoolCreateInfo.maxSets = 1;
+        descriptorPoolCreateInfo.maxSets = 2;
         descriptorPoolCreateInfo.poolSizeCount = 3;
         descriptorPoolCreateInfo.pPoolSizes = poolSize;
 
@@ -1452,7 +1470,7 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         GVR_VK_CHECK(!err);
     }
 
-    bool VulkanCore::InitDescriptorSetForRenderData(RenderSorter::Renderable& r, LightList& lights) {
+    bool VulkanCore::InitDescriptorSetForRenderData(RenderSorter::Renderable& r, LightList& lights,RenderState& rstate) {
 
         const DataDescriptor& textureDescriptor = r.shader->getTextureDescriptor();
         DataDescriptor &uniformDescriptor = r.shader->getUniformDescriptor();
@@ -1467,25 +1485,32 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         VulkanShader* vkShader = static_cast<VulkanShader*>(r.shader);
         bool bones_present = r.shader->hasBones();
 
+        VkDescriptorSet transformDescriptorset = static_cast<VulkanUniformBlock*>(r.transformBlock)->getDescriptorSet();
+
         std::vector<VkWriteDescriptorSet> writes;
         VkDescriptorPool descriptorPool;
         GetDescriptorPool(descriptorPool);
-        VkDescriptorSetLayout &descriptorLayout = static_cast<VulkanShader *>(r.shader)->getDescriptorLayout();
+        std::vector<VkDescriptorSetLayout> descriptorLayouts = vkShader->getDescriptorLayout();
         VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
         descriptorSetAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         descriptorSetAllocateInfo.pNext = nullptr;
         descriptorSetAllocateInfo.descriptorPool = descriptorPool;
-        descriptorSetAllocateInfo.descriptorSetCount = 1;
-        descriptorSetAllocateInfo.pSetLayouts = &descriptorLayout;
+        descriptorSetAllocateInfo.descriptorSetCount = (transformDescriptorset == 0 ? 2 : 1);
+        descriptorSetAllocateInfo.pSetLayouts = descriptorLayouts.data();
 
-        VkDescriptorSet descriptorSet;
-        VkResult err = vkAllocateDescriptorSets(m_device, &descriptorSetAllocateInfo, &descriptorSet);
+        std::vector<VkDescriptorSet> descriptorSets(2);
+        VkResult err = vkAllocateDescriptorSets(m_device, &descriptorSetAllocateInfo, descriptorSets.data());
         GVR_VK_CHECK(!err);
 
         VulkanRenderPass * rp = static_cast<VulkanRenderPass*>(r.renderPass);
         if(vkShader->isDepthShader())
             rp = render_data->getShadowRenderPass();
-        rp->m_descriptorSet = descriptorSet;
+
+        rp->mDescriptorSets = descriptorSets;
+
+        if(transformDescriptorset != 0)
+            rp->mDescriptorSets[1] = transformDescriptorset;
+
 
 //        // transform ubo is common for multiple sceneobjects, just update offset and range
 //        if (transformUboPresent) {
@@ -1500,20 +1525,24 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
 //            writeDescriptorSet.dstSet = descriptorSet;
 //            writes.emplace_back(std::move(writeDescriptorSet));
 //        }
-
+        if(rstate.sceneUbo){
+            VkWriteDescriptorSet desc =  static_cast<VulkanUniformBlock*>(rstate.sceneUbo)->getWriteDescriptorSet();
+            desc.dstSet = rp->mDescriptorSets[0];
+            writes.push_back(desc);
+        }
         if (uniformDescriptor.getNumEntries()) {
-            static_cast<VulkanUniformBlock&>(vkmtl->uniforms()).setDescriptorSet(descriptorSet);
-            writes.push_back(static_cast<VulkanUniformBlock&>(vkmtl->uniforms()).getDescriptorSet());
+            static_cast<VulkanUniformBlock&>(vkmtl->uniforms()).setDescriptorSet(rp->mDescriptorSets[0]);
+            writes.push_back(static_cast<VulkanUniformBlock&>(vkmtl->uniforms()).getWriteDescriptorSet());
         }
 
         if(render_data->mesh()->hasBones() && bones_present){
-            static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->setDescriptorSet(descriptorSet);
-            writes.push_back(static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->getDescriptorSet());
+            static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->setDescriptorSet(rp->mDescriptorSets[0]);
+            writes.push_back(static_cast<VulkanUniformBlock*>(render_data->getBonesUbo())->getWriteDescriptorSet());
         }
 
         if(lights.getUBO() != nullptr){
-            VkWriteDescriptorSet desc =  static_cast<VulkanUniformBlock*>(lights.getUBO())->getDescriptorSet();
-            desc.dstSet = descriptorSet;
+            VkWriteDescriptorSet desc =  static_cast<VulkanUniformBlock*>(lights.getUBO())->getWriteDescriptorSet();
+            desc.dstSet = rp->mDescriptorSets[0];
             writes.push_back(desc);
         }
 
@@ -1531,7 +1560,7 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
 
                 write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
                 write.dstBinding = 4;
-                write.dstSet = descriptorSet;
+                write.dstSet = rp->mDescriptorSets[0];
                 write.descriptorCount = 1;
                 write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
                 write.pImageInfo = &(static_cast<VkRenderTexture *>(rt->getTexture())->getDescriptorImage(
@@ -1540,12 +1569,10 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
             }
         }
 
-        if(vkShader->bindTextures(vkmtl, writes,  descriptorSet) == false)
+        if(vkShader->bindTextures(vkmtl, writes,  rp->mDescriptorSets[0]) == false)
             return false;
 
         vkUpdateDescriptorSets(m_device, writes.size(), writes.data(), 0, nullptr);
-
-        vk_renderPass->descriptorSetNull = false;
 
         LOGI("Vulkan after update descriptor");
         return true;
@@ -1558,20 +1585,18 @@ void VulkanCore::InitPipelineForRenderData(RenderSorter::Renderable&r, RenderSta
         bool transformUboPresent = r.shader->usesMatrixUniforms();
         VulkanRenderPass * rp = static_cast<VulkanRenderPass*>(r.renderPass);
 
-        std::vector<VkWriteDescriptorSet> writes;
         // transform ubo is common for multiple sceneobjects, just update offset and range
-        if (transformUboPresent && rp->m_descriptorSet) {
+        if (transformUboPresent) {
             VulkanUniformBlock* ubo =  static_cast<VulkanUniformBlock*>(r.transformBlock);
             GVR_Uniform bufferInfo = ubo->getBuffer();
             bufferInfo.bufferInfo.offset = r.matrixOffset* sizeof(glm::mat4);
             bufferInfo.bufferInfo.range  = vkShader->getOutputBufferSize() * sizeof(glm::mat4);
 
-            VkWriteDescriptorSet writeDescriptorSet = static_cast<VulkanUniformBlock*>(r.transformBlock)->getDescriptorSet();
+            VkWriteDescriptorSet writeDescriptorSet = static_cast<VulkanUniformBlock*>(r.transformBlock)->getWriteDescriptorSet();
             const VkDescriptorBufferInfo* info = new VkDescriptorBufferInfo(bufferInfo.bufferInfo);
             writeDescriptorSet.pBufferInfo = info;
-            writeDescriptorSet.dstSet = rp->m_descriptorSet;
-            writes.emplace_back(std::move(writeDescriptorSet));
-            vkUpdateDescriptorSets(m_device, writes.size(), writes.data(), 0, nullptr);
+            writeDescriptorSet.dstSet = rp->mDescriptorSets[1];
+            vkUpdateDescriptorSets(m_device, 1, &writeDescriptorSet, 0, nullptr);
         }
 
     }

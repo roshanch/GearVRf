@@ -138,11 +138,11 @@ public:
 //
 //    bool InitDescriptorSetForRenderData(VulkanRenderer* renderer, int pass, Shader*, VulkanRenderData* vkData, LightList *lights, VulkanMaterial* vkmtl);
 //=======
-    void InitLayoutRenderData(RenderSorter::Renderable& r, LightList& lights);
+    void InitLayoutRenderData(RenderSorter::Renderable& r, LightList& lights, RenderState& rstate);
 
     void initCmdBuffer(VkCommandBufferLevel level,VkCommandBuffer& cmdBuffer);
 
-    bool InitDescriptorSetForRenderData(RenderSorter::Renderable&r, LightList& lights);
+    bool InitDescriptorSetForRenderData(RenderSorter::Renderable&r, LightList& lights, RenderState& rstate);
 
     void updateTransformDescriptors(RenderSorter::Renderable&r);
 //>>>>>>> 68dd0213... validate all vulkan resources
